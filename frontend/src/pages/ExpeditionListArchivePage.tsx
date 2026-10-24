@@ -11,7 +11,8 @@ import {
 } from "../api/hooks/useExpeditionListArchive";
 import { useToast } from "../contexts/ToastContext";
 import { useScreenView } from "../telemetry/useScreenView";
-import ExpeditionJobControlsBar from "../components/pages/ExpeditionListArchive/ExpeditionJobControlsBar";
+import ExpeditionJobControlsBar from "../components/pages/Expedition/ExpeditionJobControlsBar";
+import { formatDateTime } from "../components/pages/Expedition/formatDateTime";
 
 const PAGE_SIZE = 20;
 
@@ -20,17 +21,6 @@ const formatFileSize = (bytes: number | null): string => {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
-const formatDateTime = (iso: string | null): string => {
-  if (!iso) return "–";
-  return new Date(iso).toLocaleString("cs-CZ", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 };
 
 const ExpeditionListArchivePage: React.FC = () => {

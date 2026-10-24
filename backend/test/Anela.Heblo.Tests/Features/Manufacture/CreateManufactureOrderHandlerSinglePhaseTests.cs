@@ -67,11 +67,11 @@ public class CreateManufactureOrderHandlerSinglePhaseTests
         _repositoryMock.Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("MO-2023-001");
 
-        var catalogProduct = new CatalogAggregate
+        var catalogProduct = new ProductCatalogSnapshot
         {
             ProductCode = "TEST001",
             ProductName = "Test Product",
-            Properties = new CatalogProperties { ExpirationMonths = 12 }
+            Properties = new ProductPropertiesSnapshot { ExpirationMonths = 12 }
         };
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync("TEST001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(catalogProduct);
@@ -133,11 +133,11 @@ public class CreateManufactureOrderHandlerSinglePhaseTests
         _repositoryMock.Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("MO-2023-001");
 
-        var catalogProduct = new CatalogAggregate
+        var catalogProduct = new ProductCatalogSnapshot
         {
             ProductCode = "TEST001",
             ProductName = "Test Product",
-            Properties = new CatalogProperties { ExpirationMonths = 12 }
+            Properties = new ProductPropertiesSnapshot { ExpirationMonths = 12 }
         };
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync("TEST001", It.IsAny<CancellationToken>()))
             .ReturnsAsync(catalogProduct);

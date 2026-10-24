@@ -51,7 +51,7 @@ public class CalculateBatchBySizeHandlerTests
             }
         };
 
-        var product = new CatalogAggregate
+        var product = new ProductCatalogSnapshot
         {
             ProductCode = productCode,
             ProductName = "Test Product",
@@ -65,7 +65,7 @@ public class CalculateBatchBySizeHandlerTests
             .ReturnsAsync(product);
 
         _catalogRepositoryMock.Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, CatalogAggregate>());
+            .ReturnsAsync(new Dictionary<string, ProductCatalogSnapshot>());
 
         var request = new CalculatedBatchSizeRequest
         {
@@ -138,7 +138,7 @@ public class CalculateBatchBySizeHandlerTests
             .ReturnsAsync(template);
 
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((CatalogAggregate?)null);
+            .ReturnsAsync((ProductCatalogSnapshot?)null);
 
         var request = new CalculatedBatchSizeRequest
         {
@@ -167,7 +167,7 @@ public class CalculateBatchBySizeHandlerTests
             Ingredients = new List<Ingredient>()
         };
 
-        var product = new CatalogAggregate
+        var product = new ProductCatalogSnapshot
         {
             ProductCode = productCode,
             ProductName = "Test Product",
@@ -216,7 +216,7 @@ public class CalculateBatchBySizeHandlerTests
             }
         };
 
-        var product = new CatalogAggregate
+        var product = new ProductCatalogSnapshot
         {
             ProductCode = productCode,
             ProductName = "Test Product",
@@ -230,7 +230,7 @@ public class CalculateBatchBySizeHandlerTests
             .ReturnsAsync(product);
 
         _catalogRepositoryMock.Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, CatalogAggregate>());
+            .ReturnsAsync(new Dictionary<string, ProductCatalogSnapshot>());
 
         var request = new CalculatedBatchSizeRequest
         {

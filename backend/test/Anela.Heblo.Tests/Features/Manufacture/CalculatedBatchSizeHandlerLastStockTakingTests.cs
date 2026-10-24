@@ -67,31 +67,31 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
             }
         };
 
-        var product = new CatalogAggregate
+        var product = new ProductCatalogSnapshot
         {
             ProductCode = productCode,
             ProductName = "Test Product",
             MinimalManufactureQuantity = 500.0
         };
 
-        var ingredient1 = new CatalogAggregate
+        var ingredient1 = new ProductCatalogSnapshot
         {
             ProductCode = "INGREDIENT-1",
             ProductName = "Test Ingredient 1",
-            Stock = new StockData { Erp = 1000.0m },
-            StockTakingHistory = new List<StockTakingRecord>
+            Stock = new ProductStockSnapshot { Erp = 1000.0m },
+            StockTakingHistory = new List<ProductStockTakingSnapshot>
             {
-                new StockTakingRecord { Date = stockTakingDate1, Code = "INGREDIENT-1" },
-                new StockTakingRecord { Date = stockTakingDate2, Code = "INGREDIENT-1" } // Most recent
+                new ProductStockTakingSnapshot { Date = stockTakingDate1, Code = "INGREDIENT-1" },
+                new ProductStockTakingSnapshot { Date = stockTakingDate2, Code = "INGREDIENT-1" } // Most recent
             }
         };
 
-        var ingredient2 = new CatalogAggregate
+        var ingredient2 = new ProductCatalogSnapshot
         {
             ProductCode = "INGREDIENT-2",
             ProductName = "Test Ingredient 2",
-            Stock = new StockData { Erp = 2000.0m },
-            StockTakingHistory = new List<StockTakingRecord>() // No stock taking history
+            Stock = new ProductStockSnapshot { Erp = 2000.0m },
+            StockTakingHistory = new List<ProductStockTakingSnapshot>() // No stock taking history
         };
 
         _mockManufactureClient
@@ -104,7 +104,7 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
 
         _mockCatalogRepository
             .Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IReadOnlyDictionary<string, CatalogAggregate>)new Dictionary<string, CatalogAggregate>
+            .ReturnsAsync((IReadOnlyDictionary<string, ProductCatalogSnapshot>)new Dictionary<string, ProductCatalogSnapshot>
             {
                 { ingredient1.ProductCode, ingredient1 },
                 { ingredient2.ProductCode, ingredient2 }
@@ -157,19 +157,19 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
             }
         };
 
-        var product = new CatalogAggregate
+        var product = new ProductCatalogSnapshot
         {
             ProductCode = productCode,
             ProductName = "Test Product",
             MinimalManufactureQuantity = 500.0
         };
 
-        var ingredient = new CatalogAggregate
+        var ingredient = new ProductCatalogSnapshot
         {
             ProductCode = "INGREDIENT-1",
             ProductName = "Test Ingredient 1",
-            Stock = new StockData { Erp = 1000.0m },
-            StockTakingHistory = new List<StockTakingRecord>() // No stock taking history
+            Stock = new ProductStockSnapshot { Erp = 1000.0m },
+            StockTakingHistory = new List<ProductStockTakingSnapshot>() // No stock taking history
         };
 
         _mockManufactureClient
@@ -182,7 +182,7 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
 
         _mockCatalogRepository
             .Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IReadOnlyDictionary<string, CatalogAggregate>)new Dictionary<string, CatalogAggregate>
+            .ReturnsAsync((IReadOnlyDictionary<string, ProductCatalogSnapshot>)new Dictionary<string, ProductCatalogSnapshot>
             {
                 { ingredient.ProductCode, ingredient }
             });
@@ -228,7 +228,7 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
             }
         };
 
-        var product = new CatalogAggregate
+        var product = new ProductCatalogSnapshot
         {
             ProductCode = productCode,
             ProductName = "Test Product",
@@ -245,7 +245,7 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
 
         _mockCatalogRepository
             .Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IReadOnlyDictionary<string, CatalogAggregate>)new Dictionary<string, CatalogAggregate>()); // No ingredients found
+            .ReturnsAsync((IReadOnlyDictionary<string, ProductCatalogSnapshot>)new Dictionary<string, ProductCatalogSnapshot>()); // No ingredients found
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -286,7 +286,7 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
             }
         };
 
-        var product = new CatalogAggregate { ProductCode = productCode, MinimalManufactureQuantity = 500.0 };
+        var product = new ProductCatalogSnapshot { ProductCode = productCode, MinimalManufactureQuantity = 500.0 };
 
         _mockManufactureClient
             .Setup(x => x.GetManufactureTemplateAsync(productCode, It.IsAny<CancellationToken>()))
@@ -298,7 +298,7 @@ public class CalculatedBatchSizeHandlerLastStockTakingTests
 
         _mockCatalogRepository
             .Setup(x => x.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((IReadOnlyDictionary<string, CatalogAggregate>)new Dictionary<string, CatalogAggregate>());
+            .ReturnsAsync((IReadOnlyDictionary<string, ProductCatalogSnapshot>)new Dictionary<string, ProductCatalogSnapshot>());
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);

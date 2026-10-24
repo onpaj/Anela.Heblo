@@ -4,7 +4,7 @@ kind: module
 module: expedition-list-archive
 summary: Archive of every printed picking list by day, with download and one-click reprint to the warehouse printer.
 owns: []
-verified_at: "5e993f9e2"
+verified_at: "0579d9662"
 related:
   - flow-picking-list
   - flow-expedition-list-reprint
@@ -49,6 +49,7 @@ written by the expedition-list module's print sink; this module only reads it.
 - Where no CUPS sink is registered (`AzureBlob` sink: staging, development), reprint falls back to the blob sink and uploads a `{guid}.pdf` copy into today's folder instead of printing, while reporting success.
 - Container name (`ExpeditionListArchive:BlobContainerName`) and connection string (`FileStorage:BlobConnectionString`) are configured separately from the uploader's `ExpeditionList:*` keys; a mismatch shows an empty archive.
 - No retention or cleanup; the archive grows forever.
+- Downloading a blob that no longer exists returns HTTP 404 with `BlobNotFound` (1805); an invalid blob path returns 400. Reprint is unchanged and still propagates blob exceptions.
 
 ## Code entry points
 - `backend/src/Anela.Heblo.Application/Features/ExpeditionListArchive/ExpeditionListArchiveModule.cs` — DI, reprint sink selection

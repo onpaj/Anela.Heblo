@@ -542,11 +542,11 @@ public class ResidueDistributionCalculatorTests
 
     private void SetupCatalogWithThreshold(string productCode, double allowedResiduePercentage)
     {
-        var catalogItem = new CatalogAggregate
+        var catalogItem = new ProductCatalogSnapshot
         {
             ProductCode = productCode,
             ProductName = "Semi Product",
-            Properties = new CatalogProperties
+            Properties = new ProductPropertiesSnapshot
             {
                 AllowedResiduePercentage = allowedResiduePercentage
             }

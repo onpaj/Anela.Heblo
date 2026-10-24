@@ -30,7 +30,7 @@ owns:
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Manufacture/FlexiManufactureException.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Manufacture/FlexiExtensions.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Manufacture/Internal/**
-verified_at: "af88adac0"
+verified_at: "8161c408c"
 related:
   - flow-manufacture-order
   - flow-manufactured-inventory

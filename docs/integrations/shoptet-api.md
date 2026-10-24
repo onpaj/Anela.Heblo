@@ -1277,7 +1277,7 @@ echo | openssl s_client -servername "$EXPORT_HOST" -connect "$EXPORT_HOST:443" 2
 
 **Resilience configuration:** Per-attempt timeout 120 s, 3 Polly retries with exponential + jitter backoff (base 2 s). Hangfire auto-retry is disabled on this job (`[AutomaticRetry(Attempts = 0)]`); all retry logic lives in Polly only. See `ProductExportOptions` for tunables (`HeadTimeout`, `DownloadTimeout`, `MaxRetryAttempts`, `RetryBaseDelay`).
 
-**Related code:** `ProductExportDownloadJob`, `DownloadFromUrlHandler`, `DownloadResilienceService`, `AzureBlobStorageService.DownloadFromUrlAsync`.
+**Related code:** `ProductExportDownloadJob`, `DownloadFromUrlHandler`, `DownloadResilienceService`, `AzureBlobStorageService.UploadAsync`.
 
 ---
 
