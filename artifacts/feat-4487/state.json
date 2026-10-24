@@ -1,0 +1,66 @@
+{
+  "feature_id": "feat-4487",
+  "issue_number": 4487,
+  "created_at": "2026-10-24T00:09:35.329964Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-24T00:10:54.999022Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-24T00:10:55.356614Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-24T00:10:55.646398Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-24T23:09:28.638042Z"
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-defaults-helper",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-provisioner",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "add-reader",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "rewire-consumers",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "update-existing-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "docs-and-validate",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
+}
