@@ -103,33 +103,34 @@ export function ExplainModal({
           )}
 
           {!isLoading && !error && !!relevantTranscript && (
-            <>
-              <div>
-                <p className="text-xs font-semibold uppercase text-gray-500 dark:text-graphite-muted mb-2">Záznam konverzace</p>
-                {dialogTurns ? (
-                  <div className="space-y-3">
-                    {dialogTurns.map((turn, i) => (
-                      <div key={i} className="flex flex-col gap-0.5">
-                        <span className={`self-start text-xs font-semibold px-1.5 py-0.5 rounded ${speakerColorMap.get(turn.speaker)}`}>
-                          {turn.speaker}
-                        </span>
-                        <p className="text-sm text-gray-800 dark:text-graphite-muted pl-1">{turn.text}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-md border border-gray-200 dark:border-graphite-border bg-gray-50 dark:bg-graphite-surface-2 p-3 text-sm text-gray-800 dark:text-graphite-muted whitespace-pre-wrap">
-                    {relevantTranscript}
-                  </div>
-                )}
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase text-gray-500 dark:text-graphite-muted mb-1">Vysvětlení</p>
-                <div className="rounded-md border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-300">
-                  {explanation}
+            <div>
+              <p className="text-xs font-semibold uppercase text-gray-500 dark:text-graphite-muted mb-2">Záznam konverzace</p>
+              {dialogTurns ? (
+                <div className="space-y-3">
+                  {dialogTurns.map((turn, i) => (
+                    <div key={i} className="flex flex-col gap-0.5">
+                      <span className={`self-start text-xs font-semibold px-1.5 py-0.5 rounded ${speakerColorMap.get(turn.speaker)}`}>
+                        {turn.speaker}
+                      </span>
+                      <p className="text-sm text-gray-800 dark:text-graphite-muted pl-1">{turn.text}</p>
+                    </div>
+                  ))}
                 </div>
+              ) : (
+                <div className="rounded-md border border-gray-200 dark:border-graphite-border bg-gray-50 dark:bg-graphite-surface-2 p-3 text-sm text-gray-800 dark:text-graphite-muted whitespace-pre-wrap">
+                  {relevantTranscript}
+                </div>
+              )}
+            </div>
+          )}
+
+          {!isLoading && !error && !!explanation && (
+            <div>
+              <p className="text-xs font-semibold uppercase text-gray-500 dark:text-graphite-muted mb-1">Vysvětlení</p>
+              <div className="rounded-md border border-blue-100 bg-blue-50 p-3 text-sm text-blue-900 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-300">
+                {explanation}
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>
