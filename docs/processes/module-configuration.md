@@ -4,7 +4,7 @@ kind: module
 module: configuration
 summary: Tells the Heblo web app which version and environment it is talking to (shown in the status bar) and lets it notice a new deployment and offer a refresh.
 owns: []
-verified_at: "f68c439ec"
+verified_at: "f43f53dc"
 related: []
 ---
 
@@ -40,8 +40,8 @@ How each value is resolved (`GetConfigurationHandler`):
 
 | Field | Source, first hit wins | Fallback |
 |---|---|---|
-| `version` | config key `APP_VERSION` (set as an App Setting by the deploy workflows `ci-main-branch.yml` / `deploy-staging-manual.yml`, and `staging-main-<sha>` by `e2e-nightly-regression.yml`) → `AssemblyInformationalVersion` of the Application assembly → assembly version | `"1.0.0"` (`ConfigurationConstants.DEFAULT_VERSION`) |
-| `environment` | config key `ASPNETCORE_ENVIRONMENT` | `"Production"` (`DEFAULT_ENVIRONMENT`) |
+| `version` | config key `APP_VERSION` (set as an App Setting by the deploy workflows `ci-main-branch.yml` / `deploy-staging-manual.yml`, and `staging-main-<sha>` by `e2e-nightly-regression.yml`) → `AssemblyInformationalVersion` of the Application assembly → assembly version | `"1.0.0"` (`DefaultVersion` const in the handler) |
+| `environment` | config key `ASPNETCORE_ENVIRONMENT` | `"Production"` (`DefaultEnvironment`) |
 | `useMockAuth` | config key `UseMockAuth` | `false` |
 
 ## Data owned
@@ -66,8 +66,7 @@ None.
   is loading or if it fails.
 
 ## Code entry points
-- `backend/src/Anela.Heblo.Application/Features/Configuration/GetConfigurationHandler.cs` — value resolution
-- `backend/src/Anela.Heblo.Domain/Features/Configuration/ConfigurationConstants.cs` — fallbacks
+- `backend/src/Anela.Heblo.Application/Features/Configuration/GetConfigurationHandler.cs` — value resolution and fallbacks
 - `backend/src/Anela.Heblo.API/Controllers/ConfigurationController.cs` — endpoint
 - `frontend/src/services/versionService.ts`, `frontend/src/hooks/useVersionCheck.ts` — new-version toast
 - `frontend/src/components/StatusBar.tsx` — status bar

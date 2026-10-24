@@ -33,7 +33,7 @@ public class CalculateBatchPlanHandlerTests
         // Set up default behavior for catalog repository to avoid null reference exceptions
         _catalogRepositoryMock
             .Setup(x => x.GetByIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync((CatalogAggregate?)null);
+            .ReturnsAsync((ProductCatalogSnapshot?)null);
 
         _handler = new CalculateBatchPlanHandler(
             _batchPlanningServiceMock.Object,
@@ -216,5 +216,136 @@ public class CalculateBatchPlanHandlerTests
         _timePeriodResolverMock.Verify(
             x => x.Resolve(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()),
             Times.Never);
+    }
+
+    private void SetupProductTemplate(ManufactureType type, params Ingredient[] ingredients)
+    {
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync("PROD001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ProductCatalogSnapshot { ProductCode = "PROD001", Type = ProductKind.Product });
+
+        _manufactureClientMock
+            .Setup(x => x.GetManufactureTemplateAsync("PROD001", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ManufactureTemplate
+            {
+                ProductCode = "PROD001",
+                ManufactureType = type,
+                Ingredients = ingredients.ToList()
+            });
+    }
+
+    private async Task<CalculateBatchPlanRequest> HandleAndCaptureForwardedRequest(CalculateBatchPlanRequest request)
+    {
+        CalculateBatchPlanRequest? forwarded = null;
+        _batchPlanningServiceMock
+            .Setup(x => x.CalculateBatchPlan(It.IsAny<CalculateBatchPlanRequest>(), It.IsAny<IReadOnlyList<DateRange>>(), It.IsAny<CancellationToken>()))
+            .Callback<CalculateBatchPlanRequest, IReadOnlyList<DateRange>, CancellationToken>((r, _, _) => forwarded = r)
+            .ReturnsAsync(new CalculateBatchPlanResponse { Success = true });
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        Assert.NotNull(forwarded);
+        return forwarded!;
+    }
+
+    private static CalculateBatchPlanRequest NewProductRequest() => new()
+    {
+        ProductCode = "PROD001",
+        ControlMode = BatchPlanControlMode.MmqMultiplier,
+        MmqMultiplier = 1.0
+    };
+
+    [Fact]
+    public async Task Handle_ProductMultiPhase_DoesNotMutateRequestAndForwardsSemiproductCode()
+    {
+        SetupProductTemplate(
+            ManufactureType.MultiPhase,
+            new Ingredient { ProductCode = "SEMI001", ProductType = ProductType.SemiProduct });
+        var request = NewProductRequest();
+
+        var forwarded = await HandleAndCaptureForwardedRequest(request);
+
+        Assert.Equal("PROD001", request.ProductCode);
+        Assert.Null(request.ManufactureType);
+        Assert.NotSame(request, forwarded);
+        Assert.Equal("SEMI001", forwarded.ProductCode);
+        Assert.Equal(ManufactureType.MultiPhase, forwarded.ManufactureType);
+    }
+
+    [Fact]
+    public async Task Handle_ProductSinglePhase_KeepsProductCodeAndDoesNotMutateRequest()
+    {
+        SetupProductTemplate(
+            ManufactureType.SinglePhase,
+            new Ingredient { ProductCode = "SEMI001", ProductType = ProductType.SemiProduct });
+        var request = NewProductRequest();
+
+        var forwarded = await HandleAndCaptureForwardedRequest(request);
+
+        Assert.Null(request.ManufactureType);
+        Assert.Equal("PROD001", request.ProductCode);
+        Assert.Equal("PROD001", forwarded.ProductCode);
+        Assert.Equal(ManufactureType.SinglePhase, forwarded.ManufactureType);
+    }
+
+    [Fact]
+    public async Task Handle_ProductMultiPhaseWithoutSemiproductIngredient_ForwardsOriginalProductCode()
+    {
+        SetupProductTemplate(
+            ManufactureType.MultiPhase,
+            new Ingredient { ProductCode = "MAT001", ProductType = ProductType.Material });
+        var request = NewProductRequest();
+
+        var forwarded = await HandleAndCaptureForwardedRequest(request);
+
+        Assert.Equal("PROD001", request.ProductCode);
+        Assert.Equal("PROD001", forwarded.ProductCode);
+        Assert.Equal(ManufactureType.MultiPhase, forwarded.ManufactureType);
+    }
+
+    [Fact]
+    public async Task Handle_ProductRequest_ForwardedRequestCopiesAllOtherProperties()
+    {
+        SetupProductTemplate(
+            ManufactureType.MultiPhase,
+            new Ingredient { ProductCode = "SEMI001", ProductType = ProductType.SemiProduct });
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "PROD001",
+            FromDate = new DateTime(2026, 1, 1),
+            ToDate = new DateTime(2026, 2, 1),
+            TimePeriod = TimePeriod.Q9M,
+            SalesMultiplier = 1.7,
+            ControlMode = BatchPlanControlMode.TotalWeight,
+            MmqMultiplier = 2.5,
+            TotalWeightToUse = 1234.5,
+            TargetDaysCoverage = 42,
+            ProductConstraints = new List<ProductSizeConstraint>
+            {
+                new() { ProductCode = "PROD001-A", IsFixed = true, FixedQuantity = 3 }
+            },
+            DirectSemiproductAmount = 99.9,
+            ManufactureType = null
+        };
+        _timePeriodResolverMock
+            .Setup(x => x.Resolve(It.IsAny<TimePeriod>(), It.IsAny<DateTime?>(), It.IsAny<DateTime?>()))
+            .Returns(new[] { new DateRange(new DateTime(2026, 1, 1), new DateTime(2026, 2, 1)) });
+
+        var forwarded = await HandleAndCaptureForwardedRequest(request);
+
+        var excluded = new[] { nameof(CalculateBatchPlanRequest.ProductCode), nameof(CalculateBatchPlanRequest.ManufactureType) };
+        var properties = typeof(CalculateBatchPlanRequest)
+            .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .Where(p => p.CanRead && p.CanWrite && !excluded.Contains(p.Name))
+            .ToList();
+
+        Assert.NotEmpty(properties);
+        foreach (var property in properties)
+        {
+            Assert.True(
+                Equals(property.GetValue(request), property.GetValue(forwarded)),
+                $"Property {property.Name} was not copied to the forwarded request.");
+            Assert.NotNull(property.GetValue(request));
+        }
     }
 }

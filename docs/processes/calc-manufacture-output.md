@@ -11,7 +11,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Manufacture/ManufactureHistoryRecord.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Manufacture/FlexiManufactureHistoryClient.cs
   - backend/src/Anela.Heblo.API/Controllers/ManufactureOutputController.cs
-verified_at: "5e993f9e2"
+verified_at: "8161c408c"
 related:
   - feed-manufacture-to-flexi
   - calc-margins

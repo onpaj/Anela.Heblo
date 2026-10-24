@@ -19,6 +19,11 @@
 #              "worktree": "...", "base": "...", "head": "...", "files": [...]}
 # Statuses, per step:
 #   prepare  conflicted | merged-clean | claimed-elsewhere | not-open | error
+#            | flagged
+#            (`error` carries git's own stderr in `detail`. The same error
+#            recurring PREPARE_ERROR_FLAG_THRESHOLD times for one PR is no
+#            longer treated as transient: the PR is flagged `needs-work` with
+#            the captured error and reported `flagged`.)
 #   finish   pushed | unresolved | push-failed | error
 #   abort    flagged
 # Always exits 0 once arguments validate — this script reports, it never
@@ -42,6 +47,12 @@ AGENT_WIP_LABEL="agent-wip"
 # Must match rework-pr/SKILL.md's own push-retry cap: something else wrote
 # to the branch mid-run, which is a race worth retrying, not a conflict.
 PUSH_MAX_ATTEMPTS=3
+# How many identical `prepare` failures one PR may log before it stops being
+# "infrastructure, try again next sweep" and is flagged needs-work. Without a
+# bound, a PR GitHub reports CONFLICTING whose merge fails locally for a
+# reason this script cannot fix looped every sweep, silently, forever.
+PREPARE_ERROR_FLAG_THRESHOLD=3
+PREPARE_ERROR_MARKER="agentharness:hygiene-prepare-error"
 
 PR=""; STEP=""; DETAIL_ARG=""
 while [ $# -gt 0 ]; do
@@ -134,6 +145,48 @@ label_remove() {  # label
 
 release_claim() { label_remove "$AGENT_WIP_LABEL" >/dev/null 2>&1 || true; }
 
+pr_comments_json() {
+  if [ -n "${USE_GH_API:-}" ]; then
+    GH_REPO="$REPO" "$LIB" paginate "repos/$REPO/issues/$PR/comments" 2>/dev/null
+  else
+    gh api --paginate "repos/$REPO/issues/$PR/comments" 2>/dev/null
+  fi
+}
+
+pr_comment_body() {  # text
+  local f; f=$(mktemp)
+  printf '%s\n' "$1" > "$f"
+  if [ -n "${USE_GH_API:-}" ]; then
+    GH_REPO="$REPO" "$LIB" pr-comment "$PR" "$f" >/dev/null 2>&1
+  else
+    gh pr comment "$PR" --repo "$REPO" --body-file "$f" >/dev/null 2>&1
+  fi
+  local rc=$?
+  rm -f "$f"
+  return $rc
+}
+
+# Records one `prepare` failure on the PR (a marker comment keyed by a
+# signature of the error text) and returns 0 once the same error has now been
+# seen PREPARE_ERROR_FLAG_THRESHOLD times. The count is read back from the
+# PR's own comments, so it survives across runs, machines and sandboxes
+# without any local state.
+record_prepare_error() {  # detail
+  local sig seen
+  sig=$(printf '%s' "$1" | cksum | awk '{print $1}')
+  # Key on the marker + signature; slurp so paginated output (one JSON array
+  # per page) is counted as a whole.
+  seen=$(pr_comments_json | jq -s --arg m "<!-- $PREPARE_ERROR_MARKER:$sig -->" \
+    '[.[] | if type == "array" then .[] else . end | (.body // "") | select(contains($m))] | length' 2>/dev/null || echo 0)
+  pr_comment_body "<!-- $PREPARE_ERROR_MARKER:$sig -->
+Hygiene could not prepare a merge of the base branch into this PR (occurrence $((seen + 1)) of $PREPARE_ERROR_FLAG_THRESHOLD before it is flagged \`needs-work\`):
+
+\`\`\`
+$1
+\`\`\`" || true
+  [ $((seen + 1)) -ge "$PREPARE_ERROR_FLAG_THRESHOLD" ]
+}
+
 # --- git --------------------------------------------------------------------
 
 TOPLEVEL=$(git rev-parse --show-toplevel 2>/dev/null) || {
@@ -220,12 +273,28 @@ if [ "$STEP" = "prepare" ]; then
   fail_prepare() {  # detail
     remove_worktree
     release_claim
-    report "error" "$1"
+    if record_prepare_error "$1"; then
+      if flag_out=$(GH_REPO="$REPO" "$FLAG_NEEDS_WORK" --pr "$PR" --status prepare-error \
+          --detail "hygiene could not prepare the merge $PREPARE_ERROR_FLAG_THRESHOLD times in a row: $1" 2>&1); then
+        report "flagged" "$1 (same error $PREPARE_ERROR_FLAG_THRESHOLD times in a row; flagged needs-work)"
+      else
+        report "error" "$1 (same error $PREPARE_ERROR_FLAG_THRESHOLD times in a row; could not flag needs-work: $flag_out)"
+      fi
+    else
+      report "error" "$1"
+    fi
     exit 0
   }
 
-  git -C "$TOPLEVEL" fetch origin "$BASE_REF" "$HEAD_REF" >/dev/null 2>&1 \
-    || fail_prepare "could not fetch $BASE_REF/$HEAD_REF from origin"
+  fetch_out=$(git -C "$TOPLEVEL" fetch origin "$BASE_REF" "$HEAD_REF" 2>&1) \
+    || fail_prepare "could not fetch $BASE_REF/$HEAD_REF from origin: $fetch_out"
+  # A shallow clone cannot find the merge base, so `git merge` dies with
+  # "refusing to merge unrelated histories" on a PR GitHub reports as merely
+  # conflicting. Deepen to full history first; best-effort, since a
+  # non-shallow clone makes this a no-op error that is safe to ignore.
+  if [ "$(git -C "$TOPLEVEL" rev-parse --is-shallow-repository 2>/dev/null)" = "true" ]; then
+    git -C "$TOPLEVEL" fetch --unshallow origin >/dev/null 2>&1 || true
+  fi
   git -C "$TOPLEVEL" worktree prune >/dev/null 2>&1 || true
 
   if [ -d "$WORKTREE" ]; then
@@ -233,20 +302,20 @@ if [ "$STEP" = "prepare" ]; then
     # rather than fought with — but only after being reset to exactly the
     # PR head, so no stale merge state or edit leaks into this resolution.
     git -C "$WORKTREE" merge --abort >/dev/null 2>&1 || true
-    git -C "$WORKTREE" checkout --detach --force "origin/$HEAD_REF" >/dev/null 2>&1 \
-      || fail_prepare "could not check out origin/$HEAD_REF in $WORKTREE"
-    git -C "$WORKTREE" reset --hard "origin/$HEAD_REF" >/dev/null 2>&1 \
-      || fail_prepare "could not reset $WORKTREE to origin/$HEAD_REF"
+    git_out=$(git -C "$WORKTREE" checkout --detach --force "origin/$HEAD_REF" 2>&1) \
+      || fail_prepare "could not check out origin/$HEAD_REF in $WORKTREE: $git_out"
+    git_out=$(git -C "$WORKTREE" reset --hard "origin/$HEAD_REF" 2>&1) \
+      || fail_prepare "could not reset $WORKTREE to origin/$HEAD_REF: $git_out"
     git -C "$WORKTREE" clean -fdq >/dev/null 2>&1 || true
   else
     # Detached on purpose: the local branch may be checked out in the main
     # working copy, and this run has no business moving it. The push in
     # `finish` uses `HEAD:$HEAD_REF`, so no local branch is needed.
-    git -C "$TOPLEVEL" worktree add --detach "$WORKTREE" "origin/$HEAD_REF" >/dev/null 2>&1 \
-      || fail_prepare "could not create worktree at $WORKTREE"
+    git_out=$(git -C "$TOPLEVEL" worktree add --detach "$WORKTREE" "origin/$HEAD_REF" 2>&1) \
+      || fail_prepare "could not create worktree at $WORKTREE: $git_out"
   fi
 
-  if git -C "$WORKTREE" merge "origin/$BASE_REF" --no-edit >/dev/null 2>&1; then
+  if merge_out=$(git -C "$WORKTREE" merge "origin/$BASE_REF" --no-edit 2>&1); then
     : > "$(conflicted_list_file)"
     report "merged-clean" "origin/$BASE_REF merged into the PR head with no conflict; nothing to resolve by hand"
     exit 0
@@ -260,7 +329,9 @@ if [ "$STEP" = "prepare" ]; then
     # The merge failed without leaving conflicted paths — a dirty worktree,
     # a missing ref, something structural. Not a conflict a caller can edit
     # its way out of, so don't leave the claim or the half-merge behind.
-    fail_prepare "git merge origin/$BASE_REF failed without producing conflicted files"
+    # Keep git's own words: the old fixed message hid the real cause (shallow
+    # history, a dirty tree, an identity error...) behind "failed".
+    fail_prepare "git merge origin/$BASE_REF failed without producing conflicted files: ${merge_out:-<no output>}"
   fi
   printf '%s\0' "${conflicted[@]}" > "$(conflicted_list_file)"
   FILES_JSON=$(files_json_from_args "${conflicted[@]}")

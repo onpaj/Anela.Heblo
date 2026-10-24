@@ -1,10 +1,12 @@
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Common.Behaviors;
 using Anela.Heblo.Application.Features.FileStorage;
+using Anela.Heblo.Application.Features.FileStorage.Contracts;
 using Anela.Heblo.Application.Features.FileStorage.Infrastructure;
 using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
 using Anela.Heblo.Application.Features.FileStorage.Validators;
@@ -84,8 +86,8 @@ public class FileStorageValidationPipelineTests
         result.Params.Should().ContainKey("containerName").WhoseValue.Should().Be("INVALID_UPPERCASE");
         result.Params.Should().ContainKey("cause").WhoseValue.Should().Be("validation");
         blobStorage.Verify(
-            s => s.DownloadFromUrlAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            s => s.UploadAsync(
+                It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -113,8 +115,8 @@ public class FileStorageValidationPipelineTests
         result.Params.Should().ContainKey("fileUrl").WhoseValue.Should().Be("not-a-url");
         result.Params.Should().ContainKey("cause").WhoseValue.Should().Be("validation");
         blobStorage.Verify(
-            s => s.DownloadFromUrlAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            s => s.UploadAsync(
+                It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -124,8 +126,8 @@ public class FileStorageValidationPipelineTests
         // Arrange
         var blobStorage = new Mock<IBlobStorageService>();
         blobStorage
-            .Setup(s => s.DownloadFromUrlAsync(
-                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .Setup(s => s.UploadAsync(
+                It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync("https://mock.blob.core.windows.net/documents/file.txt");
 
         var resilience = new Mock<IDownloadResilienceService>();
@@ -152,8 +154,8 @@ public class FileStorageValidationPipelineTests
         result.Success.Should().BeTrue();
         result.ContainerName.Should().Be("documents");
         blobStorage.Verify(
-            s => s.DownloadFromUrlAsync(
-                It.IsAny<string>(), "documents", It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+            s => s.UploadAsync(
+                It.IsAny<Stream>(), "documents", It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 

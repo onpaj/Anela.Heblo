@@ -71,13 +71,41 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+# The cloud sandbox's GitHub proxy refuses some write paths outright with
+# HTTP 403 "Write access to this GitHub API path is not permitted through this
+# proxy". That is an environment limit, not a statement about the PR, and it
+# used to vanish into a generic "could not label ..." caveat while the
+# caller carried on as if the follow-up writes had happened. Every failed
+# write is recorded here; a proxy refusal additionally sets `proxy_blocked`,
+# and the JSON lists exactly which steps did not run so the caller can redo
+# them another way (e.g. through the GitHub MCP server).
+PROXY_BLOCK_RE='not permitted through this proxy'
+PROXY_BLOCKED=false
+SKIPPED_STEPS='[]'
+
+note_failure() {  # step, target, error-output
+  if printf '%s' "$3" | grep -qi "$PROXY_BLOCK_RE"; then
+    PROXY_BLOCKED=true
+  fi
+  SKIPPED_STEPS=$(jq -cn --argjson cur "$SKIPPED_STEPS" --arg step "$1" --arg target "$2" --arg err "$3" \
+    '$cur + [{step: $step, target: $target, error: $err}]')
+}
+
 report() {  # status, detail
   # jq -n handles escaping (quotes, newlines, backslashes) correctly for any
   # $2 content — a hand-built printf JSON string breaks on multi-line `gh`
   # stderr, which is exactly what this function exists to report safely.
+  local status="$1"
+  # A merge that landed but whose follow-up writes were refused by the proxy
+  # is not a clean "ok": say so in the status itself.
+  if [ "$status" = "ok" ] && $PROXY_BLOCKED; then status="partial"; fi
   jq -n --argjson pr "${PR:-null}" --arg action "$ACTION" \
-    --arg status "$1" --arg detail "$2" \
-    '{pr: $pr, action: $action, status: $status, detail: $detail}'
+    --arg status "$status" --arg detail "$2" \
+    --argjson proxy_blocked "$PROXY_BLOCKED" --argjson skipped_steps "$SKIPPED_STEPS" \
+    '{pr: $pr, action: $action, status: $status, detail: $detail}
+     + (if ($skipped_steps | length) > 0
+        then {proxy_blocked: $proxy_blocked, skipped_steps: $skipped_steps}
+        else {} end)'
 }
 
 fail() { report "failed" "$1"; exit 1; }
@@ -107,8 +135,10 @@ if [ -z "$REPO" ]; then
 fi
 
 # Always post the review first: it is the audit trail for whatever follows.
-pr_comment_file "$PR" "$REVIEW_FILE" \
-  || fail "could not post review comment"
+if ! out=$(pr_comment_file "$PR" "$REVIEW_FILE" 2>&1); then
+  note_failure "post review comment" "PR #$PR" "$out"
+  fail "could not post review comment: $out"
+fi
 
 case "$ACTION" in
   comment)
@@ -116,9 +146,10 @@ case "$ACTION" in
     # future sweep re-reviews and re-comments on this same PR forever. Flag
     # it so candidates.sh excludes it until a human clears the label.
     label_create "$HUMAN_REQUIRED_LABEL" fbca04 "Agent review is unsure; needs a human decision"
-    if pr_add_label "$PR" "$HUMAN_REQUIRED_LABEL"; then
+    if out=$(pr_add_label "$PR" "$HUMAN_REQUIRED_LABEL" 2>&1); then
       report "ok" "review posted, flagged $HUMAN_REQUIRED_LABEL"
     else
+      note_failure "add label $HUMAN_REQUIRED_LABEL" "PR #$PR" "$out"
       report "ok" "review posted, but could not add $HUMAN_REQUIRED_LABEL label"
     fi
     ;;
@@ -126,8 +157,10 @@ case "$ACTION" in
   needs-work)
     # Label may not exist yet; creating it is best-effort and idempotent.
     label_create "$NEEDS_WORK_LABEL" d93f0b "Agent review found blocking problems"
-    pr_add_label "$PR" "$NEEDS_WORK_LABEL" \
-      || fail "could not add $NEEDS_WORK_LABEL label"
+    if ! out=$(pr_add_label "$PR" "$NEEDS_WORK_LABEL" 2>&1); then
+      note_failure "add label $NEEDS_WORK_LABEL" "PR #$PR" "$out"
+      fail "could not add $NEEDS_WORK_LABEL label: $out"
+    fi
     report "ok" "review posted, flagged $NEEDS_WORK_LABEL"
     ;;
 
@@ -148,14 +181,16 @@ case "$ACTION" in
           printf 'This PR became unmergeable before the merge completed — the default branch moved underneath it (commonly because an earlier PR in the same batch was just merged).\n\npr: %s\nscore: 0\nverdict: REJECT\nrisk: high\nreasons:\n  - merge conflict: %s\nconcerns: needs a rebase/merge against the current default branch, or /rework-pr\n' \
             "$PR" "$merge_err" > "$reject_file"
           label_create "$NEEDS_WORK_LABEL" d93f0b "Agent review found blocking problems"
-          if ! pr_comment_file "$PR" "$reject_file"; then
+          if ! out=$(pr_comment_file "$PR" "$reject_file" 2>&1); then
             rm -f "$reject_file"
+            note_failure "post needs-work comment" "PR #$PR" "$out"
             fail "became unmergeable, and could not post the needs-work comment: ${merge_err}"
           fi
           rm -f "$reject_file"
-          if pr_add_label "$PR" "$NEEDS_WORK_LABEL"; then
+          if out=$(pr_add_label "$PR" "$NEEDS_WORK_LABEL" 2>&1); then
             report "needs-work" "became unmergeable before merge (default branch moved underneath it); flagged $NEEDS_WORK_LABEL"
           else
+            note_failure "add label $NEEDS_WORK_LABEL" "PR #$PR" "$out"
             report "needs-work" "became unmergeable before merge (default branch moved underneath it); could not add $NEEDS_WORK_LABEL label"
           fi
           exit 1
@@ -163,6 +198,7 @@ case "$ACTION" in
         *)
           # jq -n in report() escapes this correctly now, so the raw
           # message can be passed through unmodified.
+          note_failure "merge PR" "PR #$PR" "$merge_err"
           fail "merge failed: ${merge_err}" ;;
       esac
     fi
@@ -171,9 +207,10 @@ case "$ACTION" in
       # mirrors the needs-work path so a missing label can't turn a
       # successful merge into a reported failure.
       label_create "$MERGED_ISSUE_LABEL" 0e8a16 "Auto-merged by /automerge-pr"
-      if issue_add_label "$ISSUE" "$MERGED_ISSUE_LABEL"; then
+      if out=$(issue_add_label "$ISSUE" "$MERGED_ISSUE_LABEL" 2>&1); then
         report "ok" "squash-merged, branch deleted, issue #$ISSUE labelled"
       else
+        note_failure "add label $MERGED_ISSUE_LABEL" "issue #$ISSUE" "$out"
         # The merge already succeeded — a labelling failure must not be
         # reported as a failed PR, or the orchestrator would tell the user
         # a merge failed after master already moved.

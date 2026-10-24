@@ -10,4 +10,7 @@ public class DownloadExpeditionListResponse : BaseResponse
 
     public static DownloadExpeditionListResponse Fail() =>
         new() { Success = false, ErrorCode = ErrorCodes.InvalidBlobPath };
+
+    public static DownloadExpeditionListResponse NotFound() =>
+        new() { Success = false, ErrorCode = ErrorCodes.BlobNotFound };
 }

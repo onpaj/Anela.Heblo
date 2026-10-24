@@ -19,7 +19,7 @@ issue_list_json() {  # state, label
   if [[ -n "${USE_GH_API:-}" ]]; then
     GH_REPO="$REPO" "$LIB" issue-list "$1" "$2"
   else
-    gh issue list --repo "$REPO" --state "$1" --label "$2" --limit 100 --json number,title,createdAt
+    gh issue list --repo "$REPO" --state "$1" --label "$2" --limit 100 --json number,title,createdAt,labels
   fi
 }
 
@@ -33,6 +33,14 @@ commit_data_for() {  # ref
 
 AGENT_LABEL="agent"
 PLANNING_LABEL="agent-planning"
+# An issue carrying this label needs a human. It is also the label
+# _lib/decline_issue.sh applies when a run declines a candidate, so a
+# declined issue drops out of every later run instead of heading the queue
+# forever.
+BLOCKED_LABEL="agent-blocked"
+EPIC_LABEL="epic"
+# Epic trackers are containers for sub-issues, never something to plan.
+EPIC_TITLE_RE='^[Ee]pic(:|\s|$)'
 STALE_MINUTES="${STALE_MINUTES:-10}"
 [[ "$STALE_MINUTES" =~ ^[0-9]+$ ]] || { echo "ERROR: STALE_MINUTES must be a non-negative integer, got: $STALE_MINUTES" >&2; exit 1; }
 
@@ -70,11 +78,18 @@ fresh_skipped="[]"
 
 for n in $sorted_agent_numbers; do
   issue_obj=$(echo "$agent_json" | jq --argjson n "$n" '.[] | select(.number == $n)')
-  # Epics are trackers whose stories are separate issues -- planning one
-  # duplicates the sub-issues' work and would be re-picked every cycle.
-  if echo "$issue_obj" | jq -e '(.title | test("^epic[:\\s]"; "i")) or ([.labels[]?.name] | index("epic"))' >/dev/null; then
+  # Head-of-line guard: an issue that cannot be planned by an unattended run
+  # must never be returned, or every cycle re-picks it, declines it, and the
+  # whole queue starves behind it.
+  if echo "$issue_obj" | jq -e --arg b "$BLOCKED_LABEL" '[(.labels // [])[].name] | index($b)' >/dev/null; then
+    fresh_skipped=$(echo "$fresh_skipped" | jq --argjson n "$n" --arg b "$BLOCKED_LABEL" \
+      '. + [{number: $n, reason: ("labelled " + $b + " (needs a human)")}]')
+    continue
+  fi
+  if echo "$issue_obj" | jq -e --arg e "$EPIC_LABEL" --arg re "$EPIC_TITLE_RE" \
+      '([(.labels // [])[].name] | index($e)) or ((.title // "") | test($re))' >/dev/null; then
     fresh_skipped=$(echo "$fresh_skipped" | jq --argjson n "$n" \
-      '. + [{number: $n, reason: "epic tracker issue -- plan its sub-issues instead"}]')
+      '. + [{number: $n, reason: "epic tracker (not plannable)"}]')
     continue
   fi
   ref=$(git ls-remote --heads origin "feature/${n}-*" | head -1 | awk '{print $2}' | sed 's#refs/heads/##')

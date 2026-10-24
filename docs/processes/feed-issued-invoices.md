@@ -19,7 +19,7 @@ owns:
   - backend/src/Anela.Heblo.Persistence/Invoices/IssuedInvoiceSyncDataConfiguration.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/IssuedInvoices/**
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Invoices/**
-verified_at: "5e993f9e2"
+verified_at: "909a84d9d"
 related: []
 ---
 
@@ -119,7 +119,7 @@ always targets the same Flexi document.
 | Due date | `dueDate` | `datSplat` |
 | Variable symbol | `varSymbol` | `varSym` |
 | Currency | `price.currencyCode` (default CZK) | `mena = code:{CZK/EUR}` |
-| Customer | `billingAddress.fullName`, street, city, `countryCode`, `companyId`, `vatId` | `nazFirmy` = **full name** (company name is not sent), `ulice`, `mesto`, `stat = code:{country}`, `ic`, `dic` |
+| Customer | `billingAddress.fullName`, street, city, `countryCode`, `companyId`, `vatId` | `nazFirmy` = **full name** (company name is not sent), `ulice`, `mesto`, `stat = code:{country}` (empty country → `code:CZ`), `ic`, `dic` |
 | Payment | `billingMethod.id` 1 Dobírka→`DOBIRKA`, 2 Převodem→`PREVOD`, 3 Hotově→`HOTOVE`, 4 Kartou→`KARTA`; unknown id → by name (`bankTransfer`/`Převodem`, `cash`, `cashOnDelivery`, `creditCard`/`Kartou`, `comgate`→`KARTA`); else `PREVOD` (warning logged) | `formaUhradyCis` |
 | Delivery | keyword in **item names**: exact `PPL - ParcelShop` or contains `PPL` → `PPL`; `Osobn` → `OSOBNÍ ODBĚR`; `GLS` → `GLS`; `zásilk` → `ZASILKOVNA`; nothing → `OSOBNÍ ODBĚR` | `formaDopravy` |
 | VAT payer flag | `billingAddress.vatId` non-empty | — (Heblo `VatPayer` only) |
@@ -136,7 +136,7 @@ always targets the same Flexi document.
   totals go to `sumZklMen`/`sumCelkemMen` and the CZK ones are nulled.
 - VAT rate: Shoptet numeric → named → Flexi: 21 → `high` → `typSzbDph.dphZakl`;
   12 and 15 → `first` → `dphSniz`; 10 → `second` → `dphSniz2`; 0 → `zero` → `dphOsv`;
-  anything else → `dphZakl`. `kopClenKonVykDph`/`kopClenDph` = true copy the VAT-report classification from the price list.
+  anything else → `dphZakl`. `kopClenKonVykDph`/`kopClenDph` = true copy the VAT-report classification from the price list — except gift `GOODYDO0001`, which sends an explicit `clenDph = code:000U` with `kopClenDph = false` (the price list would give `01-02`).
 - Price list `cenik = code:{Code}` and warehouse `sklad = code:ZBOZI` — except rows whose code is
   empty or starts with `SHIPPING`/`BILLING` (no price list, no warehouse), non-stock rows
   (no warehouse) and code `DARBAL` (warehouse removed by the SDK).
@@ -144,7 +144,7 @@ always targets the same Flexi document.
 **Transformations (in this order)**
 | Transformation | Effect |
 |---|---|
-| `GiftWithoutVATIssuedInvoiceImportTransformation` | Product `GOODYDO0001` (free gift) is marked non-stock → no warehouse. The Flexi profile also books it to credit account `zklDalUcet = code:325002`. Despite the name it does **not** change VAT. |
+| `GiftWithoutVATIssuedInvoiceImportTransformation` | Product `GOODYDO0001` (free gift) is marked non-stock → no warehouse. The Flexi profile also books it to credit account `zklDalUcet = code:325002`. Despite the name it does **not** change VAT; the VAT classification (`clenDph = code:000U`) is set in the Flexi mapping profile. |
 | `RemoveDAtTheEndOfProductCodeIssuedInvoiceImportTransformation` | **No-op** (TODO in code): meant to turn `TON100050D` into `TON100050`. |
 | `ProductMappingIssuedInvoiceImportTransformation` | Item code `ProductMapping:ShoptetCode` (`1287`) → `ProductMapping:ErpCode` (`SLU000001`). |
 
@@ -152,7 +152,7 @@ always targets the same Flexi document.
 - `Price` = invoice total **with VAT**: Shoptet `toPay` when it differs from `withVat` by < 1 Kč
   (absorbs the "Zaokrouhlení" rounding line), else `withVat`; and if that header value differs
   from the item sum by ≥ 1 Kč (e.g. a deposit was deducted) the item sum is used instead. The
-  item sum for this check skips zero-VAT rows. `PriceC` is never written (always 0).
+  item sum for this check includes zero-VAT rows (e.g. a donation line), as the Shoptet header total does. `PriceC` is never written (always 0).
 - `Currency`, `InvoiceDate` (= `creationTime`), `TaxDate` (= Shoptet `taxDate`), `DueDate`,
   `VarSymbol`, `BillingMethod`, `ShippingMethod`, `VatPayer`, `ItemsCount` (number of item rows
   after removing discount rows — shipping and payment rows **are** counted),
@@ -178,6 +178,16 @@ always targets the same Flexi document.
   treat as a different metric, not a bug — same source — 2026-09-16.
 
 ## Known quirks
+- **Rows imported before the zero-VAT fix hold a too-low `Price`.** Until this fix is deployed the item-sum
+  fallback skipped 0 % rows, so any invoice whose header total differed from the item sum by 1 Kč
+  or more because of a 0 % line (e.g. the `GOODYDO0001` donation) stored the sum without it — invoice
+  126020763: 9 350,76 instead of 9 400,00. Flexi always received the row. Stored `Price` is only
+  corrected by **Znovu importovat**; monthly revenue for those months stays understated.
+- **Empty billing country defaults to `CZ`.** Shoptet orders without an address are possible
+  (only `fullName` set, `countryCode` empty); `code:` alone makes Flexi answer HTTP 400
+  "Zadaný text 'code:' musí identifikovat objekt" on `stat` (invoice 126020860, 2026-09-29).
+  The mapper now sends `code:CZ` when the country is null/blank. Failed invoices are not retried
+  automatically — re-import them with **Znovu importovat** after the fix is deployed.
 - **Failures are never retried automatically.** The nightly job only imports yesterday; an
   invoice Flexi rejected stays `IsSynced = false` until someone presses **Znovu importovat** or
   runs a manual import. This is the likely source of the ~20 % unsynced rows.

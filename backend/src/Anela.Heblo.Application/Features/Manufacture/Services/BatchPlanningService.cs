@@ -2,7 +2,6 @@ using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
 
@@ -45,7 +44,7 @@ public class BatchPlanningService : IBatchPlanningService
         }
     }
 
-    private double CalculateDailySalesRate(CatalogAggregate product, IReadOnlyList<DateRange> salesRanges, double salesMultiplier = 1.0)
+    private double CalculateDailySalesRate(ProductCatalogSnapshot product, IReadOnlyList<DateRange> salesRanges, double salesMultiplier = 1.0)
     {
         var baseDailySalesRate = _consumptionRateCalculator.CalculateDailySalesRate(product.SalesHistory, salesRanges);
         return Math.Round(baseDailySalesRate * salesMultiplier, 2);
@@ -55,7 +54,7 @@ public class BatchPlanningService : IBatchPlanningService
         List<BatchPlanItemDto> batchPlanItems,
         CalculateBatchPlanRequest request,
         double availableVolume,
-        CatalogAggregate semiproduct,
+        ProductCatalogSnapshot semiproduct,
         double directSemiproductAmount = 0)
     {
         // First, handle fixed products
@@ -145,7 +144,7 @@ public class BatchPlanningService : IBatchPlanningService
         };
     }
 
-    private ProductBatch CreateProductBatch(List<BatchPlanItemDto> flexibleProducts, CatalogAggregate semiproduct, double availableVolume, double remainingVolume)
+    private ProductBatch CreateProductBatch(List<BatchPlanItemDto> flexibleProducts, ProductCatalogSnapshot semiproduct, double availableVolume, double remainingVolume)
     {
         var variants = flexibleProducts.Select(product => new ProductVariant
         {
@@ -222,7 +221,7 @@ public class BatchPlanningService : IBatchPlanningService
     }
 
     private BatchPlanItemDto CreateBatchPlanItem(
-        CatalogAggregate product,
+        ProductCatalogSnapshot product,
         CalculateBatchPlanRequest request,
         IReadOnlyList<DateRange> salesRanges,
         string? productName = null)
@@ -251,7 +250,7 @@ public class BatchPlanningService : IBatchPlanningService
     }
 
     private (double targetProduction, double availableVolume) CalculateTargetProductionAndVolume(
-        CatalogAggregate product,
+        ProductCatalogSnapshot product,
         CalculateBatchPlanRequest request,
         double dailySalesRate)
     {
@@ -278,7 +277,7 @@ public class BatchPlanningService : IBatchPlanningService
     }
 
     private (double targetProductionUnits, double totalWeight) CalculateSinglePhaseTargetProduction(
-        CatalogAggregate product,
+        ProductCatalogSnapshot product,
         CalculateBatchPlanRequest request,
         double dailySalesRate)
     {

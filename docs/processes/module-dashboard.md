@@ -4,7 +4,7 @@ kind: module
 module: dashboard
 summary: The personal home page (Dashboard) — a per-user, reorderable grid of tiles that each show one live number or short list from another Heblo module.
 owns: []
-verified_at: "5e993f9e2"
+verified_at: "0cffacd62"
 related:
   - calc-dashboard-tiles
   - sync-weather-forecast
@@ -120,6 +120,9 @@ Hangfire storage (`failedjobs`). Each of these is read-only.
   no tile declares `RequiredPermissions`. An older frontend role-vs-permission comparison bug
   (memory note `gotcha_role_gate_search`) no longer applies: `Dashboard.tsx` does not filter by
   permissions any more.
+- **Enable/disable tile status codes.** `POST tiles/{tileId}/enable` and `.../disable` return
+  400 with a `BaseResponse` error body when `TileId` is empty, and 200 with the handler response
+  otherwise (via `HandleResponse`).
 
 ## Code entry points
 - `backend/src/Anela.Heblo.API/Controllers/DashboardController.cs` — the six endpoints.

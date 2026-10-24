@@ -3,7 +3,6 @@ using Anela.Heblo.Application.Features.Logistics.Contracts.Models;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Contracts;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
-using Anela.Heblo.Domain.Features.Manufacture;
 using AutoMapper;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -13,7 +12,7 @@ namespace Anela.Heblo.Tests.Features.Logistics;
 
 public class GiftPackageManufactureServiceTests
 {
-    private readonly Mock<IManufactureClient> _manufactureClientMock;
+    private readonly Mock<IGiftPackageBomSource> _bomSourceMock;
     private readonly Mock<IGiftPackageManufactureRepository> _giftPackageRepositoryMock;
     private readonly Mock<ILogisticsCatalogSource> _catalogSourceMock;
     private readonly Mock<ILogisticsStockOperationService> _stockOperationServiceMock;
@@ -25,7 +24,7 @@ public class GiftPackageManufactureServiceTests
 
     public GiftPackageManufactureServiceTests()
     {
-        _manufactureClientMock = new Mock<IManufactureClient>();
+        _bomSourceMock = new Mock<IGiftPackageBomSource>();
         _giftPackageRepositoryMock = new Mock<IGiftPackageManufactureRepository>();
         _catalogSourceMock = new Mock<ILogisticsCatalogSource>();
         _stockOperationServiceMock = new Mock<ILogisticsStockOperationService>();
@@ -56,7 +55,7 @@ public class GiftPackageManufactureServiceTests
                 (operation, ct) => operation(ct));
 
         _service = new GiftPackageManufactureService(
-            _manufactureClientMock.Object,
+            _bomSourceMock.Object,
             _giftPackageRepositoryMock.Object,
             _catalogSourceMock.Object,
             _stockOperationServiceMock.Object,
@@ -123,9 +122,9 @@ public class GiftPackageManufactureServiceTests
         _catalogSourceMock
             .Setup(x => x.GetGiftPackageAsync(giftPackageCode, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        _manufactureClientMock
+        _bomSourceMock
             .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTestProductParts());
+            .ReturnsAsync(CreateTestLogisticsGiftPackageParts());
 
         _catalogSourceMock
             .Setup(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
@@ -181,9 +180,9 @@ public class GiftPackageManufactureServiceTests
         _catalogSourceMock
             .Setup(x => x.GetGiftPackageAsync(giftPackageCode, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        _manufactureClientMock
+        _bomSourceMock
             .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTestProductParts());
+            .ReturnsAsync(CreateTestLogisticsGiftPackageParts());
 
         _catalogSourceMock
             .Setup(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
@@ -254,9 +253,9 @@ public class GiftPackageManufactureServiceTests
         _catalogSourceMock
             .Setup(x => x.GetGiftPackageAsync(giftPackageCode, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        _manufactureClientMock
+        _bomSourceMock
             .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTestProductParts());
+            .ReturnsAsync(CreateTestLogisticsGiftPackageParts());
         _catalogSourceMock
             .Setup(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, LogisticsCatalogItem>
@@ -339,9 +338,9 @@ public class GiftPackageManufactureServiceTests
         _catalogSourceMock
             .Setup(x => x.GetGiftPackageAsync(giftPackageCode, customFromDate, customToDate, It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        _manufactureClientMock
+        _bomSourceMock
             .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTestProductParts());
+            .ReturnsAsync(CreateTestLogisticsGiftPackageParts());
         _catalogSourceMock
             .Setup(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<string> codes, CancellationToken _) =>
@@ -368,9 +367,9 @@ public class GiftPackageManufactureServiceTests
         _catalogSourceMock
             .Setup(x => x.GetGiftPackageAsync(giftPackageCode, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        _manufactureClientMock
+        _bomSourceMock
             .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTestProductParts());
+            .ReturnsAsync(CreateTestLogisticsGiftPackageParts());
         _catalogSourceMock
             .Setup(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyList<string> codes, CancellationToken _) =>
@@ -398,9 +397,9 @@ public class GiftPackageManufactureServiceTests
         _catalogSourceMock
             .Setup(x => x.GetGiftPackageAsync(giftPackageCode, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
-        _manufactureClientMock
+        _bomSourceMock
             .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTestProductParts());
+            .ReturnsAsync(CreateTestLogisticsGiftPackageParts());
         _catalogSourceMock
             .Setup(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((IReadOnlyDictionary<string, LogisticsCatalogItem>)new Dictionary<string, LogisticsCatalogItem>());
@@ -449,12 +448,12 @@ public class GiftPackageManufactureServiceTests
         };
     }
 
-    private List<ProductPart> CreateTestProductParts()
+    private List<LogisticsGiftPackagePart> CreateTestLogisticsGiftPackageParts()
     {
-        return new List<ProductPart>
+        return new List<LogisticsGiftPackagePart>
         {
-            new ProductPart { ProductCode = "ING001", ProductName = "Ingredient 1", Amount = 2.0 },
-            new ProductPart { ProductCode = "ING002", ProductName = "Ingredient 2", Amount = 1.5 }
+            new LogisticsGiftPackagePart { ProductCode = "ING001", ProductName = "Ingredient 1", Amount = 2.0 },
+            new LogisticsGiftPackagePart { ProductCode = "ING002", ProductName = "Ingredient 2", Amount = 1.5 }
         };
     }
 
@@ -585,9 +584,9 @@ public class GiftPackageManufactureServiceTests
         _catalogSourceMock
             .Setup(x => x.GetGiftPackageAsync(giftPackageCode, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateGiftPackageItem(giftPackageCode, "Test Gift Set 1", 100, 50));
-        _manufactureClientMock
+        _bomSourceMock
             .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(CreateTestProductParts());
+            .ReturnsAsync(CreateTestLogisticsGiftPackageParts());
         _catalogSourceMock
             .Setup(x => x.GetCatalogItemsAsync(It.IsAny<IReadOnlyList<string>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(warehouseStockByCode.ToDictionary(

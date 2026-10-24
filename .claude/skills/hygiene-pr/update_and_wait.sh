@@ -17,7 +17,13 @@
 # needs-work flag for a conflict is raised by `resolve_conflict.sh --step
 # abort`, once the resolution has actually been tried and declined.
 #
-#   update_and_wait.sh --pr N [--force]
+#   update_and_wait.sh --pr N [--force] [--check-only]
+#
+# --check-only reads the PR's current CI state and reports it, with no side
+# effect at all: no update-branch, no polling, no needs-work flag. It exists
+# so /rework-pr can ask "does this CI rejection still hold?" before spending
+# a revision on it. Statuses: already-clean (success/none), still-failing,
+# ci-running (pending). A failing state is reported, never flagged.
 #
 # Emits JSON: {"pr": N, "status": "already-clean|fixed|still-failing|
 #              conflict|ci-running|pending-timeout|error", "detail": "..."}
@@ -61,10 +67,12 @@ NO_CHECKS_GRACE_ATTEMPTS="${HYGIENE_NO_CHECKS_GRACE_ATTEMPTS:-4}"
 
 PR=""
 FORCE=false
+CHECK_ONLY=false
 while [ $# -gt 0 ]; do
   case "$1" in
     --pr) PR="$2"; shift 2 ;;
     --force) FORCE=true; shift ;;
+    --check-only) CHECK_ONLY=true; shift ;;
     *) echo "unknown argument: $1" >&2; exit 1 ;;
   esac
 done
@@ -176,6 +184,15 @@ behind_count() {  # base_ref, head_ref
 }
 
 read_state
+
+if $CHECK_ONLY; then
+  case "$ci_state" in
+    success|none) report "already-clean" "checks are $ci_state" ;;
+    failure)      report "still-failing" "checks are failing" ;;
+    *)            report "ci-running" "checks are still running" ;;
+  esac
+  exit 0
+fi
 
 is_behind=false
 [ "$merge_state" = "BEHIND" ] && is_behind=true

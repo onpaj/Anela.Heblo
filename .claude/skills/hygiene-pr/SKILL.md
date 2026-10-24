@@ -169,9 +169,18 @@ its `status`:
   this branch. Nothing was touched. Report and stop; do **not** flag
   `needs-work` and do **not** call `--step abort`.
 - **`not-open`** → the PR was merged or closed meanwhile. Report and stop.
-- **`error`** → an infrastructure failure (the claim, the fetch, the
-  worktree). The claim is already released and nothing is half-done. Report
-  and stop — this is not a statement about the PR, so do **not** flag it.
+- **`error`** → the claim, the fetch, the worktree or the merge itself
+  failed. The claim is already released and nothing is half-done. Report
+  the `detail` **verbatim — it carries git's own error text** — and stop;
+  do **not** flag the PR yourself and do **not** dismiss it as "just
+  infrastructure". The script keeps count: it records each occurrence on
+  the PR, and once the same error has recurred three times it flags the
+  PR `needs-work` itself (next status). A PR GitHub reports as
+  `CONFLICTING` whose merge keeps failing locally is a real problem that
+  needs eyes, not noise to wait out.
+- **`flagged`** → the same `prepare` error recurred enough times that the
+  script flagged the PR `needs-work` with the captured error. Report it
+  plainly as flagged, including `detail`. Nothing further to do.
 
 **Once `prepare` reports `conflicted` or `merged-clean`, this PR is claimed
 by you until `--step finish` reports `pushed` or you run `--step abort`.**
