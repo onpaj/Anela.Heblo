@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-10-24T10:14:14.323351Z"
+      "updated_at": "2026-10-24T12:13:50.928183Z"
     }
   },
   "tasks": [
@@ -70,9 +70,9 @@
     },
     {
       "name": "promote-ci-and-docs",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-24T12:13:51.065859Z"
     }
   ]
 }
