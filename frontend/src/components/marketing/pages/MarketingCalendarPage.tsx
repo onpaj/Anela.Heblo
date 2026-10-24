@@ -53,6 +53,12 @@ function getCalendarStartForToday(viewMode: 'fiveWeeks' | 'twoWeeks'): Date {
   return monday;
 }
 
+function mapFolderLinks(
+  links?: Array<{ folderKey?: string; folderType?: string }>,
+): Array<{ path: string; folderType?: string }> {
+  return (links ?? []).map((fl) => ({ path: fl.folderKey ?? '', folderType: fl.folderType }));
+}
+
 type ViewMode = 'fiveWeeks' | 'twoWeeks' | 'list';
 
 const MarketingCalendarPage: React.FC = () => {
@@ -132,7 +138,7 @@ const MarketingCalendarPage: React.FC = () => {
         dateFrom: a.startDate,
         dateTo: a.endDate,
         associatedProducts: a.associatedProducts,
-        folderLinks: a.folderLinks,
+        folderLinks: mapFolderLinks(a.folderLinks),
         outlookSyncStatus: a.outlookSyncStatus,
       })),
     [listQuery.data],
@@ -204,7 +210,7 @@ const MarketingCalendarPage: React.FC = () => {
         dateFrom: a.startDate,
         dateTo: a.endDate,
         associatedProducts: a.associatedProducts,
-        folderLinks: a.folderLinks,
+        folderLinks: mapFolderLinks(a.folderLinks),
       });
     }
   }, [detailQuery.data]);

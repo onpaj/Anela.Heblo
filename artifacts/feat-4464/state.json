@@ -21,16 +21,16 @@
       "updated_at": "2026-10-24T21:09:45.870195Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-24T21:19:35.107175Z"
     }
   },
   "tasks": [
     {
       "name": "map-folder-links",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-24T21:19:35.273750Z"
     },
     {
       "name": "regression-tests",

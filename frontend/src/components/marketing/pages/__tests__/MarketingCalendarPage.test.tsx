@@ -497,7 +497,7 @@ describe("MarketingCalendarPage — typed API response mapping", () => {
         dateFrom: new Date(2026, 6, 10),
         dateTo: new Date(2026, 6, 12),
         associatedProducts: ["PROD-2"],
-        folderLinks: [{ folderKey: "abc", folderType: "GoogleDrive" }],
+        folderLinks: [{ path: "abc", folderType: "GoogleDrive" }],
         outlookSyncStatus: "Synced",
       },
     ]);
@@ -535,7 +535,7 @@ describe("MarketingCalendarPage — typed API response mapping", () => {
       dateFrom: new Date(2026, 8, 1),
       dateTo: new Date(2026, 8, 5),
       associatedProducts: ["PROD-3"],
-      folderLinks: [{ folderKey: "xyz", folderType: "SharePoint" }],
+      folderLinks: [{ path: "xyz", folderType: "SharePoint" }],
     });
   });
 });
