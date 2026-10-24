@@ -46,9 +46,9 @@
     },
     {
       "name": "triage-dependencies",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-24T08:18:51.775948Z"
     },
     {
       "name": "duplicate-exports-config",
