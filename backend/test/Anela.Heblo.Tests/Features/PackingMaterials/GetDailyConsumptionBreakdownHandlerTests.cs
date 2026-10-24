@@ -233,4 +233,23 @@ public class GetDailyConsumptionBreakdownHandlerTests
         Assert.Equal("INV-1", group.Details[0].Key);
         Assert.Equal(3m, group.Details[0].Amount);
     }
+
+    [Fact]
+    public async Task GroupByMaterial_UnknownMaterialId_YieldsUnknownLabel_AndDoesNotLoadAllMaterials()
+    {
+        // Arrange: consumption references material 99 which does not exist
+        var repo = BuildRepo(new[] { MakeMaterial(1, "Tape") }, new[] { MakeConsumption(99, 4m, invoiceId: "INV-1") });
+        var handler = BuildHandler(repo);
+
+        // Act
+        var response = await handler.Handle(
+            new GetDailyConsumptionBreakdownRequest { Date = TestDate, GroupBy = ConsumptionGroupBy.Material },
+            CancellationToken.None);
+
+        // Assert
+        Assert.True(response.Success);
+        Assert.Single(response.Groups);
+        Assert.Equal("Unknown", response.Groups[0].Label);
+        Assert.Equal(0, repo.GetAllWithAllocationsCallCount);
+    }
 }
