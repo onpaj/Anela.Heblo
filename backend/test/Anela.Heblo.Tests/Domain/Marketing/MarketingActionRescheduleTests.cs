@@ -163,7 +163,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         {
             var action = NewAction();
             action.AssociateWithProduct("PROD-1", FixedUtcNow);
-            action.LinkToFolder("folder-key", MarketingFolderType.General, FixedUtcNow);
+            action.LinkToFolder("folder-key", MarketingFolderType.Images, FixedUtcNow);
 
             action.Reschedule(
                 startDate: new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc),

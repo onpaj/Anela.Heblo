@@ -49,7 +49,11 @@ public class GetPurchaseStockAnalysisHandler : IRequestHandler<GetPurchaseStockA
             .ToList();
 
         // Then filter items for display
-        var analysisItems = _stockAnalysisCalculator.FilterItems(allAnalysisItems, request);
+        var analysisItems = _stockAnalysisCalculator.FilterItems(allAnalysisItems, new StockAnalysisFilter
+        {
+            OnlyConfigured = request.OnlyConfigured,
+            StockStatus = request.StockStatus
+        });
 
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {

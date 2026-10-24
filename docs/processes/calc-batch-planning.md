@@ -14,7 +14,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Manufacture/Services/ProductBatch.cs
   - backend/src/Anela.Heblo.Application/Features/Manufacture/Services/ProductVariant.cs
   - backend/src/Anela.Heblo.Application/Features/Manufacture/Validators/CalculateBatchPlanRequestValidator.cs
-verified_at: "5e993f9e2"
+verified_at: "53a0fb62d"
 related:
   - calc-batch-calculation
   - flow-manufacture-order

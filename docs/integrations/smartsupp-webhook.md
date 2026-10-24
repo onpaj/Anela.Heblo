@@ -517,6 +517,31 @@ These events carry both a `conversation` and a `message` in `data`. The message 
 }
 ```
 
+##### Customer file upload (verified 2026-10-16)
+
+A file sent from the widget is its own message with `content.type:"upload"` and `content.text:null`;
+the file is in `content.data`. `attachments` stays `[]`. Fragment of `data.message`:
+
+```json
+{
+  "sub_type": "contact",
+  "content": {
+    "type": "upload",
+    "text": null,
+    "data": {
+      "type": "file",
+      "file_name": "1040963052.pdf",
+      "file_type": "application/pdf",
+      "url": "https://files.smartsuppcdn.com/files/accounts/924500/uploads/sEYrSOqaL.pdf",
+      "size": 598612
+    }
+  },
+  "attachments": []
+}
+```
+
+**Customer files never appear in `attachments`.** CDN URLs are public (no auth).
+
 #### `conversation.agent_replied`
 
 ```json
@@ -566,6 +591,32 @@ These events carry both a `conversation` and a `message` in `data`. The message 
   }
 }
 ```
+
+##### Agent reply with attachments (verified 2026-10-16)
+
+A reply sent with files echoes the same `attachments` array that the send response returns.
+Fragment of `data.message` (test conversation `coTaX8UFWh4Sz`):
+
+```json
+{
+  "sub_type": "agent",
+  "content": { "type": "text", "text": "Test příloha 🙂" },
+  "attachments": [
+    {
+      "type": "image",
+      "file_name": "test.png",
+      "file_type": "image/png",
+      "url": "https://files.smartsuppcdn.com/…png",
+      "size": 177,
+      "width": 64,
+      "height": 64,
+      "thumb_400": { "url": "…_thumb400.jpg", "width": 64, "height": 64 }
+    }
+  ]
+}
+```
+
+A file sent from the Smartsupp agent app arrives as `type:"file"` without a thumb.
 
 #### `conversation.bot_replied`
 

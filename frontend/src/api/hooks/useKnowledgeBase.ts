@@ -11,7 +11,7 @@ import {
   type AskQuestionResponse,
   type GetChunkDetailResponse,
   type DeleteDocumentResponse,
-  type UploadDocumentResponse2,
+  type KnowledgeBaseUploadDocumentResponse,
   type FileParameter,
   GetFeedbackListResponse as GeneratedGetFeedbackListResponse,
 } from '../generated/api-client';
@@ -246,7 +246,7 @@ export const useUploadKnowledgeBaseDocumentMutation = () => {
     }: {
       file: File;
       documentType: DocumentType;
-    }): Promise<UploadDocumentResponse2> => {
+    }): Promise<KnowledgeBaseUploadDocumentResponse> => {
       const apiClient = getAuthenticatedApiClient();
       const fileParameter: FileParameter = { data: file, fileName: file.name };
       return apiClient.knowledgeBase_UploadDocument(fileParameter, documentType);

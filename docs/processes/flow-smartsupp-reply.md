@@ -20,7 +20,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Smartsupp/SmartsuppNameHelper.cs
   - backend/src/Anela.Heblo.Application/Features/KnowledgeBase/Infrastructure/KnowledgeBaseSmartsuppKnowledgeSource.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Smartsupp/**
-verified_at: "0f56d8740"
+verified_at: "6ba176e4c"
 related: [sync-smartsupp-webhooks]
 ---
 
@@ -47,6 +47,7 @@ User-driven, all from `/customer/smartsupp`, permission `customer.smartsupp.read
 | Contact panel | "Detail kontaktu" | `GET …/{id}/shoptet-info`, `GET …/{id}/visitor-info` | Shoptet + Smartsupp REST reads; visitor cache written to `SmartsuppConversations` |
 | AI draft | composer, optional topic ("Vyberte téma") | `POST …/{id}/draft-reply` `{ topic? }` | KnowledgeBase search + LLM call; `RagInteractionLogs` row |
 | Send | composer send | `POST …/{conversationId}/messages` `{ content, draftLogId? }` | **Message delivered to the customer** via Smartsupp; `RagInteractionLogs.SentAnswer` |
+| Send with files | composer (paste/drop/attach) | `POST …/{conversationId}/messages/with-attachments` multipart `content`, `draftLogId?`, `files` (≤ 60 MB request) | **Message with attachments delivered to the customer**; `RagInteractionLogs.SentAnswer` |
 | Close | "Uzavřít konverzaci" | `POST …/{id}/close` | **Conversation closed in Smartsupp** |
 | Rate draft | feedback widget | `POST /api/smartsupp/draft-reply/feedback` | scores on the `RagInteractionLogs` row |
 | Review ratings | `/marketing/feedback` tab Smartsupp | `GET /api/smartsupp/draft-reply/feedback/list` | read only |
@@ -88,6 +89,21 @@ webhook (`conversation.agent_replied`, `conversation.closed`) to update the list
 4. If `draftLogId` was sent: `RagInteractionLogs.SentAnswer`, `SentAt`, `WasEdited`
    (= sent text differs from the AI answer, ordinal) — best effort.
 5. Returns Smartsupp's message id and creation time. No local `SmartsuppMessages` row is written.
+
+**Send with attachments** (same `SendMessageHandler`, endpoint `…/messages/with-attachments`):
+1. The conversation must exist locally (2701) and the operator must be in the agent map (2707); only then are files checked, in order: more than 5 → 2711 `SmartsuppAttachmentInvalid`; an empty file →
+   2711; a file over 10 MB → 2712 `SmartsuppAttachmentTooLarge`; extension/type not allowed by
+   `SmartsuppAttachmentPolicy` → 2711. Text may be blank when at least one file is present.
+2. Per file: `GET {BaseUrl}files/upload/token`, then a multipart POST to `files.smartsupp.com`
+   (no auth header).
+3. One message is sent with `attachments: [{ type: "upload", token, file_name, file_type }]`;
+   `content` is omitted when the text is blank. Agent mapping (2707), draft log update and the
+   2706 failure mode are as for plain send.
+4. Any upload failure aborts the whole send — nothing is delivered — and returns 2713
+   `SmartsuppAttachmentUploadFailed` (503).
+5. Nothing is persisted locally. The `conversation.agent_replied` webhook echo stores the message
+   with its attachments (see `sync-smartsupp-webhooks`); until polling brings that server copy,
+   the frontend shows optimistic blob previews of the sent files.
 
 **Close** (`CloseConversationHandler`): conversation must exist locally (2701) →
 `PATCH {BaseUrl}conversations/{id}/close`. 5xx / network / timeout → 2708
@@ -149,6 +165,11 @@ None.
 - **Sent message appears only after the webhook.** Send/close never touch local tables; if the
   `agent_replied` / `closed` webhook is lost or fails, Heblo keeps showing the old state until a
   replay.
+- **No bold or other formatting.** Smartsupp text messages cannot carry formatting; links go out
+  as plain text and the customer widget auto-links them.
+- **Upload filename is what the customer sees.** The upload step must send the filename as raw UTF-8
+  (Smartsupp ignores RFC 2047 / `filename*` and the message's `file_name`); an attachment-only send
+  must omit `content` (null -> 422). See `docs/integrations/smartsupp-api.md`.
 - **Shoptet card has no orders.** `RecentOrders` is always empty (TODO; the e-mail fallback was
   removed — see `docs/integrations/shoptet-api.md`). Customers only identified by e-mail (no
   Shoptet GUID variable, e.g. Messenger chats) get no card at all.

@@ -3,7 +3,6 @@ using Anela.Heblo.Application.Features.Logistics.Contracts;
 using Anela.Heblo.Application.Features.Logistics.Contracts.Models;
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Contracts;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
-using Anela.Heblo.Domain.Features.Manufacture;
 using AutoMapper;
 using Microsoft.Extensions.Logging;
 
@@ -11,7 +10,7 @@ namespace Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufac
 
 public class GiftPackageManufactureService : IGiftPackageManufactureService, IGiftPackageQueryService
 {
-    private readonly IManufactureClient _manufactureClient;
+    private readonly IGiftPackageBomSource _bomSource;
     private readonly IGiftPackageManufactureRepository _giftPackageRepository;
     private readonly ILogisticsCatalogSource _catalogSource;
     private readonly ILogisticsStockOperationService _stockOperationService;
@@ -20,7 +19,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService, IGi
     private readonly ILogger<GiftPackageManufactureService> _logger;
 
     public GiftPackageManufactureService(
-        IManufactureClient manufactureClient,
+        IGiftPackageBomSource bomSource,
         IGiftPackageManufactureRepository giftPackageRepository,
         ILogisticsCatalogSource catalogSource,
         ILogisticsStockOperationService stockOperationService,
@@ -28,7 +27,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService, IGi
         TimeProvider timeProvider,
         ILogger<GiftPackageManufactureService> logger)
     {
-        _manufactureClient = manufactureClient;
+        _bomSource = bomSource;
         _giftPackageRepository = giftPackageRepository;
         _catalogSource = catalogSource;
         _stockOperationService = stockOperationService;
@@ -100,10 +99,10 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService, IGi
             Ingredients = new List<GiftPackageIngredientDto>()
         };
 
-        // Load BOM (Bill of Materials) from manufacture repository
-        var productParts = await _manufactureClient.GetSetPartsAsync(giftPackageCode, cancellationToken);
+        // Load BOM (Bill of Materials) via IGiftPackageBomSource
+        var productParts = await _bomSource.GetSetPartsAsync(giftPackageCode, cancellationToken);
 
-        // Map ProductPart objects to GiftPackageIngredientDto with stock data
+        // Map LogisticsGiftPackagePart objects to GiftPackageIngredientDto with stock data
         var ingredientCodes = productParts.Select(p => p.ProductCode).Distinct().ToList();
         var ingredientCatalog = await _catalogSource.GetCatalogItemsAsync(ingredientCodes, cancellationToken);
 
@@ -146,7 +145,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService, IGi
         }
 
         // Fetch BOM/ingredient detail BEFORE opening the transaction: this calls out to
-        // IManufactureClient/ILogisticsCatalogSource (other modules) and must not hold a
+        // IGiftPackageBomSource/ILogisticsCatalogSource (other modules) and must not hold a
         // DB transaction open across those cross-module reads.
         var giftPackage = await GetGiftPackageDetailAsync(giftPackageCode, 1.0m, null, null, cancellationToken);
 
@@ -323,7 +322,7 @@ public class GiftPackageManufactureService : IGiftPackageManufactureService, IGi
 
             foreach (var ingredient in giftPackage.Ingredients ?? new List<GiftPackageIngredientDto>())
             {
-                var returnedQuantity = (int)(ingredient.RequiredQuantity * quantity);
+                var returnedQuantity = ConsumedQuantity(ingredient, quantity);
                 disassemblyLog.AddConsumedItem(ingredient.ProductCode, returnedQuantity);
 
                 // DocumentNumber format: GPD-{logId:000000}-{productCode}
