@@ -12,7 +12,7 @@ owns:
   - backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/EshopUrl/**
   - backend/src/Anela.Heblo.Domain/Features/Catalog/Price/**
   - backend/src/Anela.Heblo.Domain/Features/Catalog/EshopUrl/**
-verified_at: "5e993f9e2"
+verified_at: "6b5578b47"
 related: [calc-catalog-merge, calc-margins]
 ---
 

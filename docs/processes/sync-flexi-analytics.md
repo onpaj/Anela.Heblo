@@ -8,7 +8,7 @@ owns:
   - backend/src/Anela.Heblo.Persistence.Analytics/**
   - backend/tools/Anela.Heblo.FlexiAnalyticsBackfill/**
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/FlexiAdapterServiceCollectionExtensions.cs
-verified_at: "a008e2306"
+verified_at: "6b5578b47"
 related: []
 ---
 
