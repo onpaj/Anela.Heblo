@@ -17,13 +17,50 @@
       "updated_at": "2026-10-20T08:14:06.250490Z"
     },
     "planning": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-10-24T04:09:19.367762Z"
     },
     "developing": {
       "status": "pending",
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "ledger-options-and-di",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "ledger-service-singleflight-ttl-logging",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "ledger-service-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "lots-refresh-logging",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "docs-and-process-docs",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "final-validation",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
