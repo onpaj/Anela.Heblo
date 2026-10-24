@@ -25,5 +25,18 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "parse-and-normalize-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "revert-and-routing-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
