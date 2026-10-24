@@ -17,7 +17,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Manufacture/DashboardTiles/**
   - backend/src/Anela.Heblo.Application/Features/Packaging/DashboardTiles/**
   - backend/src/Anela.Heblo.Application/Features/Purchase/DashboardTiles/**
-verified_at: "5e993f9e2"
+verified_at: "0cffacd62"
 related:
   - module-dashboard
   - sync-weather-forecast
