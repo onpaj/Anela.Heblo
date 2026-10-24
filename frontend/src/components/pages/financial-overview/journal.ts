@@ -5,7 +5,7 @@ import { buildJournalPointStyling, type YearMonth } from '../../charts/journalMa
 // Company-wide entries are rare; one page comfortably covers the longest period (26 months).
 const JOURNAL_PAGE_SIZE = 200
 
-export interface JournalDateRange {
+interface JournalDateRange {
   dateFrom: Date
   dateTo: Date
 }

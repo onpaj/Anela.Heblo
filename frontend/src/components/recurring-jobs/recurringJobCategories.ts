@@ -1,7 +1,7 @@
 import { RecurringJobCategory, RecurringJobDto } from '../../api/hooks/useRecurringJobs';
 
 /** Czech labels for the job categories shown as group headers. */
-export const CATEGORY_LABELS: Record<RecurringJobCategory, string> = {
+const CATEGORY_LABELS: Record<RecurringJobCategory, string> = {
   [RecurringJobCategory.Finance]: 'Účetnictví a platby',
   [RecurringJobCategory.Catalog]: 'Katalog a ceny',
   [RecurringJobCategory.Warehouse]: 'Sklad a expedice',
@@ -14,7 +14,7 @@ export const CATEGORY_LABELS: Record<RecurringJobCategory, string> = {
 };
 
 /** Order in which category groups are rendered. Unknown categories sort last. */
-export const CATEGORY_DISPLAY_ORDER: RecurringJobCategory[] = [
+const CATEGORY_DISPLAY_ORDER: RecurringJobCategory[] = [
   RecurringJobCategory.Finance,
   RecurringJobCategory.Catalog,
   RecurringJobCategory.Warehouse,
@@ -33,10 +33,10 @@ export const getCategoryLabel = (category: RecurringJobCategory): string =>
  * Maps a category the client doesn't know (e.g. one added on the backend before the
  * client was regenerated) to Uncategorized, so its jobs are still rendered.
  */
-export const resolveCategory = (category?: RecurringJobCategory): RecurringJobCategory =>
+const resolveCategory = (category?: RecurringJobCategory): RecurringJobCategory =>
   category && category in CATEGORY_LABELS ? category : RecurringJobCategory.Uncategorized;
 
-export interface RecurringJobCategoryGroup {
+interface RecurringJobCategoryGroup {
   category: RecurringJobCategory;
   jobs: RecurringJobDto[];
 }

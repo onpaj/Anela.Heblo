@@ -6,7 +6,7 @@ export interface YearMonth {
   month: number;
 }
 
-export interface JournalPointStyling {
+interface JournalPointStyling {
   pointBackgroundColors: string[];
   pointRadiuses: number[];
   pointHoverRadiuses: number[];

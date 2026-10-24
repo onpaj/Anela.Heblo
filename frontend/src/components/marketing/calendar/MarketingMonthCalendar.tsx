@@ -9,7 +9,7 @@ import type { CalendarEvent } from './fullcalendarAdapters';
 import { toFcEvent, fromFcDates } from './fullcalendarAdapters';
 import './marketingCalendar.css';
 
-export type CalendarViewName = 'fiveWeeks' | 'twoWeeks';
+type CalendarViewName = 'fiveWeeks' | 'twoWeeks';
 
 const CALENDAR_VIEWS = {
   fiveWeeks: { type: 'dayGrid', duration: { weeks: 5 }, dayMaxEvents: true },

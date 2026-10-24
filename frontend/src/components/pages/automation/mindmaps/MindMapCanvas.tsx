@@ -30,7 +30,7 @@ export interface MindMapCanvasHandle {
   exportSvg: () => Blob | null;
 }
 
-export interface MindMapCanvasProps {
+interface MindMapCanvasProps {
   /** Used once, on mount. Later server documents arrive via `documentRevision`. */
   initialDocument: MindMapDocument;
   /**

@@ -21,7 +21,7 @@ export const buildProxyUrl = (
   return offsetsQuery ? `${url}?offsets=${encodeURIComponent(offsetsQuery)}` : url;
 };
 
-export interface PrintAttemptResult {
+interface PrintAttemptResult {
   /** True once the label PDF was fetched and handed to the print iframe. */
   printed: boolean;
   /** HTTP status of the label fetch when it completed (absent on network errors). */
@@ -111,7 +111,7 @@ export const fetchAndPrintLabel = (
   return silentPrintViaBlob(url, onAfterPrint, isPoll);
 };
 
-export interface ReadinessWaitOptions {
+interface ReadinessWaitOptions {
   /** Called on each not-ready (404) attempt, before the backoff wait. 0-based attempt index. */
   onWaiting?: (attempt: number) => void;
   /** Called by the underlying print iframe when the print dialog closes (success path only). */
@@ -120,7 +120,7 @@ export interface ReadinessWaitOptions {
   signal?: AbortSignal;
 }
 
-export interface PrintWithReadinessResult {
+interface PrintWithReadinessResult {
   printed: boolean;
   status?: number;
   timedOut?: boolean;

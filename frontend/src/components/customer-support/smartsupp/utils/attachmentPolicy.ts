@@ -1,4 +1,4 @@
-export const MAX_FILES = 5;
+const MAX_FILES = 5;
 export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 const MIME_BY_EXTENSION: Readonly<Record<string, string>> = {

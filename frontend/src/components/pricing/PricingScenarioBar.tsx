@@ -16,7 +16,7 @@ import {
 import { resolveSwaggerErrorMessage } from "../../utils/errorHandler";
 import { usePermissionsContext } from "../../auth/PermissionsContext";
 
-export interface PricingScenarioBarProps {
+interface PricingScenarioBarProps {
   productCode?: string;
   productName?: string;
   productType?: ProductType;

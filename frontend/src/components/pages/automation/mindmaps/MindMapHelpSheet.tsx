@@ -26,7 +26,7 @@ const SHORTCUTS: Array<[string, string]> = [
 const KEY_CLASS =
   "font-mono text-[11.5px] bg-gray-100 border border-b-2 border-gray-300 rounded px-1.5 py-0.5 whitespace-nowrap dark:bg-graphite-surface-2 dark:border-graphite-border dark:text-graphite-text";
 
-export interface MindMapHelpSheetProps {
+interface MindMapHelpSheetProps {
   onClose: () => void;
 }
 

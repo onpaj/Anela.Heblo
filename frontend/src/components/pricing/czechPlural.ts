@@ -3,7 +3,7 @@
  * between them is a grammatical rule rather than a tunable, which is why the
  * boundaries live here once instead of as bare numbers inside each message.
  */
-export type CzechCountForm = "one" | "few" | "many";
+type CzechCountForm = "one" | "few" | "many";
 
 const FEW_LOWER_BOUND = 2;
 const FEW_UPPER_BOUND = 4;

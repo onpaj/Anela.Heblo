@@ -27,5 +27,3 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({ className }) => {
     </button>
   );
 };
-
-export default ThemeToggle;

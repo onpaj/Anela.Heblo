@@ -795,5 +795,5 @@ const GiftPackageManufacturingList: React.FC<GiftPackageManufacturingListProps> 
   );
 };
 
-export { GiftPackageSortBy, type GiftPackage, type GiftPackageFilters, type GiftPackageSummary };
+export { type GiftPackage, type GiftPackageFilters, type GiftPackageSummary };
 export default GiftPackageManufacturingList;

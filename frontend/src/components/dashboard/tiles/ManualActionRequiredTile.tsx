@@ -35,5 +35,3 @@ export const ManualActionRequiredTile: React.FC<ManualActionRequiredTileProps> =
     />
   );
 };
-
-export default ManualActionRequiredTile;

@@ -7,7 +7,7 @@ import {
   type ReactNode,
 } from "react";
 
-export interface SelectedPackingUser {
+interface SelectedPackingUser {
   id: string;
   displayName: string;
 }

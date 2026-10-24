@@ -3,7 +3,7 @@ import { Pencil } from "lucide-react";
 import PricingBulkEditPopover from "./PricingBulkEditPopover";
 import { PricingBulkEdit, PricingBulkEditField } from "./pricingBulkEdit";
 
-export interface PricingBulkEditHeaderProps {
+interface PricingBulkEditHeaderProps {
   field: PricingBulkEditField;
   label: string;
   disabled?: boolean;

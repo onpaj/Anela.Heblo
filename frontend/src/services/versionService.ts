@@ -1,6 +1,6 @@
 import { getAuthenticatedApiClient } from "../api/client";
 
-export interface VersionInfo {
+interface VersionInfo {
   version: string;
   environment: string;
   useMockAuth: boolean;

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useEffect, useState } from "react";
 import { OpenFeature, InMemoryProvider } from "@openfeature/web-sdk";
 import { getAuthenticatedApiClient } from "../../api/client";
 
@@ -45,5 +45,3 @@ export function FeatureFlagProvider({ children }: FeatureFlagProviderProps) {
     </FeatureFlagContext.Provider>
   );
 }
-
-export const useFeatureFlagReady = () => useContext(FeatureFlagContext).isReady;

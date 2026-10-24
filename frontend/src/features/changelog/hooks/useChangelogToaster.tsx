@@ -18,7 +18,7 @@ import {
 /**
  * Hook for managing changelog toaster state and behavior
  */
-export function useChangelogToaster(): UseChangelogToasterReturn {
+function useChangelogToaster(): UseChangelogToasterReturn {
   const [toaster, setToaster] = useState<ToasterState>({
     isVisible: false,
     isAutoHiding: false,

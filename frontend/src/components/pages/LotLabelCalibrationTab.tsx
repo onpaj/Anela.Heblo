@@ -14,7 +14,7 @@ export const CALIBRATION_READ_PERMISSION = "manufacture.label_calibration.read";
 export const CALIBRATION_WRITE_PERMISSION = "manufacture.label_calibration.write";
 
 /** True when the current user may both read and save the raw calibration values. */
-export const useCanCalibrate = (): boolean => {
+const useCanCalibrate = (): boolean => {
   const { hasPermission } = usePermissionsContext();
   return (
     hasPermission(CALIBRATION_READ_PERMISSION) &&

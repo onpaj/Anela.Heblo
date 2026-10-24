@@ -1,8 +1,6 @@
 import type { MonthlyFinancialDataDto } from '../../../api/hooks/useFinancialOverview'
 import type { YearComparisonSeriesDto } from '../../../api/hooks/useFinancialComparison'
-import { withYearAlpha, YEAR_ALPHAS } from '../../charts/comparisonColors'
-
-export { YEAR_ALPHAS }
+import { withYearAlpha } from '../../charts/comparisonColors'
 
 export type ComparisonMetric = 'income' | 'expenses' | 'balance' | 'totalBalance'
 
@@ -28,7 +26,7 @@ export const COMPARISON_METRICS: ComparisonMetric[] = [
 ]
 
 // Base color per metric (years are distinguished by opacity, not hue).
-export const METRIC_COLORS: Record<ComparisonMetric, [number, number, number]> = {
+const METRIC_COLORS: Record<ComparisonMetric, [number, number, number]> = {
   income: [34, 197, 94], // green-500
   expenses: [239, 68, 68], // red-500
   balance: [59, 130, 246], // blue-500

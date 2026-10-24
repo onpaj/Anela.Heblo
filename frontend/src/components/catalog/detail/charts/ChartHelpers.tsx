@@ -4,7 +4,6 @@ import {
   JOURNAL_MARKER_COLOR,
   buildJournalPointStyling,
   buildJournalTooltipCallback,
-  getJournalEntriesForYearMonth,
 } from "../../../charts/journalMarkers";
 import {
   CatalogSalesRecordDto,
@@ -37,13 +36,6 @@ const getMonthForIndex = (monthIndex: number): YearMonth => {
 
 const getMonthsForLength = (dataLength: number): YearMonth[] =>
   Array.from({ length: dataLength }, (_, i) => getMonthForIndex(i));
-
-// Helper function to get journal entries for a specific month
-export const getJournalEntriesForMonth = (
-  monthIndex: number,
-  journalEntries: JournalEntryDto[],
-): JournalEntryDto[] =>
-  getJournalEntriesForYearMonth(journalEntries, getMonthForIndex(monthIndex));
 
 // Map data to monthly array based on year/month
 export const mapDataToMonthlyArray = (

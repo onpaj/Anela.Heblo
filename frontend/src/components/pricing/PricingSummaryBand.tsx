@@ -7,7 +7,7 @@ import {
   PricingSummaryScope,
 } from "./pricingSummaryScope";
 
-export interface PricingSummaryBandProps {
+interface PricingSummaryBandProps {
   totals?: IPricingTotalsDto;
   scope: PricingSummaryScope;
   onScopeChange: (scope: PricingSummaryScope) => void;

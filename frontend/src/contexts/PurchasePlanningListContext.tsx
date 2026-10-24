@@ -87,5 +87,3 @@ export const PurchasePlanningListProvider: React.FC<PurchasePlanningListProvider
     </PurchasePlanningListContext.Provider>
   );
 };
-
-export type { PurchasePlanningListItem };

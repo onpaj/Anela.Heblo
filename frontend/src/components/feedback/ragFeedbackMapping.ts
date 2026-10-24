@@ -13,7 +13,7 @@ import type {
 // RagInteractionLogs table, per ragFeedbackTypes.ts's header comment. Typed structurally so both
 // generated response classes (GetFeedbackListResponse and GetDraftReplyFeedbackListResponse)
 // satisfy it without a cross-import between the two feature hook files.
-export interface GeneratedFeedbackListShape {
+interface GeneratedFeedbackListShape {
   logs?: GeneratedRagFeedbackLogSummary[];
   totalCount?: number;
   pageNumber?: number;
@@ -34,7 +34,7 @@ export interface LocalFeedbackListResponse {
 
 // Keeps the generated RAG DTOs from leaking into ragFeedbackTypes.ts consumers, which assume
 // createdAt: string and null (not undefined) for absent optional fields.
-export const toLocalFeedbackChunk = (chunk: {
+const toLocalFeedbackChunk = (chunk: {
   chunkId?: string;
   documentId?: string;
   filename?: string;

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../../../api/client";
 
-export interface PackingUser {
+interface PackingUser {
   id: string;
   displayName: string;
 }
@@ -11,7 +11,7 @@ interface ApiClientWithInternals {
   http: { fetch(url: RequestInfo, init?: RequestInit): Promise<Response> };
 }
 
-export const packingUsersKey = ["packing-users"] as const;
+const packingUsersKey = ["packing-users"] as const;
 
 export function usePackingUsers() {
   return useQuery({

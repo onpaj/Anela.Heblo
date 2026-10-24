@@ -141,8 +141,4 @@ export const shouldUseMockAuth = (): boolean => {
   const config = getConfig();
   return config.useMockAuth || !config.azureClientId || !config.azureAuthority;
 };
-
-// Legacy exports for backward compatibility
-export type RuntimeConfig = Config;
-export const fetchRuntimeConfig = async (): Promise<Config> => loadConfig();
 export const getRuntimeConfig = (): Config => getConfig();

@@ -6,7 +6,7 @@
 /**
  * English types from changelog generation
  */
-export type ChangeTypeEn = 
+type ChangeTypeEn = 
   | 'feature'
   | 'fix'
   | 'docs'
@@ -134,23 +134,6 @@ export interface ToasterState {
 }
 
 /**
- * Modal state for changelog history
- */
-export interface ModalState {
-  /** Whether modal is open */
-  isOpen: boolean;
-  
-  /** Complete changelog data */
-  data?: ChangelogData;
-  
-  /** Loading state */
-  isLoading: boolean;
-  
-  /** Error state */
-  error?: string;
-}
-
-/**
  * Hook return types
  */
 export interface UseChangelogReturn {
@@ -232,42 +215,9 @@ export interface VersionCompareResult {
 }
 
 /**
- * Translation mapping type for script
- */
-export interface TranslationMappings {
-  [key: string]: string;
-}
-
-/**
- * Generation script configuration
- */
-export interface ChangelogConfig {
-  /** Maximum number of versions to include */
-  maxVersions: number;
-  
-  /** GitHub repository information */
-  repository: {
-    owner: string;
-    name: string;
-  };
-  
-  /** Translation mappings */
-  translations: TranslationMappings;
-  
-  /** Exclude patterns for commits */
-  excludePatterns: string[];
-  
-  /** Include labels for GitHub issues */
-  includeLabels: string[];
-  
-  /** Exclude labels for GitHub issues */
-  excludeLabels: string[];
-}
-
-/**
  * Error types for changelog system
  */
-export class ChangelogError extends Error {
+class ChangelogError extends Error {
   constructor(
     message: string,
     public code: string,
@@ -299,7 +249,7 @@ export class ChangelogParseError extends ChangelogError {
 /**
  * Mapping from English changelog types to Czech display types
  */
-export const CHANGE_TYPE_MAPPING: Record<ChangeTypeEn, ChangeTypeCz> = {
+const CHANGE_TYPE_MAPPING: Record<ChangeTypeEn, ChangeTypeCz> = {
   feature: 'funkce',
   fix: 'oprava',
   docs: 'dokumentace',

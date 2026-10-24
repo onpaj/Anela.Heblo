@@ -2,7 +2,7 @@ import React from 'react';
 import { RefreshCw, ToggleLeft, ToggleRight, Play, Pencil, Check, X } from 'lucide-react';
 import { RecurringJobDto } from '../../api/hooks/useRecurringJobs';
 
-export interface RecurringJobRowProps {
+interface RecurringJobRowProps {
   job: RecurringJobDto;
   isUpdatingStatus: boolean;
   isTriggering: boolean;

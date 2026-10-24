@@ -33,7 +33,7 @@ interface BasicInfoSectionProps {
   truncateText: (text: string) => string;
 }
 
-export const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
+const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   order,
   canEditFields,
   editableResponsiblePerson,

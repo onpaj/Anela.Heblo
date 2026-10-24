@@ -7,7 +7,7 @@ import {
   roundToDisplay,
 } from "./pricingDelta";
 
-export interface PricingValueEditorPopoverProps {
+interface PricingValueEditorPopoverProps {
   productCode: string;
   field: PricingEditField;
   facts: PricingCellFacts;

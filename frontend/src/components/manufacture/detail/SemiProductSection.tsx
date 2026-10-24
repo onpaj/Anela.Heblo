@@ -7,7 +7,7 @@ interface SemiProductSectionProps {
   onSemiProductQuantityChange: (value: string) => void;
 }
 
-export const SemiProductSection: React.FC<SemiProductSectionProps> = ({
+const SemiProductSection: React.FC<SemiProductSectionProps> = ({
   order,
   canEditFields,
   editableSemiProductQuantity,

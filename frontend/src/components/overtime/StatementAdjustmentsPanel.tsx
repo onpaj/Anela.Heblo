@@ -10,7 +10,7 @@ import { formatNumber } from '../../utils/formatters';
 import { extractErrorMessage } from '../../utils/errorHandler';
 import { useToast } from '../../contexts/ToastContext';
 
-export const ADJUSTMENT_TYPE_LABELS: Record<OvertimeAdjustmentType, string> = {
+const ADJUSTMENT_TYPE_LABELS: Record<OvertimeAdjustmentType, string> = {
   [OvertimeAdjustmentType.Payout]: 'Proplacení',
   [OvertimeAdjustmentType.PurchaseDeduction]: 'Nákup',
   [OvertimeAdjustmentType.Correction]: 'Korekce',

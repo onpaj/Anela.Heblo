@@ -8,7 +8,7 @@ interface NotesTabContentProps {
   formatDateTime: (date: Date | string | undefined) => string;
 }
 
-export const NotesTabContent: React.FC<NotesTabContentProps> = ({
+const NotesTabContent: React.FC<NotesTabContentProps> = ({
   order,
   newNote,
   onNewNoteChange,

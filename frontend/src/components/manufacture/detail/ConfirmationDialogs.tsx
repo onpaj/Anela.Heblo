@@ -54,7 +54,7 @@ interface ConfirmationDialogsProps {
   getStateLabel: (state: ManufactureOrderState) => string;
 }
 
-export const ConfirmationDialogs: React.FC<ConfirmationDialogsProps> = ({
+const ConfirmationDialogs: React.FC<ConfirmationDialogsProps> = ({
   showCancelConfirmation,
   onCancelConfirmationClose,
   onCancelConfirm,

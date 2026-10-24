@@ -1,6 +1,6 @@
 export const MAX_PREVIEW_LENGTH = 200;
 
-export interface TruncateOptions {
+interface TruncateOptions {
   searchQuery?: string;
   maxLength?: number;
 }

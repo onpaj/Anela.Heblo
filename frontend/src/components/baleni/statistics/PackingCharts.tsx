@@ -33,7 +33,7 @@ export const OTHER_LABEL = "Ostatní";
 export const OTHER_KEY = "__ostalni_bucket__"; // sentinel React key; never equals a real carrier name
 const OTHER_COLOR = "#64748b"; // neutral slate for the "Ostatní" bucket
 
-export interface CarrierSlice {
+interface CarrierSlice {
   /** Stable key for the React Cell + legend payload (slices are unique by name). */
   key: string;
   name: string;

@@ -10,7 +10,7 @@ export type PerformanceMetric =
   | 'avgOrderValue'
   | 'costPerOrder'
 
-export type MetricUnit = 'czk' | 'percent' | 'count'
+type MetricUnit = 'czk' | 'percent' | 'count'
 
 export const PERFORMANCE_METRICS: PerformanceMetric[] = [
   'totalCost', 'revenueWithoutVat', 'orders', 'pno', 'roas', 'avgOrderValue', 'costPerOrder',
@@ -154,7 +154,7 @@ const czk = new Intl.NumberFormat('cs-CZ', { style: 'currency', currency: 'CZK',
 const count = new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 })
 const percent = new Intl.NumberFormat('cs-CZ', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
-export const EMPTY_VALUE = '—'
+const EMPTY_VALUE = '—'
 
 export const formatCzk = (value: number): string => czk.format(value)
 export const formatCount = (value: number): string => count.format(value)

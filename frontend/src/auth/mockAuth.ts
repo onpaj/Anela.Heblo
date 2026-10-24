@@ -18,7 +18,7 @@ interface MockUser extends UserInfo {
  * Mock authentication for development testing
  * This simulates a successful login without using real credentials
  */
-export const createMockUser = (): MockUser => {
+const createMockUser = (): MockUser => {
   return {
     id: "mock-user-id",
     name: "Mock User",
@@ -55,7 +55,7 @@ export const shouldUseMockAuth = (): boolean => {
 /**
  * Simulate login delay for realistic testing
  */
-export const mockLoginDelay = (): Promise<void> => {
+const mockLoginDelay = (): Promise<void> => {
   return new Promise((resolve) => setTimeout(resolve, 1000));
 };
 

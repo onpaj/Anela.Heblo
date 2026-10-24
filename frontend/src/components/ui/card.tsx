@@ -1,6 +1,6 @@
 import React from "react";
 
-export interface CardProps {
+interface CardProps {
   className?: string;
   children?: React.ReactNode;
 }
@@ -13,7 +13,7 @@ export const Card: React.FC<CardProps> = ({ className = "", children }) => {
   );
 };
 
-export interface CardHeaderProps {
+interface CardHeaderProps {
   className?: string;
   children?: React.ReactNode;
 }
@@ -26,7 +26,7 @@ export const CardHeader: React.FC<CardHeaderProps> = ({ className = "", children
   );
 };
 
-export interface CardTitleProps {
+interface CardTitleProps {
   className?: string;
   children?: React.ReactNode;
 }
@@ -39,7 +39,7 @@ export const CardTitle: React.FC<CardTitleProps> = ({ className = "", children }
   );
 };
 
-export interface CardContentProps {
+interface CardContentProps {
   className?: string;
   children?: React.ReactNode;
 }

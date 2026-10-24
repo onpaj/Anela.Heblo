@@ -2,7 +2,7 @@ import { useEffect, useCallback } from "react";
 import { versionService } from "../services/versionService";
 import { useToast } from "../contexts/ToastContext";
 
-export interface UseVersionCheckProps {
+interface UseVersionCheckProps {
   /** Whether to enable automatic version checking (default: true) */
   enabled?: boolean;
   /** Whether to show update notifications (default: true) */
@@ -11,7 +11,7 @@ export interface UseVersionCheckProps {
   onNewVersionDetected?: (newVersion: string, currentVersion: string) => void;
 }
 
-export interface UseVersionCheckReturn {
+interface UseVersionCheckReturn {
   /** Check for new version manually */
   checkVersion: () => Promise<void>;
   /** Initialize version tracking */
