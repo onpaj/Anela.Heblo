@@ -21,16 +21,16 @@
       "updated_at": "2026-10-24T09:10:03.723977Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-24T09:44:55.045365Z"
     }
   },
   "tasks": [
     {
       "name": "handler-propagate-exceptions",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-24T09:44:55.212382Z"
     },
     {
       "name": "process-docs-check",
