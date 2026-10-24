@@ -21,16 +21,16 @@
       "updated_at": "2026-10-24T23:09:28.638042Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-24T23:14:08.388807Z"
     }
   },
   "tasks": [
     {
       "name": "add-defaults-helper",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-24T23:54:59.284610Z"
     },
     {
       "name": "add-provisioner",
