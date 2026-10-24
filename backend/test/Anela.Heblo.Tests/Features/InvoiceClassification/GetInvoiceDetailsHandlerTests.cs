@@ -76,4 +76,53 @@ public class GetInvoiceDetailsHandlerTests
         // Confirm the runtime type is the Application contract, not the Domain class.
         response.Invoice.Should().BeOfType<ApplicationContracts.ReceivedInvoiceDto>();
     }
+
+    [Fact]
+    public async Task Handle_WhenClientThrows_PropagatesException()
+    {
+        // Arrange
+        var expected = new HttpRequestException("Flexi unreachable");
+        var clientMock = new Mock<IReceivedInvoicesClient>();
+        clientMock.Setup(c => c.GetInvoiceByIdAsync("FV-001"))
+                  .ThrowsAsync(expected);
+
+        var handler = new GetInvoiceDetailsHandler(
+            clientMock.Object,
+            NullLogger<GetInvoiceDetailsHandler>.Instance,
+            BuildMapper());
+
+        // Act
+        var act = () => handler.Handle(
+            new GetInvoiceDetailsRequest { InvoiceId = "FV-001" },
+            CancellationToken.None);
+
+        // Assert
+        var thrown = await act.Should().ThrowAsync<HttpRequestException>();
+        thrown.Which.Should().BeSameAs(expected);
+    }
+
+    [Fact]
+    public async Task Handle_WhenMapperThrows_PropagatesException()
+    {
+        // Arrange
+        var clientMock = new Mock<IReceivedInvoicesClient>();
+        clientMock.Setup(c => c.GetInvoiceByIdAsync("FV-001"))
+                  .ReturnsAsync(new ReceivedInvoice { InvoiceNumber = "FV-001", Labels = Array.Empty<string>() });
+        var mapperMock = new Mock<IMapper>();
+        mapperMock.Setup(m => m.Map<ApplicationContracts.ReceivedInvoiceDto>(It.IsAny<object>()))
+                  .Throws(new InvalidOperationException("mapping failed"));
+
+        var handler = new GetInvoiceDetailsHandler(
+            clientMock.Object,
+            NullLogger<GetInvoiceDetailsHandler>.Instance,
+            mapperMock.Object);
+
+        // Act
+        var act = () => handler.Handle(
+            new GetInvoiceDetailsRequest { InvoiceId = "FV-001" },
+            CancellationToken.None);
+
+        // Assert
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("mapping failed");
+    }
 }
