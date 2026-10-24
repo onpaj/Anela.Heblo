@@ -3,7 +3,9 @@
   "entry": [
     "src/index.tsx",
     "src/setupTests.ts",
-    "src/**/*.test.{ts,tsx}"
+    "src/**/*.test.{ts,tsx}",
+    "src/features/feature-flags/featureFlags.ts",
+    "src/hooks/useFeatureFlag.ts"
   ],
   "project": ["src/**/*.{ts,tsx}"],
   "ignore": ["src/api/generated/**"],
