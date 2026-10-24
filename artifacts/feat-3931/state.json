@@ -70,9 +70,9 @@
     },
     {
       "name": "promote-ci-and-docs",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-24T12:13:51.065859Z"
+      "updated_at": "2026-10-24T12:18:19.030013Z"
     }
   ]
 }
