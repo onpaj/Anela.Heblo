@@ -12,7 +12,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/DataQuality/LotStockReconciliationMismatch.cs
   - backend/src/Anela.Heblo.Application/Features/DataQuality/Services/DriftDqtJobRunner.cs
   - backend/src/Anela.Heblo.Application/Features/DataQuality/Services/DriftComparisonResult.cs
-verified_at: "5e993f9e2"
+verified_at: "6b5578b47"
 related: []
 ---
 
@@ -71,7 +71,7 @@ This check surfaces that drift between explicit stock-takings. Results appear on
 Tolerance 0.01 is a code constant.
 
 ## Runtime facts
-None.
+- `RefreshLotsData` logs `Catalog.LotsRefreshCompleted rows={Rows} elapsedMs={ElapsedMs}` (Information) after the Flexi lots call (`sarze-expirace.json`) succeeds; nothing is logged on failure. Use it to track the endpoint's latency (p95 ~19 s observed, FlexiBee-side; see `docs/integrations/flexi-api.md`, Known slow endpoints).
 
 ## Known quirks
 - **The two sides refresh at different speeds** (stock every 10 min, lots every hour), so a

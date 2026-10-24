@@ -82,6 +82,7 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddSingleton<ISeasonalDataParser, SeasonalDataParser>();
 
         services.AddSingleton<ILedgerService, LedgerService>();
+        services.Configure<FlexiLedgerOptions>(configuration.GetSection(FlexiLedgerOptions.SectionName));
         services.AddSingleton<IManufactureTemplateCache, ManufactureTemplateCache>();
         services.AddScoped<IFlexiManufactureTemplateService, FlexiManufactureTemplateService>();
         services.AddScoped<IFefoConsumptionAllocator, FefoConsumptionAllocator>();
