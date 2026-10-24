@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -198,6 +199,40 @@ public sealed class PlaudCliClient : IPlaudClient
         catch (OperationCanceledException) when (cts.Token.IsCancellationRequested && !ct.IsCancellationRequested)
         {
             throw new TimeoutException($"Plaud CLI process exceeded {options.ProcessTimeoutSeconds} seconds timeout");
+        }
+    }
+
+    /// <summary>
+    /// Kills the CLI process tree. Runs from a <see cref="CancellationToken"/> callback on a timer
+    /// thread, where any escaping exception terminates the whole host — so it must never throw.
+    /// </summary>
+    internal static void TryKillProcessTree(Process process, ILogger logger)
+    {
+        try
+        {
+            if (process.HasExited)
+            {
+                return;
+            }
+
+            process.Kill(entireProcessTree: true);
+        }
+        catch (InvalidOperationException ex)
+        {
+            logger.LogDebug(ex, "Plaud CLI process already exited; nothing to kill.");
+        }
+        catch (Win32Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to kill Plaud CLI process tree.");
+        }
+        catch (NotSupportedException ex)
+        {
+            logger.LogWarning(ex, "Killing Plaud CLI process tree is not supported.");
+        }
+        catch (Exception ex)
+        {
+            // Last-resort guard: this runs on a timer thread where any escape is fatal.
+            logger.LogWarning(ex, "Unexpected error killing Plaud CLI process tree.");
         }
     }
 
