@@ -12,7 +12,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Catalog/MarginLevel.cs
   - backend/src/Anela.Heblo.Application/Features/Catalog/CatalogRepository.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Accounting/Ledger/LedgerService.cs
-verified_at: "abfbe9d40"
+verified_at: "6b5578b47"
 related: [calc-bundle-sales-expansion]
 ---
 
@@ -55,8 +55,8 @@ recalculates.
 2. Each cost provider waits for the current catalog merge, computes a per-product list of
    `MonthlyCost` for its window and stores it in its in-memory cache
    (`IMaterialCostCache`, `IFlatManufactureCostCache`, `ISalesCostCache`, `IOverheadCostCache`).
-   M1/M2 read the ledger via `ILedgerService` (FlexiBee `ucetni-denik` REST query, 15-minute
-   memory cache in `LedgerService`); M3 reads monthly pool totals from `ICostPoolService`.
+   M1/M2 read the ledger via `ILedgerService` (FlexiBee `ucetni-denik` REST query, single-flight memory
+   cache in `LedgerService`: closed periods 6 h, open month 15 min, `FlexiLedger` config); M3 reads monthly pool totals from `ICostPoolService`.
 3. `RefreshMarginData` calls `MarginCalculationService.GetMarginAsync` per product, which reads
    the four caches and builds `MonthlyMarginHistory.MonthlyData` (one `MarginData` per month).
 4. `GetProductMarginsHandler` filters/sorts/pages the catalog, returns `Margins.Averages`
@@ -192,6 +192,7 @@ its own sales. The one leak is the `OnlyWithSales` filter, which counts them.
 | `CatalogCache:CacheValidityPeriod` | 04:00:00 | How long a merged catalog counts as valid |
 
 ## Runtime facts
+- **Ledger cache (#3858).** `LedgerService` single-flights concurrent identical `ucetni-denik` queries (one FlexiBee call per cache key, other callers await it; a caller abort does not cancel the shared call) and caches a result for `FlexiLedger:ClosedPeriodCacheMinutes` (default 360) when `dateTo` is before the first of the current local month, else `FlexiLedger:OpenPeriodCacheMinutes` (default 15). Failures are never cached. Each real call logs `FlexiLedger.QueryCompleted` with `spanDays`, `rows`, `elapsedMs`. `ucetni-denik/query` is the dominant p95 driver of the FlexiBee dependency (see `docs/integrations/flexi-api.md`, Known slow endpoints).
 - Production has no override of `ManufactureCostHistoryDays` (no App Setting on `heblo`, no
   Key Vault secret), so prod runs the repo value (365 since #4250) — agent memory
   `project_prod_cost_window_365_appsetting` — checked 2026-09-21.

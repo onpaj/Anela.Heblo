@@ -15,7 +15,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Catalog/IManufactureDifficultyRepository.cs
   - backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/*ManufactureDifficulty*/**
   - backend/src/Anela.Heblo.Persistence/Catalog/ManufactureDifficulty/**
-verified_at: "5e993f9e2"
+verified_at: "6b5578b47"
 related: [calc-catalog-merge, calc-margins, flow-stock-taking]
 ---
 
@@ -94,7 +94,7 @@ clone of the product into the live cache. An ERP stock taking reloads one produc
 | Flexi attribute ids | 80–89 (constants in `FlexiProductAttributesQueryClient`) | Parameter → field map |
 
 ## Runtime facts
-None.
+- `RefreshLotsData` logs `Catalog.LotsRefreshCompleted rows={Rows} elapsedMs={ElapsedMs}` (Information) after the Flexi lots call (`sarze-expirace.json`) succeeds; nothing is logged on failure. Use it to track the endpoint's latency (p95 ~19 s observed, FlexiBee-side; see `docs/integrations/flexi-api.md`, Known slow endpoints).
 
 ## Known quirks
 - **Unparseable attribute values become 0/None silently** (e.g. "10 ks" for stock min) — the

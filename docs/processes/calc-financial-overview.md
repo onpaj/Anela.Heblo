@@ -8,7 +8,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/FinancialOverview/**
   - backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/FinancialOverviewStockValueAdapter.cs
   - backend/src/Anela.Heblo.API/Controllers/FinancialOverviewController.cs
-verified_at: "426ea2722"
+verified_at: "6b5578b47"
 related: [calc-margins, sync-flexi-analytics]
 ---
 
@@ -50,7 +50,7 @@ No Hangfire job. Two paths:
 Sources (both FlexiBee REST, read-only):
 - **Ledger** — `ILedgerService.GetLedgerItems` (`LedgerService`, FlexiBee `ucetni-denik` query),
   called twice per period: once filtered on debit account prefixes `5`,`6` and once on credit
-  account prefixes `5`,`6`. Each result is cached 15 min in `LedgerService` under
+  account prefixes `5`,`6`. Each result is single-flighted and cached in `LedgerService` (6 h when the range ends before the current month, else 15 min; `FlexiLedger` config) under
   `ledger_{from}_{to}_{debit}_{credit}_{department}`.
 - **Stock value** — `IStockValueService`, implemented by Catalog's
   `FinancialOverviewStockValueAdapter` → `IErpStockClient.StockToDateAsync` → FlexiBee
@@ -129,6 +129,7 @@ years. The **Buvol** cost centre is excluded by default once the department list
 | `…:Enabled` | true | |
 
 ## Runtime facts
+- **Ledger cache (#3858).** `LedgerService` single-flights concurrent identical `ucetni-denik` queries (one FlexiBee call per cache key, other callers await it; a caller abort does not cancel the shared call) and caches a result for `FlexiLedger:ClosedPeriodCacheMinutes` (default 360) when `dateTo` is before the first of the current local month, else `FlexiLedger:OpenPeriodCacheMinutes` (default 15). Failures are never cached. Each real call logs `FlexiLedger.QueryCompleted` with `spanDays`, `rows`, `elapsedMs`. `ucetni-denik/query` is the dominant p95 driver of the FlexiBee dependency (see `docs/integrations/flexi-api.md`, Known slow endpoints).
 - The 08/2026 dip in Změna hodnoty skladu (−685k Kč, of which materials −652k) is stocktaking
   write-off **I-00075/2026** (3.8.2026, 193 label lines ETI*), booked in Flexi at 489,723 Kč
   MD 501001 / D 112001 — agent memory investigation — 2026-10-02.
@@ -175,7 +176,7 @@ years. The **Buvol** cost centre is excluded by default once the department list
 - `backend/src/Anela.Heblo.Application/Features/FinancialOverview/FinancialOverviewModule.cs` — DI + BackgroundRefresh registration
 - `backend/src/Anela.Heblo.Application/Features/FinancialOverview/FinancialAnalysisOptions.cs` — options
 - `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/FinancialOverviewStockValueAdapter.cs` — stock value per warehouse/date
-- `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Accounting/Ledger/LedgerService.cs` — ledger query + 15-min cache (owned by `calc-margins`)
+- `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Accounting/Ledger/LedgerService.cs` — ledger query + single-flight cache, 6 h closed / 15 min open (owned by `calc-margins`)
 - `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Stock/FlexiStockClient.cs`, `FlexiStockMappingProfile.cs` — stock-to-date call and price mapping
 - `backend/src/Anela.Heblo.API/Controllers/FinancialOverviewController.cs` — endpoints and defaults
 - `frontend/src/components/pages/FinancialOverview.tsx` — page defaults (Buvol exclusion, period → months)
