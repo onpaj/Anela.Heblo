@@ -1,0 +1,58 @@
+{
+  "feature_id": "feat-4472",
+  "issue_number": 4472,
+  "created_at": "2026-10-23T11:16:38.406033Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-23T11:17:27.934843Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-23T11:17:28.419910Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-23T11:17:28.866592Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-23T11:17:34.746393Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-23T20:13:54.340632Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-23T21:24:37.698663Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "controller-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T11:34:39.463672Z"
+    },
+    {
+      "name": "controller-fix",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T12:36:34.698409Z"
+    },
+    {
+      "name": "frontend-client",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T13:31:28.649415Z"
+    },
+    {
+      "name": "process-doc",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T20:14:18.395548Z"
+    }
+  ]
+}
