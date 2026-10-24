@@ -46,9 +46,9 @@
     },
     {
       "name": "lots-refresh-logging",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-24T07:35:22.601193Z"
     },
     {
       "name": "docs-and-process-docs",
