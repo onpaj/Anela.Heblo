@@ -1,6 +1,6 @@
 import React from "react";
 import { ConversationDto, ConversationSummaryDto, useSmartsuppVisitorInfo } from "../../../api/hooks/useSmartsupp";
-import StatusPill from "./StatusPill";
+import StatusPill, { statusLabel } from "./StatusPill";
 import AgentBadge from "./AgentBadge";
 import { Star } from "lucide-react";
 import { countryCodeToFlag } from "./utils/countryCodeToFlag";
@@ -39,13 +39,14 @@ function OtherConversationRow({
     : "—";
   return (
     <button
+      type="button"
       data-testid={`other-conversation-${conv.id}`}
       onClick={() => onSelect?.(conv.id ?? "")}
-      className="w-full text-left py-1.5 border-b border-gray-50 dark:border-graphite-border last:border-0"
+      className="w-full text-left py-1.5 border-b border-gray-50 dark:border-graphite-border last:border-0 rounded hover:bg-gray-50 dark:hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
     >
       <div className="flex items-center justify-between mb-0.5">
         <span className="text-xs text-gray-500 dark:text-graphite-muted">{date}</span>
-        <span className="text-xs text-gray-500 dark:text-graphite-muted">{conv.status}</span>
+        <span className="text-xs text-gray-500 dark:text-graphite-muted">{statusLabel(conv.status)}</span>
       </div>
       {conv.lastMessagePreview && (
         <div className="text-xs text-gray-700 dark:text-graphite-muted truncate">{conv.lastMessagePreview}</div>
