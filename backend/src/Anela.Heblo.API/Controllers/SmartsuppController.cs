@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.CloseConversation;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GenerateDraftReply;
 using Anela.Heblo.Application.Features.Smartsupp.UseCases.GetContactShoptetInfo;
@@ -117,6 +118,52 @@ public class SmartsuppController : BaseApiController
             Content = body.Content,
             DraftLogId = body.DraftLogId,
         };
+        var result = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(result);
+    }
+
+    [HttpPost("conversations/{conversationId}/messages/with-attachments")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(60 * 1024 * 1024)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 60 * 1024 * 1024)]
+    [ProducesResponseType(typeof(SendMessageResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    // Intentional: smartsupp feature has only read level; read-role holders can also interact with chats.
+    public async Task<ActionResult<SendMessageResponse>> SendMessageWithAttachments(
+        string conversationId,
+        [FromForm] string? content,
+        [FromForm] Guid? draftLogId,
+        [FromForm] List<IFormFile>? files,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new SendMessageRequest
+        {
+            ConversationId = conversationId,
+            Content = content,
+            DraftLogId = draftLogId,
+        };
+        // Reject over-limit uploads before copying file contents into memory; the handler enforces the same policy.
+        var uploads = files ?? [];
+        if (uploads.Count > SmartsuppAttachmentPolicy.MaxFiles)
+            return HandleResponse(new SendMessageResponse(ErrorCodes.SmartsuppAttachmentInvalid));
+        if (uploads.Any(f => f.Length > SmartsuppAttachmentPolicy.MaxFileBytes))
+            return HandleResponse(new SendMessageResponse(ErrorCodes.SmartsuppAttachmentTooLarge));
+
+        foreach (var file in uploads)
+        {
+            await using var stream = file.OpenReadStream();
+            var bytes = new byte[file.Length];
+            await stream.ReadExactlyAsync(bytes, cancellationToken);
+            request.Files.Add(new SendMessageFile
+            {
+                FileName = Path.GetFileName(file.FileName),
+                ContentType = file.ContentType,
+                Content = bytes,
+            });
+        }
+
         var result = await _mediator.Send(request, cancellationToken);
         return HandleResponse(result);
     }

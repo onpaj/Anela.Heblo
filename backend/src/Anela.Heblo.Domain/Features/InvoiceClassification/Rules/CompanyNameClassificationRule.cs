@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 namespace Anela.Heblo.Domain.Features.InvoiceClassification.Rules;
 
 public class CompanyNameClassificationRule : IClassificationRule
@@ -13,13 +11,6 @@ public class CompanyNameClassificationRule : IClassificationRule
         if (string.IsNullOrWhiteSpace(invoice.CompanyName) || string.IsNullOrWhiteSpace(pattern))
             return false;
 
-        try
-        {
-            return Regex.IsMatch(invoice.CompanyName, pattern, RegexOptions.IgnoreCase);
-        }
-        catch (ArgumentException)
-        {
-            return invoice.CompanyName.Contains(pattern, StringComparison.OrdinalIgnoreCase);
-        }
+        return ClassificationRegex.IsMatchOrContains(invoice.CompanyName, pattern);
     }
 }

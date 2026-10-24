@@ -14,6 +14,7 @@ public class PlaudPollingJob : IRecurringJob
     private readonly IMediator _mediator;
     private readonly IRecurringJobStatusChecker _statusChecker;
     private readonly IOptions<MeetingTasksOptions> _options;
+    private readonly PlaudPollingHealthTracker _tracker;
     private readonly ILogger<PlaudPollingJob> _logger;
 
     public RecurringJobMetadata Metadata { get; } = new()
@@ -31,12 +32,14 @@ public class PlaudPollingJob : IRecurringJob
         IMediator mediator,
         IRecurringJobStatusChecker statusChecker,
         IOptions<MeetingTasksOptions> options,
+        PlaudPollingHealthTracker tracker,
         ILogger<PlaudPollingJob> logger)
     {
         _plaudClient = plaudClient;
         _mediator = mediator;
         _statusChecker = statusChecker;
         _options = options;
+        _tracker = tracker;
         _logger = logger;
     }
 
@@ -52,7 +55,18 @@ public class PlaudPollingJob : IRecurringJob
         _logger.LogInformation("Starting {JobName}", Metadata.JobName);
 
         var maxAgeDays = _options.Value.MaxRecordingAgeDays;
-        var readyRecordings = await _plaudClient.ListRecentAsync(maxAgeDays, cancellationToken);
+        IReadOnlyCollection<PlaudRecordingSummary> readyRecordings;
+        try
+        {
+            readyRecordings = await _plaudClient.ListRecentAsync(maxAgeDays, cancellationToken);
+        }
+        catch (PlaudUpstreamUnavailableException ex)
+        {
+            HandleUpstreamFailure(ex);
+            return;
+        }
+
+        _tracker.Reset();
 
         _logger.LogInformation("{Ready} recording(s) found to ingest", readyRecordings.Count);
 
@@ -90,6 +104,11 @@ public class PlaudPollingJob : IRecurringJob
                     ingested++;
                 }
             }
+            catch (PlaudUpstreamUnavailableException ex)
+            {
+                HandleUpstreamFailure(ex);
+                return;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to ingest recording {RecordingId}", recording.Id);
@@ -99,5 +118,19 @@ public class PlaudPollingJob : IRecurringJob
         _logger.LogInformation(
             "{JobName} complete. {Ingested} new recordings ingested, {Skipped} already known, {NotGenerated} not yet generated, {Failed} failed",
             Metadata.JobName, ingested, skipped, notGenerated, failed);
+    }
+
+    private void HandleUpstreamFailure(PlaudUpstreamUnavailableException ex)
+    {
+        var count = _tracker.RecordUpstreamFailure();
+        _logger.LogWarning(
+            "Plaud upstream unavailable (HTTP {Status}); will retry on next tick. Consecutive failed runs: {Count}",
+            ex.StatusCode, count);
+
+        var threshold = _options.Value.UpstreamFailureAlertThreshold;
+        if (threshold > 0 && count % threshold == 0)
+        {
+            _logger.LogError("Plaud upstream has been unavailable for {Count} consecutive runs", count);
+        }
     }
 }

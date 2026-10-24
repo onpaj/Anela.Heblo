@@ -3,7 +3,7 @@ using MediatR;
 
 namespace Anela.Heblo.Application.Features.CatalogDocuments.UseCases.UploadMaterialDocument;
 
-public class UploadMaterialDocumentRequest : IRequest<UploadDocumentResponse>
+public class UploadMaterialDocumentRequest : IRequest<CatalogDocumentsUploadDocumentResponse>
 {
     public string ProductCode { get; set; } = string.Empty;
     public string OriginalFilename { get; set; } = string.Empty;

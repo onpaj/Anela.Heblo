@@ -7,7 +7,6 @@ using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture
 using Anela.Heblo.Application.Features.Logistics.UseCases.GiftPackageManufacture.Services;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using Anela.Heblo.Domain.Features.Logistics.GiftPackageManufacture;
-using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.Catalog.Stock;
 using Anela.Heblo.Persistence.Infrastructure.Resilience;
@@ -152,7 +151,7 @@ public class GiftPackageManufactureAtomicityIntegrationTests : IAsyncLifetime
 
     private static GiftPackageManufactureService CreateService(
         ApplicationDbContext context,
-        Mock<IManufactureClient> manufactureClientMock,
+        Mock<IGiftPackageBomSource> bomSourceMock,
         Mock<ILogisticsCatalogSource> catalogSourceMock,
         Mock<IMapper> mapperMock)
     {
@@ -163,7 +162,7 @@ public class GiftPackageManufactureAtomicityIntegrationTests : IAsyncLifetime
         var stockOperationAdapter = new LogisticsStockOperationAdapter(stockUpProcessingService);
 
         return new GiftPackageManufactureService(
-            manufactureClientMock.Object,
+            bomSourceMock.Object,
             giftPackageRepository,
             catalogSourceMock.Object,
             stockOperationAdapter,
@@ -176,7 +175,7 @@ public class GiftPackageManufactureAtomicityIntegrationTests : IAsyncLifetime
     /// Configures a 2-ingredient BOM for "SET001": ING001 (Amount 2.0) and ING002 (Amount 1.5).
     /// </summary>
     private static void SetupTwoIngredientBom(
-        Mock<IManufactureClient> manufactureClientMock,
+        Mock<IGiftPackageBomSource> bomSourceMock,
         Mock<ILogisticsCatalogSource> catalogSourceMock,
         string giftPackageCode)
     {
@@ -194,12 +193,12 @@ public class GiftPackageManufactureAtomicityIntegrationTests : IAsyncLifetime
             .Setup(x => x.GetGiftPackageAsync(giftPackageCode, It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(product);
 
-        manufactureClientMock
+        bomSourceMock
             .Setup(x => x.GetSetPartsAsync(giftPackageCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<ProductPart>
+            .ReturnsAsync(new List<LogisticsGiftPackagePart>
             {
-                new ProductPart { ProductCode = "ING001", ProductName = "Ingredient 1", Amount = 2.0 },
-                new ProductPart { ProductCode = "ING002", ProductName = "Ingredient 2", Amount = 1.5 },
+                new LogisticsGiftPackagePart { ProductCode = "ING001", ProductName = "Ingredient 1", Amount = 2.0 },
+                new LogisticsGiftPackagePart { ProductCode = "ING002", ProductName = "Ingredient 2", Amount = 1.5 },
             });
 
         catalogSourceMock
@@ -210,10 +209,10 @@ public class GiftPackageManufactureAtomicityIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task CreateManufactureAsync_Succeeds_CommitsLogItemsAndStockOperationsTogether()
     {
-        var manufactureClientMock = new Mock<IManufactureClient>();
+        var bomSourceMock = new Mock<IGiftPackageBomSource>();
         var catalogSourceMock = new Mock<ILogisticsCatalogSource>();
         var mapperMock = new Mock<IMapper>();
-        SetupTwoIngredientBom(manufactureClientMock, catalogSourceMock, "SET001");
+        SetupTwoIngredientBom(bomSourceMock, catalogSourceMock, "SET001");
         mapperMock
             .Setup(m => m.Map<GiftPackageManufactureDto>(It.IsAny<GiftPackageManufactureLog>()))
             .Returns((GiftPackageManufactureLog log) => new GiftPackageManufactureDto
@@ -226,7 +225,7 @@ public class GiftPackageManufactureAtomicityIntegrationTests : IAsyncLifetime
             });
 
         await using var context = CreateContext();
-        var service = CreateService(context, manufactureClientMock, catalogSourceMock, mapperMock);
+        var service = CreateService(context, bomSourceMock, catalogSourceMock, mapperMock);
 
         var result = await service.CreateManufactureAsync("SET001", 5, false, "tester", CancellationToken.None);
 
@@ -302,16 +301,16 @@ public class GiftPackageManufactureAtomicityIntegrationTests : IAsyncLifetime
         // the LAST call proves that writes from calls #1-#3 — already sent to Postgres but not yet
         // committed, since they share one ambient transaction — are rolled back too, not just that
         // the 4th write never landed.
-        var manufactureClientMock = new Mock<IManufactureClient>();
+        var bomSourceMock = new Mock<IGiftPackageBomSource>();
         var catalogSourceMock = new Mock<ILogisticsCatalogSource>();
         var mapperMock = new Mock<IMapper>();
-        SetupTwoIngredientBom(manufactureClientMock, catalogSourceMock, "SET001");
+        SetupTwoIngredientBom(bomSourceMock, catalogSourceMock, "SET001");
         mapperMock
             .Setup(m => m.Map<GiftPackageManufactureDto>(It.IsAny<GiftPackageManufactureLog>()))
             .Returns((GiftPackageManufactureLog log) => new GiftPackageManufactureDto { Id = log.Id, GiftPackageCode = log.GiftPackageCode });
 
         await using var context = CreateContext(new ThrowOnNthSaveInterceptor(failOnCallNumber: 4));
-        var service = CreateService(context, manufactureClientMock, catalogSourceMock, mapperMock);
+        var service = CreateService(context, bomSourceMock, catalogSourceMock, mapperMock);
 
         var ex = await Record.ExceptionAsync(() =>
             service.CreateManufactureAsync("SET001", 5, false, "tester", CancellationToken.None));
@@ -341,10 +340,10 @@ public class GiftPackageManufactureAtomicityIntegrationTests : IAsyncLifetime
         // orphan StockUpOperation whose SourceId points at a log row that never existed — exactly
         // the NFR-3 invariant this feature establishes. The SourceId/DocumentNumber assertions
         // below fail (4 stock ops, one orphan) without the ChangeTracker.Clear().
-        var manufactureClientMock = new Mock<IManufactureClient>();
+        var bomSourceMock = new Mock<IGiftPackageBomSource>();
         var catalogSourceMock = new Mock<ILogisticsCatalogSource>();
         var mapperMock = new Mock<IMapper>();
-        SetupTwoIngredientBom(manufactureClientMock, catalogSourceMock, "SET001");
+        SetupTwoIngredientBom(bomSourceMock, catalogSourceMock, "SET001");
         mapperMock
             .Setup(m => m.Map<GiftPackageManufactureDto>(It.IsAny<GiftPackageManufactureLog>()))
             .Returns((GiftPackageManufactureLog log) => new GiftPackageManufactureDto { Id = log.Id, GiftPackageCode = log.GiftPackageCode });
@@ -352,7 +351,7 @@ public class GiftPackageManufactureAtomicityIntegrationTests : IAsyncLifetime
         await using var context = CreateContext(new ThrowOnNthSaveInterceptor(
             failOnCallNumber: 4,
             exceptionFactory: () => new TimeoutException("Simulated transient failure on save #4")));
-        var service = CreateService(context, manufactureClientMock, catalogSourceMock, mapperMock);
+        var service = CreateService(context, bomSourceMock, catalogSourceMock, mapperMock);
 
         var result = await service.CreateManufactureAsync("SET001", 5, false, "tester", CancellationToken.None);
 
@@ -381,13 +380,13 @@ public class GiftPackageManufactureAtomicityIntegrationTests : IAsyncLifetime
     [Fact]
     public async Task DisassembleGiftPackageAsync_Succeeds_CommitsLogItemsAndStockOperationsTogether()
     {
-        var manufactureClientMock = new Mock<IManufactureClient>();
+        var bomSourceMock = new Mock<IGiftPackageBomSource>();
         var catalogSourceMock = new Mock<ILogisticsCatalogSource>();
         var mapperMock = new Mock<IMapper>();
-        SetupTwoIngredientBom(manufactureClientMock, catalogSourceMock, "SET001");
+        SetupTwoIngredientBom(bomSourceMock, catalogSourceMock, "SET001");
 
         await using var context = CreateContext();
-        var service = CreateService(context, manufactureClientMock, catalogSourceMock, mapperMock);
+        var service = CreateService(context, bomSourceMock, catalogSourceMock, mapperMock);
 
         var result = await service.DisassembleGiftPackageAsync("SET001", 3, "tester", CancellationToken.None);
 
@@ -416,13 +415,13 @@ public class GiftPackageManufactureAtomicityIntegrationTests : IAsyncLifetime
         // Same 4-SaveChangesAsync shape as CreateManufactureAsync: log (#1), package stock-down
         // (#2), then one stock-up per component (#3, #4). Failing on the last call again proves
         // the earlier, already-sent writes roll back too.
-        var manufactureClientMock = new Mock<IManufactureClient>();
+        var bomSourceMock = new Mock<IGiftPackageBomSource>();
         var catalogSourceMock = new Mock<ILogisticsCatalogSource>();
         var mapperMock = new Mock<IMapper>();
-        SetupTwoIngredientBom(manufactureClientMock, catalogSourceMock, "SET001");
+        SetupTwoIngredientBom(bomSourceMock, catalogSourceMock, "SET001");
 
         await using var context = CreateContext(new ThrowOnNthSaveInterceptor(failOnCallNumber: 4));
-        var service = CreateService(context, manufactureClientMock, catalogSourceMock, mapperMock);
+        var service = CreateService(context, bomSourceMock, catalogSourceMock, mapperMock);
 
         var ex = await Record.ExceptionAsync(() =>
             service.DisassembleGiftPackageAsync("SET001", 3, "tester", CancellationToken.None));

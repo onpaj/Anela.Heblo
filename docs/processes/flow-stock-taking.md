@@ -14,7 +14,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Catalog/Stock/IStockTakingRepository.cs
   - backend/src/Anela.Heblo.Persistence/Logistics/StockTaking/**
   - backend/src/Anela.Heblo.API/Controllers/StockTakingController.cs
-verified_at: "5e993f9e2"
+verified_at: "8161c408c"
 related: [sync-catalog-stock, sync-catalog-master-data, feed-stock-up, calc-catalog-merge]
 ---
 

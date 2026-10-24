@@ -55,7 +55,7 @@ public class CalculateBatchByIngredientHandlerTests
             }
         };
 
-        var product = new CatalogAggregate
+        var product = new ProductCatalogSnapshot
         {
             ProductCode = productCode,
             ProductName = "Test Product",
@@ -67,9 +67,9 @@ public class CalculateBatchByIngredientHandlerTests
 
         // Setup catalog items with stock information
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync("ING001", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new CatalogAggregate { Stock = new StockData { Erp = 100m } });
+            .ReturnsAsync(new ProductCatalogSnapshot { ProductCode = "ING001", Stock = new ProductStockSnapshot { Erp = 100m } });
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync("ING002", It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new CatalogAggregate { Stock = new StockData { Erp = 200m } });
+            .ReturnsAsync(new ProductCatalogSnapshot { ProductCode = "ING002", Stock = new ProductStockSnapshot { Erp = 200m } });
 
         var request = new CalculateBatchByIngredientRequest
         {

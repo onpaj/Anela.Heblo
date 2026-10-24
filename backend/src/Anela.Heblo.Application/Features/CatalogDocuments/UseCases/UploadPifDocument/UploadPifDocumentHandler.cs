@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 
 namespace Anela.Heblo.Application.Features.CatalogDocuments.UseCases.UploadPifDocument;
 
-public class UploadPifDocumentHandler : IRequestHandler<UploadPifDocumentRequest, UploadDocumentResponse>
+public class UploadPifDocumentHandler : IRequestHandler<UploadPifDocumentRequest, CatalogDocumentsUploadDocumentResponse>
 {
     private readonly ICatalogDocumentsStorage _storage;
     private readonly CatalogDocumentsOptions _options;
@@ -24,7 +24,7 @@ public class UploadPifDocumentHandler : IRequestHandler<UploadPifDocumentRequest
         _logger = logger;
     }
 
-    public async Task<UploadDocumentResponse> Handle(
+    public async Task<CatalogDocumentsUploadDocumentResponse> Handle(
         UploadPifDocumentRequest request, CancellationToken cancellationToken)
     {
         var prefix = PifFolderPrefixBuilder.Build(request.ProductCode);
@@ -34,7 +34,7 @@ public class UploadPifDocumentHandler : IRequestHandler<UploadPifDocumentRequest
             allowMultiple: true, cancellationToken);
 
         if (folder.Status == FolderStatus.NotFound)
-            return new UploadDocumentResponse(ErrorCodes.CatalogDocumentFolderNotFound,
+            return new CatalogDocumentsUploadDocumentResponse(ErrorCodes.CatalogDocumentFolderNotFound,
                 new Dictionary<string, string> { ["prefix"] = prefix, ["basePath"] = _options.PIF.BasePath });
 
         _logger.LogInformation("Uploading PIF document {Filename} for product {ProductCode}", request.OriginalFilename, request.ProductCode);
@@ -43,6 +43,6 @@ public class UploadPifDocumentHandler : IRequestHandler<UploadPifDocumentRequest
             _options.PIF.DriveId, folder.FolderId, request.OriginalFilename,
             request.FileStream, request.ContentType, request.SizeBytes, cancellationToken);
 
-        return new UploadDocumentResponse { UploadedFilename = uploadedName };
+        return new CatalogDocumentsUploadDocumentResponse { UploadedFilename = uploadedName };
     }
 }

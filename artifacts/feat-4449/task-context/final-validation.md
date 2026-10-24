@@ -1,0 +1,2 @@
+### task: final-validation
+Run from repo root: `dotnet build backend/Anela.Heblo.sln`, `dotnet format backend/Anela.Heblo.sln --verify-no-changes` (run `dotnet format` if it reports changes), `dotnet test backend/test/Anela.Heblo.Tests --filter "FullyQualifiedName~FileStorage|FullyQualifiedName~ProductExport"`, then the full backend test project. Confirm greps: no `DownloadFromUrlAsync`, no `FileStorageConstants`, no `IHttpClientFactory` in `AzureBlobStorageService.cs`. No frontend or OpenAPI regeneration is required.

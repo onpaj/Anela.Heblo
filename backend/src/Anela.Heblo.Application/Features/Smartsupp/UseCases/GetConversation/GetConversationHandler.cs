@@ -3,6 +3,7 @@ using Anela.Heblo.Application.Features.Smartsupp.Presence;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Smartsupp;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Smartsupp.UseCases.GetConversation;
 
@@ -11,15 +12,18 @@ public class GetConversationHandler : IRequestHandler<GetConversationRequest, Ge
     private readonly ISmartsuppRepository _repository;
     private readonly ISmartsuppAgentCache _agentCache;
     private readonly ISmartsuppPresenceService _presenceService;
+    private readonly ILogger<GetConversationHandler> _logger;
 
     public GetConversationHandler(
         ISmartsuppRepository repository,
         ISmartsuppAgentCache agentCache,
-        ISmartsuppPresenceService presenceService)
+        ISmartsuppPresenceService presenceService,
+        ILogger<GetConversationHandler> logger)
     {
         _repository = repository;
         _agentCache = agentCache;
         _presenceService = presenceService;
+        _logger = logger;
     }
 
     public async Task<GetConversationResponse> Handle(GetConversationRequest request, CancellationToken cancellationToken)
@@ -95,7 +99,7 @@ public class GetConversationHandler : IRequestHandler<GetConversationRequest, Ge
             IsUnread = c.IsUnread,
         };
 
-    private static MessageDto MapMessageDto(SmartsuppMessage m) =>
+    private MessageDto MapMessageDto(SmartsuppMessage m) =>
         new()
         {
             Id = m.Id,
@@ -110,7 +114,29 @@ public class GetConversationHandler : IRequestHandler<GetConversationRequest, Ge
             ResponseTime = m.ResponseTime,
             IsFirstReply = m.IsFirstReply,
             PageUrl = m.PageUrl,
+            Attachments = MapAttachments(m),
         };
+
+    private List<MessageAttachmentDto> MapAttachments(SmartsuppMessage m)
+    {
+        if (!SmartsuppAttachments.TryParse(m.AttachmentsJson, out var attachments))
+        {
+            _logger.LogWarning("Malformed AttachmentsJson on Smartsupp message {MessageId}", m.Id);
+            return new List<MessageAttachmentDto>();
+        }
+
+        return attachments
+            .Select(a => new MessageAttachmentDto
+            {
+                Type = a.Type,
+                FileName = a.FileName,
+                FileType = a.FileType,
+                Url = a.Url,
+                Size = a.Size,
+                ThumbUrl = a.ThumbUrl,
+            })
+            .ToList();
+    }
 
     private static List<string> ParseStringList(string? json)
     {

@@ -120,4 +120,35 @@ public class CompanyNameClassificationRuleTests
 
         act.Should().Throw<ArgumentException>();
     }
+
+    [Fact]
+    public void Evaluate_CatastrophicBacktrackingPattern_TimesOutAndReturnsFalse()
+    {
+        // Arrange
+        var input = new string('a', 40) + "!";
+        var invoice = InvoiceClassificationFixtures.CreateInvoice(companyName: input);
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+        // Act
+        var result = _sut.Evaluate(invoice, "(a+)+$");
+        stopwatch.Stop();
+
+        // Assert
+        result.Should().BeFalse();
+        stopwatch.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public void Evaluate_InvalidRegexPattern_FallsBackToContains()
+    {
+        // Arrange
+        var input = "xx [abc yy";
+        var invoice = InvoiceClassificationFixtures.CreateInvoice(companyName: input);
+
+        // Act
+        var result = _sut.Evaluate(invoice, "[abc");
+
+        // Assert
+        result.Should().BeTrue();
+    }
 }

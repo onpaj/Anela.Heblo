@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 namespace Anela.Heblo.Application.Features.CatalogDocuments.UseCases.UploadMaterialDocument;
 
 public class UploadMaterialDocumentHandler
-    : IRequestHandler<UploadMaterialDocumentRequest, UploadDocumentResponse>
+    : IRequestHandler<UploadMaterialDocumentRequest, CatalogDocumentsUploadDocumentResponse>
 {
     private readonly ICatalogDocumentsStorage _storage;
     private readonly CatalogDocumentsOptions _options;
@@ -25,7 +25,7 @@ public class UploadMaterialDocumentHandler
         _logger = logger;
     }
 
-    public async Task<UploadDocumentResponse> Handle(
+    public async Task<CatalogDocumentsUploadDocumentResponse> Handle(
         UploadMaterialDocumentRequest request, CancellationToken cancellationToken)
     {
         if (!request.UploadAsIs)
@@ -40,11 +40,11 @@ public class UploadMaterialDocumentHandler
             allowMultiple: false, cancellationToken);
 
         if (folder.Status == FolderStatus.NotFound)
-            return new UploadDocumentResponse(ErrorCodes.CatalogDocumentFolderNotFound,
+            return new CatalogDocumentsUploadDocumentResponse(ErrorCodes.CatalogDocumentFolderNotFound,
                 new Dictionary<string, string> { ["prefix"] = prefix, ["basePath"] = _options.Materials.BasePath });
 
         if (folder.Status == FolderStatus.MultipleMatches)
-            return new UploadDocumentResponse(ErrorCodes.CatalogDocumentFolderMultipleMatches,
+            return new CatalogDocumentsUploadDocumentResponse(ErrorCodes.CatalogDocumentFolderMultipleMatches,
                 new Dictionary<string, string> { ["prefix"] = prefix });
 
         var filename = request.UploadAsIs
@@ -57,20 +57,20 @@ public class UploadMaterialDocumentHandler
             _options.Materials.DriveId, folder.FolderId, filename,
             request.FileStream, request.ContentType, request.SizeBytes, cancellationToken);
 
-        return new UploadDocumentResponse { UploadedFilename = uploadedName };
+        return new CatalogDocumentsUploadDocumentResponse { UploadedFilename = uploadedName };
     }
 
-    private static UploadDocumentResponse? ValidateStructuredUpload(UploadMaterialDocumentRequest request)
+    private static CatalogDocumentsUploadDocumentResponse? ValidateStructuredUpload(UploadMaterialDocumentRequest request)
     {
         var type = MaterialDocumentTypes.All.FirstOrDefault(t =>
             string.Equals(t.Code, request.DocumentTypeCode, StringComparison.OrdinalIgnoreCase));
 
         if (type is null)
-            return new UploadDocumentResponse(ErrorCodes.CatalogDocumentInvalidTypeCode,
+            return new CatalogDocumentsUploadDocumentResponse(ErrorCodes.CatalogDocumentInvalidTypeCode,
                 new Dictionary<string, string> { ["code"] = request.DocumentTypeCode });
 
         if (type.LotRequired && string.IsNullOrWhiteSpace(request.Lot))
-            return new UploadDocumentResponse(ErrorCodes.CatalogDocumentLotRequired,
+            return new CatalogDocumentsUploadDocumentResponse(ErrorCodes.CatalogDocumentLotRequired,
                 new Dictionary<string, string> { ["type"] = request.DocumentTypeCode });
 
         return null;

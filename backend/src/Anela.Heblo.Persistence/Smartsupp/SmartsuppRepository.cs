@@ -204,7 +204,11 @@ public sealed class SmartsuppRepository : ISmartsuppRepository
                 tracked.IsFirstReply = message.IsFirstReply;
                 tracked.ResponseTime = message.ResponseTime;
                 tracked.UpdatedAt = message.UpdatedAt;
-                tracked.AttachmentsJson = message.AttachmentsJson;
+                // A later event without an attachments payload must not wipe stored attachments.
+                // Sticky by design: no Smartsupp event edits/removes attachments today. If message
+                // edits ever arrive, this must change.
+                if (!string.IsNullOrEmpty(message.AttachmentsJson) && message.AttachmentsJson != "[]")
+                    tracked.AttachmentsJson = message.AttachmentsJson;
             }
             else
             {

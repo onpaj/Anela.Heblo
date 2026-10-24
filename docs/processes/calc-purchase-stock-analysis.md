@@ -14,11 +14,15 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Purchase/Contracts/StockSeverity.cs
   - backend/src/Anela.Heblo.Application/Features/Purchase/Contracts/StockStatusFilter.cs
   - backend/src/Anela.Heblo.Application/Features/Purchase/Contracts/StockAnalysisSortBy.cs
+  - backend/src/Anela.Heblo.Application/Features/Purchase/Contracts/StockAnalysisItemDto.cs
+  - backend/src/Anela.Heblo.Application/Features/Purchase/Contracts/StockAnalysisSummaryDto.cs
+  - backend/src/Anela.Heblo.Application/Features/Purchase/Contracts/LastPurchaseInfoDto.cs
+  - backend/src/Anela.Heblo.Application/Features/Purchase/Contracts/StockAnalysisFilter.cs
   - backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/PurchaseMaterialCatalogAdapter.cs
   - backend/src/Anela.Heblo.API/Controllers/PurchaseStockAnalysisController.cs
   - frontend/src/components/pages/PurchaseStockAnalysis.tsx
   - frontend/src/api/hooks/usePurchaseStockAnalysis.ts
-verified_at: "5e993f9e2"
+verified_at: "282e4f521"
 related:
   - calc-bundle-sales-expansion
   - flow-purchase-order
@@ -61,7 +65,8 @@ Configuration).
    | Last purchase | Newest row of `PurchaseHistory`, Flexi user query 19 (date, supplier, amount, unit price, total) |
 2. `GetPurchaseStockAnalysisHandler` keeps the items whose code matches the requested category. It analyses each item
    (`StockAnalysisCalculator.AnalyzeItem`), builds the summary from **all** analysed items, and then applies the
-   status filter, the "only configured" filter and the search. It then sorts and pages the rows (an export returns all rows).
+   status filter, the "only configured" filter and the search (these filter inputs are passed to the calculator as a
+   `StockAnalysisFilter`, not as the use-case request). It then sorts and pages the rows (an export returns all rows).
 3. The dashboard tile runs the same request (all statuses, category *All*, export) and counts the items with NS% < 20
    that are configured.
 
