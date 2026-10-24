@@ -18,7 +18,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/MeetingTasks/MeetingTasksOptions.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Plaud/**
   - backend/src/Anela.Heblo.API/meeting-users.json
-verified_at: "3735f5e1a"
+verified_at: "46bf2256"
 related:
   - feed-meeting-tasks-to-planner
 ---
@@ -159,6 +159,13 @@ not changed.
   (logged as error), Claude is told to set no e-mails.
 - Two leftover files in the adapter (`IPlaudClient.cs`, `PlaudRecordingSummary.cs`) contain
   only comments; the real types live in `Application/Features/MeetingTasks/Services`.
+- **The CLI timeout kill must never throw.** `PlaudCliClient` kills the CLI process tree from a
+  `CancellationToken` callback (after `ProcessTimeoutSeconds`, default 60 s). That callback runs on a
+  timer thread, so an exception escaping it terminates the whole host. Until #4462 an unguarded
+  `Process.Kill` on an already-exited process threw `InvalidOperationException` and caused the
+  2026-10-09 production outage (container exit 139, ~3 min restarts, 502/503). The kill now goes
+  through `TryKillProcessTree`, which swallows and logs kill failures, and the registration is
+  disposed before the `Process`.
 
 ## Code entry points
 - `backend/src/Anela.Heblo.Application/Features/MeetingTasks/Infrastructure/Jobs/PlaudPollingJob.cs` — job id, cron, loop
