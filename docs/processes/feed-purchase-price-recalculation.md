@@ -14,7 +14,6 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogPurchasePriceSyncSourceAdapter.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Price/FlexiPurchasePriceWriter.cs
   - backend/src/Anela.Heblo.Domain/Features/ProductPricing/IErpPurchasePriceWriter.cs
-  - frontend/src/api/hooks/useRecalculatePurchasePrice.ts
   - scripts/flexi-purchase-price-report.py
 verified_at: "5e993f9e2"
 related:
@@ -49,8 +48,8 @@ per the item's primary unit (`mj1`).
   and skips the run when the flag is off.
 - On demand: `POST /api/purchase-orders/recalculate-purchase-price` (permission
   `Purchase_PurchaseOrders`, Write) with `{ "productCode": "…" }` recalculates the BoM of one item, or with
-  `{ "recalculateAll": true }` runs the full three-phase run. No page calls it: the frontend hook
-  `useRecalculatePurchasePrice` exists but no component uses it.
+  `{ "recalculateAll": true }` runs the full three-phase run. No page calls it (the unused
+  frontend hook `useRecalculatePurchasePrice` was removed).
 
 ## Data flow
 **Phase 1: materials and goods → ceník `nakupCena`** (`CatalogPurchasePriceSyncSourceAdapter` + handler)
