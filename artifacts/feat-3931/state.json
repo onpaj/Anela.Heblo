@@ -34,9 +34,9 @@
     },
     {
       "name": "delete-dead-files",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-24T06:19:23.542326Z"
     },
     {
       "name": "feature-flag-files",
