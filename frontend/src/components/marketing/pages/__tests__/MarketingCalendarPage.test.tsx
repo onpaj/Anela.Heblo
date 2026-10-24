@@ -538,4 +538,42 @@ describe("MarketingCalendarPage — typed API response mapping", () => {
       folderLinks: [{ path: "xyz", folderType: "SharePoint" }],
     });
   });
+
+  it("maps an action without folderLinks to an empty folderLinks array", () => {
+    mockDetailAction = {
+      id: 10,
+      title: "Bez složek",
+      description: "Popis",
+      actionType: "PR",
+      startDate: new Date(2026, 8, 1),
+      endDate: new Date(2026, 8, 2),
+      associatedProducts: [],
+    };
+    render(<MarketingCalendarPage />);
+
+    const lastModalProps = modalRenderLog[modalRenderLog.length - 1];
+    expect(lastModalProps.existingAction.folderLinks).toEqual([]);
+  });
+
+  it("regression: passes the API folderKey to the edit modal as folderLinks[].path so an untouched save preserves it", () => {
+    mockDetailAction = {
+      id: 11,
+      title: "Se složkou",
+      description: "Popis",
+      actionType: "PR",
+      startDate: new Date(2026, 8, 1),
+      endDate: new Date(2026, 8, 2),
+      associatedProducts: [],
+      folderLinks: [
+        { folderKey: "key-1", folderType: "GoogleDrive" },
+        { folderKey: "key-2", folderType: "SharePoint" },
+      ],
+    };
+    render(<MarketingCalendarPage />);
+
+    const { existingAction } = modalRenderLog[modalRenderLog.length - 1];
+    expect(existingAction.folderLinks.map((l: any) => l.path)).toEqual(["key-1", "key-2"]);
+    expect(existingAction.folderLinks[0].path).toBe(mockDetailAction.folderLinks[0].folderKey);
+    expect(existingAction.folderLinks[0]).not.toHaveProperty("folderKey");
+  });
 });
