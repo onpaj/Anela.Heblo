@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.EshopUrl;
 using Anela.Heblo.Domain.Features.Catalog.Lots;
@@ -49,7 +50,15 @@ public sealed class CatalogMetaRefreshService
 
     public async Task RefreshLotsData(CancellationToken ct)
     {
-        _cacheStore.SetLotsData((await _lotsClient.GetAsync(cancellationToken: ct)).ToList());
+        var stopwatch = Stopwatch.StartNew();
+        var lots = (await _lotsClient.GetAsync(cancellationToken: ct)).ToList();
+        _cacheStore.SetLotsData(lots);
+        stopwatch.Stop();
+
+        _logger.LogInformation(
+            "Catalog.LotsRefreshCompleted rows={Rows} elapsedMs={ElapsedMs}",
+            lots.Count,
+            stopwatch.ElapsedMilliseconds);
     }
 
     public async Task RefreshEshopPricesData(CancellationToken ct)

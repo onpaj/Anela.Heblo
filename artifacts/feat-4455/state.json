@@ -1,0 +1,64 @@
+{
+  "feature_id": "feat-4455",
+  "issue_number": 4455,
+  "created_at": "2026-10-22T20:11:18.496407Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-22T20:12:05.955469Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-22T20:12:09.270566Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-22T20:12:11.954246Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-22T20:12:40.731027Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-22T20:20:35.716374Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-22T22:15:50.537479Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-bom-contract",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-22T20:20:36.030967Z"
+    },
+    {
+      "name": "add-manufacture-adapter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-22T21:46:45.828014Z"
+    },
+    {
+      "name": "switch-consumer",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-22T22:09:03.220755Z"
+    },
+    {
+      "name": "cleanup-architecture-allowlist",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-22T22:12:39.647146Z"
+    },
+    {
+      "name": "final-validation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-22T22:15:36.798956Z"
+    }
+  ]
+}

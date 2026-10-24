@@ -15,7 +15,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Logistics/Services/TransportBoxCompletionService.cs
   - backend/src/Anela.Heblo.Application/Features/Logistics/UseCases/GiftPackageManufacture/Services/GiftPackageManufactureService.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/ShoptetApiAdapterServiceCollectionExtensions.cs
-verified_at: "7faeb7dd5"
+verified_at: "75a53ff4"
 related: []
 ---
 

@@ -2878,7 +2878,7 @@ export class ApiClient {
         return Promise.resolve<DashboardTileDto[]>(null as any);
     }
 
-    dashboard_EnableTile(tileId: string): Promise<FileResponse> {
+    dashboard_EnableTile(tileId: string): Promise<EnableTileResponse> {
         let url_ = this.baseUrl + "/api/Dashboard/tiles/{tileId}/enable";
         if (tileId === undefined || tileId === null)
             throw new Error("The parameter 'tileId' must be defined.");
@@ -2888,7 +2888,7 @@ export class ApiClient {
         let options_: RequestInit = {
             method: "POST",
             headers: {
-                "Accept": "application/octet-stream"
+                "Accept": "application/json"
             }
         };
 
@@ -2897,29 +2897,25 @@ export class ApiClient {
         });
     }
 
-    protected processDashboard_EnableTile(response: Response): Promise<FileResponse> {
+    protected processDashboard_EnableTile(response: Response): Promise<EnableTileResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = EnableTileResponse.fromJS(resultData200);
+            return result200;
+            });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<FileResponse>(null as any);
+        return Promise.resolve<EnableTileResponse>(null as any);
     }
 
-    dashboard_DisableTile(tileId: string): Promise<FileResponse> {
+    dashboard_DisableTile(tileId: string): Promise<DisableTileResponse> {
         let url_ = this.baseUrl + "/api/Dashboard/tiles/{tileId}/disable";
         if (tileId === undefined || tileId === null)
             throw new Error("The parameter 'tileId' must be defined.");
@@ -2929,7 +2925,7 @@ export class ApiClient {
         let options_: RequestInit = {
             method: "POST",
             headers: {
-                "Accept": "application/octet-stream"
+                "Accept": "application/json"
             }
         };
 
@@ -2938,26 +2934,22 @@ export class ApiClient {
         });
     }
 
-    protected processDashboard_DisableTile(response: Response): Promise<FileResponse> {
+    protected processDashboard_DisableTile(response: Response): Promise<DisableTileResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DisableTileResponse.fromJS(resultData200);
+            return result200;
+            });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<FileResponse>(null as any);
+        return Promise.resolve<DisableTileResponse>(null as any);
     }
 
     dataQuality_GetRuns(testType: DqtTestType | null | undefined, status: DqtRunStatus | null | undefined, pageNumber: number | undefined, pageSize: number | undefined): Promise<GetDqtRunsResponse> {
@@ -22539,6 +22531,60 @@ export interface ISaveUserSettingsRequest {
     tiles?: UserDashboardTileDto[];
 }
 
+export class EnableTileResponse extends BaseResponse implements IEnableTileResponse {
+
+    constructor(data?: IEnableTileResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): EnableTileResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new EnableTileResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IEnableTileResponse extends IBaseResponse {
+}
+
+export class DisableTileResponse extends BaseResponse implements IDisableTileResponse {
+
+    constructor(data?: IDisableTileResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DisableTileResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DisableTileResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDisableTileResponse extends IBaseResponse {
+}
+
 export class GetDqtRunsResponse extends BaseResponse implements IGetDqtRunsResponse {
     items?: DqtRunDto[];
     totalCount?: number;
@@ -31685,6 +31731,7 @@ export interface IManufactureOrderConditionsReadingDto {
 
 export class GetManufactureOrderResponse extends BaseResponse implements IGetManufactureOrderResponse {
     order?: ManufactureOrderDto | undefined;
+    availableTransitions?: ManufactureOrderState[];
 
     constructor(data?: IGetManufactureOrderResponse) {
         super(data);
@@ -31694,6 +31741,11 @@ export class GetManufactureOrderResponse extends BaseResponse implements IGetMan
         super.init(_data);
         if (_data) {
             this.order = _data["order"] ? ManufactureOrderDto.fromJS(_data["order"]) : <any>undefined;
+            if (Array.isArray(_data["availableTransitions"])) {
+                this.availableTransitions = [] as any;
+                for (let item of _data["availableTransitions"])
+                    this.availableTransitions!.push(item);
+            }
         }
     }
 
@@ -31707,6 +31759,11 @@ export class GetManufactureOrderResponse extends BaseResponse implements IGetMan
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["order"] = this.order ? this.order.toJSON() : <any>undefined;
+        if (Array.isArray(this.availableTransitions)) {
+            data["availableTransitions"] = [];
+            for (let item of this.availableTransitions)
+                data["availableTransitions"].push(item);
+        }
         super.toJSON(data);
         return data;
     }
@@ -31714,6 +31771,7 @@ export class GetManufactureOrderResponse extends BaseResponse implements IGetMan
 
 export interface IGetManufactureOrderResponse extends IBaseResponse {
     order?: ManufactureOrderDto | undefined;
+    availableTransitions?: ManufactureOrderState[];
 }
 
 export class CreateManufactureOrderResponse extends BaseResponse implements ICreateManufactureOrderResponse {
@@ -36683,10 +36741,10 @@ export interface IMarketingFolderLinkRequest {
 }
 
 export enum MarketingFolderType {
-    General = "General",
-    Seasonal = "Seasonal",
-    ProductLine = "ProductLine",
-    Campaign = "Campaign",
+    Images = "Images",
+    Texts = "Texts",
+    Videos = "Videos",
+    Graphics = "Graphics",
     Other = "Other",
 }
 
