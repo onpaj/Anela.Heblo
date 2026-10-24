@@ -7,7 +7,7 @@ import {
   type FileParameter,
 } from '../generated/api-client';
 
-export interface UploadMaterialDocumentParams {
+interface UploadMaterialDocumentParams {
   productCode: string;
   file: File;
   documentTypeCode: string;
@@ -16,7 +16,7 @@ export interface UploadMaterialDocumentParams {
   uploadAsIs: boolean;
 }
 
-export interface UploadPifDocumentParams {
+interface UploadPifDocumentParams {
   productCode: string;
   file: File;
 }

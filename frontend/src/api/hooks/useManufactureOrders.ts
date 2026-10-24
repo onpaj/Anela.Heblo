@@ -92,7 +92,7 @@ export const useManufactureOrderDetailQuery = (id: number | null, enabled: boole
   });
 };
 
-export const useCreateManufactureOrderMutation = () => {
+const useCreateManufactureOrderMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -107,7 +107,7 @@ export const useCreateManufactureOrderMutation = () => {
   });
 };
 
-export const useUpdateManufactureOrderMutation = () => {
+const useUpdateManufactureOrderMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -136,7 +136,7 @@ export const useUpdateManufactureOrderMutation = () => {
   });
 };
 
-export const useUpdateManufactureOrderStatusMutation = () => {
+const useUpdateManufactureOrderStatusMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -199,26 +199,14 @@ export const useDuplicateManufactureOrder = () => {
 };
 
 // Type exports
-export type { 
+export type {
   ManufactureOrderState,
-  CreateManufactureOrderRequest,
-  CreateManufactureOrderResponse,
-  UpdateManufactureOrderRequest,
-  UpdateManufactureOrderResponse,
-  UpdateManufactureOrderStatusRequest,
-  UpdateManufactureOrderStatusResponse,
-  ConfirmSemiProductManufactureRequest,
-  ConfirmSemiProductManufactureResponse,
-  ConfirmProductCompletionRequest,
-  ConfirmProductCompletionResponse,
-  DuplicateManufactureOrderResponse
 } from "../generated/api-client";
 
 // Re-export useful DTOs
-export type { GetManufactureOrdersResponse, GetManufactureOrderResponse, ManufactureOrderDto } from "../generated/api-client";
 
 // Re-export calendar view related types
-export type { GetCalendarViewResponse, CalendarEventDto } from "../generated/api-client";
+export type { CalendarEventDto } from "../generated/api-client";
 
 // Calendar view query hook using generated API client
 export const useManufactureOrderCalendarQuery = (

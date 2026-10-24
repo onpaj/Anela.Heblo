@@ -125,4 +125,4 @@ export const useTriggerRecurringJobMutation = () => {
 
 // Re-export types for convenience
 export { RecurringJobCategory };
-export type { RecurringJobDto, UpdateRecurringJobStatusResponse, UpdateRecurringJobCronResponse, TriggerRecurringJobResponse };
+export type { RecurringJobDto };

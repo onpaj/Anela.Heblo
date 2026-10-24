@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
-export interface HottestDayDto {
+interface HottestDayDto {
   date: string;
   cityName: string;
   minTemperatureCelsius: number;

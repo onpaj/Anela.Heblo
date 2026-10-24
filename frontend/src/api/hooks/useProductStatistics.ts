@@ -17,7 +17,7 @@ export const HISTORY_FLOOR_MONTH = "2020-01";
 /** Mirrors GetProductStatisticsRequestValidator.MaxMonths — anything wider is a 400. */
 export const MAX_RANGE_MONTHS = 120;
 
-export function isValidMonth(month: string): boolean {
+function isValidMonth(month: string): boolean {
   return MONTH_PATTERN.test(month);
 }
 

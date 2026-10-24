@@ -2,10 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import {
   CreateManufactureDifficultyRequest,
-  UpdateManufactureDifficultyRequest,
   GetManufactureDifficultySettingsResponse,
   CreateManufactureDifficultyResponse,
-  UpdateManufactureDifficultyResponse,
   DeleteManufactureDifficultyResponse,
 } from "../generated/api-client";
 
@@ -54,39 +52,6 @@ export const useCreateManufactureDifficulty = () => {
       queryClient.invalidateQueries({
         queryKey: QUERY_KEYS.catalog,
       });
-    },
-  });
-};
-
-// Hook to update an existing manufacture difficulty setting
-export const useUpdateManufactureDifficulty = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      id,
-      request,
-    }: {
-      id: number;
-      request: UpdateManufactureDifficultyRequest;
-    }): Promise<UpdateManufactureDifficultyResponse> => {
-      const apiClient = await getAuthenticatedApiClient();
-      return await apiClient.catalog_UpdateManufactureDifficulty(id, request);
-    },
-    onSuccess: (data, variables) => {
-      // Invalidate related queries - need to get productCode from the response
-      const productCode = data.difficultyHistory?.productCode;
-      if (productCode) {
-        queryClient.invalidateQueries({
-          queryKey: [...QUERY_KEYS.manufactureDifficulty, productCode],
-        });
-        queryClient.invalidateQueries({
-          queryKey: [...QUERY_KEYS.catalog, "detail", productCode],
-        });
-        queryClient.invalidateQueries({
-          queryKey: QUERY_KEYS.catalog,
-        });
-      }
     },
   });
 };

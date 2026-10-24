@@ -3,15 +3,10 @@ import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import {
   GetFinancialComparisonResponse,
   YearComparisonSeriesDto,
-  FinancialComparisonMetadataDto,
 } from "../generated/api-client";
 
 // Re-export the generated types for convenience
-export {
-  GetFinancialComparisonResponse,
-  YearComparisonSeriesDto,
-  FinancialComparisonMetadataDto,
-};
+export { YearComparisonSeriesDto };
 
 export const useFinancialComparisonQuery = (
   years: number = 3,

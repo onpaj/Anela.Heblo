@@ -23,7 +23,7 @@ export interface CarrierGroupDto {
   rows: CarrierCoolingRowDto[];
 }
 
-export interface GetCarrierCoolingMatrixResponse {
+interface GetCarrierCoolingMatrixResponse {
   groups: CarrierGroupDto[];
 }
 

@@ -20,7 +20,7 @@ interface ApiClientWithInternals {
 
 // Extended add-item request — includes optional inventory source fields not yet in the
 // generated client (backend AddItemToBoxRequest already supports them from Task 10).
-export interface AddItemToBoxInput {
+interface AddItemToBoxInput {
   boxId: number;
   productCode: string;
   productName: string;
@@ -109,19 +109,6 @@ export const useTransportBoxByCodeQuery = (code: string | null) => {
     },
     enabled: !!code,
     staleTime: 0,
-  });
-};
-
-// Convenience hook for getting all transport boxes with default pagination
-export const useTransportBoxesList = (
-  filters?: Omit<GetTransportBoxesRequest, "skip" | "take">,
-) => {
-  return useTransportBoxesQuery({
-    skip: 0,
-    take: 50,
-    sortBy: "id",
-    sortDescending: true,
-    ...filters,
   });
 };
 

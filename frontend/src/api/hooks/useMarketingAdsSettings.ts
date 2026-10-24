@@ -9,20 +9,20 @@ import { marketingAdsKeys } from './marketingAds/keys';
 import { mapSettings } from './marketingAds/mappers';
 import type { AdsSettings } from './marketingAds/types';
 
-export interface AutonomyChange {
+interface AutonomyChange {
   platform: string;
   actionType: string;
   mode: string;
 }
 
-export interface LimitChange {
+interface LimitChange {
   platform: string;
   actionType: string;
   key: string;
   value: number;
 }
 
-export interface KillSwitchChange {
+interface KillSwitchChange {
   platform: string | null;
   executionEnabled: boolean;
 }

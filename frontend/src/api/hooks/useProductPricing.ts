@@ -3,15 +3,12 @@ import { getAuthenticatedApiClient } from "../client";
 import { readApiErrorEnvelope } from "../apiErrorEnvelope";
 import {
   PriceDivergenceRowDto,
-  PriceDivergenceSummaryDto,
-  PriceDivergenceKind,
   SetProductPriceRequest,
   SetProductPriceResponse,
   SyncProductPricesRequest,
 } from "../generated/api-client";
 import { PriceDivergenceReportData, mergeSyncedRows } from "./priceDivergenceMerge";
 
-export { PriceDivergenceRowDto, PriceDivergenceSummaryDto, PriceDivergenceKind };
 
 const QUERY_KEYS = {
   divergence: ["product-pricing", "divergence"] as const,
@@ -33,7 +30,7 @@ export const usePriceDivergenceReport = () =>
     },
   });
 
-export interface SetProductPriceInput {
+interface SetProductPriceInput {
   productCode: string;
   priceWithVat: number;
 }
@@ -100,7 +97,7 @@ export const useSetProductPrice = () => {
 export const GENERIC_SYNC_ERROR = "Ceny se nepodařilo synchronizovat.";
 
 /** What one sync did, as the backend reports it. */
-export interface SyncProductPricesOutcome {
+interface SyncProductPricesOutcome {
   /** The selection's rows as they stand after the writes, to merge into the cached report. */
   rows: PriceDivergenceRowDto[];
   /** How many Flexi prices were overwritten with the Shoptet price. */

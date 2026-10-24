@@ -3,7 +3,6 @@ import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import {
   RefreshTaskDto,
   RefreshTaskExecutionLogDto,
-  RefreshTaskStatusDto,
 } from "../generated/api-client";
 
 /**
@@ -54,54 +53,6 @@ const fetchTaskHistory = async (
 };
 
 /**
- * Fetch all execution history (all tasks)
- */
-const fetchAllHistory = async (
-  maxRecords: number = 100,
-): Promise<RefreshTaskExecutionLogDto[]> => {
-  const apiClient = await getAuthenticatedApiClient();
-  const relativeUrl = `/api/backgroundrefresh/history?maxRecords=${maxRecords}`;
-  const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-  const response = await (apiClient as any).http.fetch(fullUrl, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch all history: ${response.status}`);
-  }
-
-  return response.json();
-};
-
-/**
- * Fetch task status
- */
-const fetchTaskStatus = async (
-  taskId: string,
-): Promise<RefreshTaskStatusDto> => {
-  const apiClient = await getAuthenticatedApiClient();
-  const relativeUrl = `/api/backgroundrefresh/tasks/${encodeURIComponent(taskId)}/status`;
-  const fullUrl = `${(apiClient as any).baseUrl}${relativeUrl}`;
-
-  const response = await (apiClient as any).http.fetch(fullUrl, {
-    method: "GET",
-    headers: {
-      Accept: "application/json",
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch task status: ${response.status}`);
-  }
-
-  return response.json();
-};
-
-/**
  * Force refresh a task
  */
 const forceRefreshTask = async (taskId: string): Promise<void> => {
@@ -145,31 +96,6 @@ export const useTaskHistory = (taskId: string | null, maxRecords: number = 50) =
     enabled: !!taskId, // Only fetch when taskId is provided
     refetchInterval: 10000, // Refresh every 10 seconds when modal is open
     staleTime: 5000,
-  });
-};
-
-/**
- * Hook to fetch all execution history
- */
-export const useAllHistory = (maxRecords: number = 100) => {
-  return useQuery({
-    queryKey: [...QUERY_KEYS.backgroundRefresh, "history", "all", maxRecords],
-    queryFn: () => fetchAllHistory(maxRecords),
-    refetchInterval: 30000,
-    staleTime: 15000,
-  });
-};
-
-/**
- * Hook to fetch task status
- */
-export const useTaskStatus = (taskId: string | null) => {
-  return useQuery({
-    queryKey: [...QUERY_KEYS.backgroundRefresh, "status", taskId],
-    queryFn: () => fetchTaskStatus(taskId!),
-    enabled: !!taskId,
-    refetchInterval: 5000, // Refresh every 5 seconds when monitoring a task
-    staleTime: 2000,
   });
 };
 

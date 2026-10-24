@@ -8,15 +8,14 @@ import {
   GetPhotosResponse,
   PhotoDto,
   RetagPhotosBody,
-  TagDto,
   TagWithCountDto,
 } from "../generated/api-client";
 
-export type { GetPhotosResponse, PhotoDto, TagDto, TagWithCountDto };
+export type { PhotoDto, TagWithCountDto };
 
 // ---- Types ----------------------------------------------------------------
 
-export interface GetPhotosParams {
+interface GetPhotosParams {
   tags?: string[];
   search?: string;
   useRegex?: boolean;
@@ -113,13 +112,13 @@ export const useDeleteTag = () => {
 
 // ---- Bulk tag ---------------------------------------------------------------
 
-export interface BulkAddPhotoTagParams {
+interface BulkAddPhotoTagParams {
   tags?: string[];
   search?: string;
   tagName: string;
 }
 
-export interface BulkAddPhotoTagResult {
+interface BulkAddPhotoTagResult {
   success: boolean;
   errorCode?: number;
   params?: Record<string, string>;
@@ -131,7 +130,7 @@ export interface BulkAddPhotoTagResult {
 
 // ---- Bulk tag by IDs --------------------------------------------------------
 
-export interface BulkAddPhotoTagByIdsParams {
+interface BulkAddPhotoTagByIdsParams {
   photoIds: number[];
   tagName: string;
 }
@@ -153,7 +152,7 @@ export const useBulkAddPhotoTagByIds = () => {
 
 // ---- Auto-tag ---------------------------------------------------------------
 
-export interface RetagPhotosRequest {
+interface RetagPhotosRequest {
   photoIds: number[];
   clearExistingAiTags: boolean;
 }

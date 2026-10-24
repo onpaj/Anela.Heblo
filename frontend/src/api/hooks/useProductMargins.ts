@@ -2,12 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import {
   GetProductMarginsResponse,
-  ProductMarginDto,
   ProductType,
 } from "../generated/api-client";
 
 // Re-export the generated types for convenience
-export { GetProductMarginsResponse, ProductMarginDto };
 
 export const useProductMarginsQuery = (
   productCode?: string,

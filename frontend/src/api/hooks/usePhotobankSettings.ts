@@ -2,17 +2,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import { AddRootBody, AddRuleBody, IndexRootDto, TagRuleDto } from "../generated/api-client";
 
-export type { IndexRootDto, TagRuleDto };
 
 // ---- Types ----------------------------------------------------------------
 
-export interface AddIndexRootInput {
+interface AddIndexRootInput {
   sharePointPath: string;
   displayName: string | null;
   driveId: string;
 }
 
-export interface AddTagRuleInput {
+interface AddTagRuleInput {
   pathPattern: string;
   tagName: string;
   sortOrder: number;

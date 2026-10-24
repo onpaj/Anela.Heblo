@@ -59,14 +59,14 @@ export interface TranscriptDetailResponse {
   transcript: MeetingTranscriptDto;
 }
 
-export interface SubmitToTodoResponse {
+interface SubmitToTodoResponse {
   success: boolean;
   successCount: number;
   failedCount: number;
   errors: string[];
 }
 
-export interface AddProposedTaskResponse {
+interface AddProposedTaskResponse {
   success: boolean;
   task: ProposedTaskDto;
 }
@@ -90,12 +90,12 @@ interface MeetingUsersResponse {
   users: MeetingUserDto[];
 }
 
-export interface UpdateMeetingAccessPayload {
+interface UpdateMeetingAccessPayload {
   accessLevel: 'Private' | 'Public' | 'Restricted';
   restrictedUserEmails: string[];
 }
 
-export interface UpdateMeetingAccessResponse {
+interface UpdateMeetingAccessResponse {
   success: boolean;
   accessLevel: string;
   grants: MeetingAccessGrantDto[];
@@ -185,7 +185,7 @@ export function useMeetingUsers() {
 
 // --- Mutations ---
 
-export interface UpdateProposedTaskInput {
+interface UpdateProposedTaskInput {
   transcriptId: string;
   taskId: string;
   data: TaskFormData;
@@ -215,7 +215,7 @@ export function useUpdateProposedTask() {
   });
 }
 
-export interface UpdateProposedTaskStatusInput {
+interface UpdateProposedTaskStatusInput {
   transcriptId: string;
   taskId: string;
   status: ProposedTaskStatus;
@@ -240,7 +240,7 @@ export function useUpdateProposedTaskStatus() {
   });
 }
 
-export interface UpdateTranscriptStatusInput {
+interface UpdateTranscriptStatusInput {
   transcriptId: string;
   status: TranscriptStatus;
 }
@@ -264,7 +264,7 @@ export function useUpdateTranscriptStatus() {
   });
 }
 
-export interface AddProposedTaskInput {
+interface AddProposedTaskInput {
   transcriptId: string;
   data: TaskFormData;
 }
@@ -308,7 +308,7 @@ export function useSubmitToTodo() {
   });
 }
 
-export interface UpdateMeetingAccessInput extends UpdateMeetingAccessPayload {
+interface UpdateMeetingAccessInput extends UpdateMeetingAccessPayload {
   transcriptId: string;
 }
 
@@ -336,14 +336,14 @@ export function useUpdateMeetingAccess() {
 
 // --- Explain Summary ---
 
-export interface ExplainSummaryResponse {
+interface ExplainSummaryResponse {
   success: boolean;
   relevantTranscript: string;
   explanation: string;
   errorCode?: string;
 }
 
-export interface ExplainSummaryInput {
+interface ExplainSummaryInput {
   transcriptId: string;
   selectedText: string;
 }
@@ -364,7 +364,7 @@ export function useExplainMeetingSummary() {
 
 // --- Reimport ---
 
-export interface ReimportMeetingResponse {
+interface ReimportMeetingResponse {
   success: boolean;
   errorCode?: string;
 }
@@ -386,7 +386,7 @@ export function useReimportMeeting() {
 
 // --- Delete ---
 
-export interface DeleteMeetingResponse {
+interface DeleteMeetingResponse {
   success: boolean;
   errorCode?: string;
 }

@@ -22,14 +22,7 @@ import {
 // Re-exported so sibling hooks under components/customer-support/smartsupp/hooks/ can keep
 // importing these from this file's existing path instead of reaching into the generated client
 // directly.
-export type {
-  ConversationDto,
-  ConversationPresenceDto,
-  ConversationSummaryDto,
-  MessageDto,
-  ListConversationsResponse,
-  GetConversationResponse,
-};
+export type { ConversationDto, ConversationPresenceDto, ConversationSummaryDto, MessageDto };
 
 export const SMARTSUPP_QUERY_KEYS = {
   conversations: (status: string) => ["smartsupp", "conversations", status] as const,

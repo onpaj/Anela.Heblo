@@ -2,27 +2,19 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getAuthenticatedApiClient } from '../client';
 import {
   ClassificationRuleDto,
-  ClassificationRuleTypeDto,
-  AccountingTemplateDto,
   ClassificationHistoryDto,
   CreateClassificationRuleRequest,
   UpdateClassificationRuleRequest,
   ClassifyInvoicesRequest,
-  ClassifyInvoicesResponse,
   ReorderClassificationRulesRequest,
-  GetInvoiceDetailsResponse,
-  GetClassificationHistoryResponse
 } from '../generated/api-client';
 
 // Re-export types from generated client for easier usage
 export type ClassificationRule = ClassificationRuleDto;
-export type ClassificationRuleType = ClassificationRuleTypeDto;
-export type AccountingTemplate = AccountingTemplateDto;
 export type ClassificationHistoryItem = ClassificationHistoryDto;
-export type ClassificationHistoryResponse = GetClassificationHistoryResponse;
 
 // Keep these interfaces for compatibility
-export { CreateClassificationRuleRequest, UpdateClassificationRuleRequest, ClassifyInvoicesResponse };
+export { CreateClassificationRuleRequest, UpdateClassificationRuleRequest };
 
 const CLASSIFICATION_QUERY_KEYS = {
   rules: ['invoice-classification', 'rules'] as const,
@@ -157,7 +149,6 @@ export function useClassificationHistory(
 }
 
 // Re-export types from generated client
-export { GetInvoiceDetailsResponse };
 
 export function useClassifySingleInvoice() {
   const queryClient = useQueryClient();
@@ -171,16 +162,5 @@ export function useClassifySingleInvoice() {
       // Invalidate history to refresh the list
       queryClient.invalidateQueries({ queryKey: CLASSIFICATION_QUERY_KEYS.history });
     },
-  });
-}
-
-export function useInvoiceDetails(invoiceId: string, enabled: boolean = true) {
-  return useQuery({
-    queryKey: [...CLASSIFICATION_QUERY_KEYS.history, 'invoice', invoiceId],
-    queryFn: async () => {
-      const apiClient = await getAuthenticatedApiClient();
-      return await apiClient.invoiceClassification_GetInvoiceDetails(invoiceId);
-    },
-    enabled: enabled && !!invoiceId,
   });
 }

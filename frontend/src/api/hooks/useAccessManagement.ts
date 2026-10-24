@@ -256,4 +256,3 @@ export const useCreateLocalUser = () => {
   });
 };
 
-export type { CreateGroupRequest, UpdateGroupRequest, AssignUserGroupsRequest, SetUserActiveRequest, AddGroupMemberRequest, CreateLocalUserRequest, SetUserCanPackRequest, UpdateUserRequest };

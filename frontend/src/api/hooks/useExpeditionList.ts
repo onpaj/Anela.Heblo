@@ -3,7 +3,7 @@ import { getAuthenticatedApiClient } from "../client";
 import { PrintExpeditionOrderRequest } from "../generated/api-client";
 import { BaseResponse } from "../../types/errors";
 
-export interface RunExpeditionListPrintFixResult {
+interface RunExpeditionListPrintFixResult {
   totalCount: number;
 }
 

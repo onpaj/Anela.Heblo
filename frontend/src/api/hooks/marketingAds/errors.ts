@@ -2,7 +2,7 @@ import { readApiErrorEnvelope } from '../../apiErrorEnvelope';
 import { extractErrorMessage, resolveSwaggerErrorMessage } from '../../../utils/errorHandler';
 
 /** Error codes that mean "the proposal you are looking at is no longer the current, pending version". */
-export const PROPOSAL_CONFLICT_ERROR_CODES: readonly string[] = [
+const PROPOSAL_CONFLICT_ERROR_CODES: readonly string[] = [
   'MarketingAdsProposalVersionMismatch',
   'MarketingAdsProposalNotPending',
   'MarketingAdsProposalExpired',
@@ -10,7 +10,7 @@ export const PROPOSAL_CONFLICT_ERROR_CODES: readonly string[] = [
 ];
 
 /** Error codes that mean "this principal/channel may not approve" (spec 7.4). */
-export const APPROVAL_FORBIDDEN_ERROR_CODES: readonly string[] = [
+const APPROVAL_FORBIDDEN_ERROR_CODES: readonly string[] = [
   'Forbidden',
   'MarketingAdsApprovalChannelDenied',
   'MarketingAdsNeedsWebApproval',

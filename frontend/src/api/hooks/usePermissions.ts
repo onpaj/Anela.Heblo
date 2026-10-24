@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
 
-export interface MePermissions {
+interface MePermissions {
   email?: string;
   displayName?: string;
   isSuperUser: boolean;
@@ -9,7 +9,7 @@ export interface MePermissions {
   groups: string[];
 }
 
-export const permissionsQueryKey = ["auth", "me"] as const;
+const permissionsQueryKey = ["auth", "me"] as const;
 
 export const usePermissions = (enabled: boolean) => {
   return useQuery({

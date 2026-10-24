@@ -16,7 +16,7 @@ export interface MindMapListItem {
   updatedAt: string;
 }
 
-export interface MindMapListResponse {
+interface MindMapListResponse {
   items: MindMapListItem[];
 }
 

@@ -12,18 +12,18 @@ export interface ExpeditionListItemDto {
   contentLength: number | null;
 }
 
-export interface GetExpeditionDatesResponse {
+interface GetExpeditionDatesResponse {
   dates: string[];
   totalCount: number;
   page: number;
   pageSize: number;
 }
 
-export interface GetExpeditionListsByDateResponse {
+interface GetExpeditionListsByDateResponse {
   items: ExpeditionListItemDto[];
 }
 
-export interface ReprintExpeditionListResponse {
+interface ReprintExpeditionListResponse {
   success: boolean;
   errorCode: string | null;
   params: Record<string, string> | null;

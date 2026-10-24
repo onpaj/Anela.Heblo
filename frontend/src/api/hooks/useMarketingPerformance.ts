@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import {
-  ChannelCostDto,
   ChannelInfoDto,
   GetMarketingPerformanceComparisonResponse,
   GetMarketingPerformanceMonthsResponse,
@@ -11,26 +10,18 @@ import {
   RecomputeMarketingPerformanceResponse,
 } from "../generated/api-client";
 
-export type {
-  ChannelCostDto,
-  ChannelInfoDto,
-  GetMarketingPerformanceComparisonResponse,
-  GetMarketingPerformanceMonthsResponse,
-  MarketingYearSeriesDto,
-  MonthlyMarketingPerformanceDto,
-  RecomputeMarketingPerformanceResponse,
-};
+export type { ChannelInfoDto, MarketingYearSeriesDto, MonthlyMarketingPerformanceDto };
 
 const STALE_TIME_MS = 5 * 60 * 1000;
 const GC_TIME_MS = 10 * 60 * 1000;
 
-export interface MonthsQueryParams {
+interface MonthsQueryParams {
   from?: string;
   to?: string;
   includeWholesale: boolean;
 }
 
-export interface ComparisonQueryParams {
+interface ComparisonQueryParams {
   years: number;
   includeWholesale: boolean;
 }

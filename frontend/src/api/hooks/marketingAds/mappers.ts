@@ -53,12 +53,12 @@ export interface AdProposalSummaryWire {
   diffLines?: string[] | null;
 }
 
-export interface AdLimitsEvaluationWire {
+interface AdLimitsEvaluationWire {
   decision?: string;
   reason?: string | null;
 }
 
-export interface AdProposalApprovalWire {
+interface AdProposalApprovalWire {
   version?: number;
   principal?: string;
   channel?: string;
@@ -67,7 +67,7 @@ export interface AdProposalApprovalWire {
   reason?: string | null;
 }
 
-export interface AdActionExecutionWire {
+interface AdActionExecutionWire {
   version?: number;
   actionIndex?: number;
   state?: string;
@@ -80,7 +80,7 @@ export interface AdActionExecutionWire {
   revertError?: string | null;
 }
 
-export interface AdProposalVersionWire {
+interface AdProposalVersionWire {
   version?: number;
   actionCount?: number;
   reasoning?: string | null;
@@ -89,7 +89,7 @@ export interface AdProposalVersionWire {
   diffLines?: string[] | null;
 }
 
-export interface AdProposalDetailWire {
+interface AdProposalDetailWire {
   summary?: AdProposalSummaryWire | null;
   versions?: AdProposalVersionWire[] | null;
   approvals?: AdProposalApprovalWire[] | null;
@@ -140,25 +140,25 @@ export interface AgentRunWire {
   costCzk?: number | null;
 }
 
-export interface AdAutonomySettingWire {
+interface AdAutonomySettingWire {
   platform?: string;
   actionType?: string;
   mode?: string;
 }
 
-export interface AdLimitSettingWire {
+interface AdLimitSettingWire {
   platform?: string;
   actionType?: string;
   key?: string;
   value?: number;
 }
 
-export interface AdKillSwitchWire {
+interface AdKillSwitchWire {
   scope?: string;
   executionEnabled?: boolean;
 }
 
-export interface AdApprovalRateWire {
+interface AdApprovalRateWire {
   platform?: string;
   actionType?: string;
   decided?: number;
@@ -166,7 +166,7 @@ export interface AdApprovalRateWire {
   rate?: number | null;
 }
 
-export interface AdsSettingsWire {
+interface AdsSettingsWire {
   autonomy?: AdAutonomySettingWire[] | null;
   limits?: AdLimitSettingWire[] | null;
   killSwitches?: AdKillSwitchWire[] | null;
@@ -174,7 +174,7 @@ export interface AdsSettingsWire {
   approvalRates?: AdApprovalRateWire[] | null;
 }
 
-export interface PagedWire<W> {
+interface PagedWire<W> {
   items?: W[] | null;
   totalCount?: number | null;
 }
@@ -185,7 +185,10 @@ type AssertKeys<W, D> = [Exclude<keyof W, keyof D>] extends [never]
   ? true
   : { missingInGeneratedDto: Exclude<keyof W, keyof D> };
 
-/** Each entry must be `true`; a Wire key absent from the generated interface turns it into an error. */
+/**
+ * Each entry must be `true`; a Wire key absent from the generated interface turns it into an error.
+ * @public Compile-time guard only; intentionally not imported anywhere.
+ */
 export const wireKeyChecks: [
   AssertKeys<AdProposalSummaryWire, IAdProposalSummaryDto>,
   AssertKeys<AdLimitsEvaluationWire, IAdLimitsEvaluationDto>,

@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
-import { SupplierDto, SearchSuppliersResponse } from "../generated/api-client";
 
 // Re-export types from generated client
-export type { SupplierDto, SearchSuppliersResponse };
 
 // Hook for searching suppliers with debouncing
 export function useSupplierSearch(searchTerm: string, limit: number = 10) {

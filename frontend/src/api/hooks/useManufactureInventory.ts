@@ -7,7 +7,7 @@ const MANUFACTURE_INVENTORY_TYPES: ProductType[] = [
   ProductType.Material,
 ];
 
-export interface GetManufactureInventoryListRequest {
+interface GetManufactureInventoryListRequest {
   type?: ProductType;
   pageNumber?: number;
   pageSize?: number;
@@ -19,7 +19,7 @@ export interface GetManufactureInventoryListRequest {
   expirationTo?: string;
 }
 
-export interface GetManufactureInventoryListResponse {
+interface GetManufactureInventoryListResponse {
   items: CatalogItemDto[];
   totalCount: number;
   pageNumber: number;

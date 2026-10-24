@@ -1,14 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
 import {
-  GetPurchaseStockAnalysisResponse,
   StockStatusFilter,
   MaterialCategoryFilter,
   StockAnalysisSortBy,
   StockSeverity,
   StockAnalysisItemDto,
-  LastPurchaseInfoDto,
-  StockAnalysisSummaryDto,
 } from "../generated/api-client";
 
 // Define types for the stock analysis API
@@ -26,16 +23,7 @@ export interface GetPurchaseStockAnalysisRequest {
 }
 
 // Export types from generated client
-export {
-  StockStatusFilter,
-  MaterialCategoryFilter,
-  StockAnalysisSortBy,
-  StockSeverity,
-  StockAnalysisItemDto,
-  LastPurchaseInfoDto,
-  StockAnalysisSummaryDto,
-  GetPurchaseStockAnalysisResponse,
-};
+export { StockStatusFilter, MaterialCategoryFilter, StockAnalysisSortBy, StockSeverity, StockAnalysisItemDto };
 
 // Query keys
 const stockAnalysisKeys = {

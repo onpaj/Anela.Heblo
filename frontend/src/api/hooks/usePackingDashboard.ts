@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
 
-export type PackerStatsDto = {
+type PackerStatsDto = {
   packerId?: string;
   packerName: string;
   orderCount: number;
 };
 
-export type GetPackingDashboardResponse = {
+type GetPackingDashboardResponse = {
   ordersBeingPackedCount: number | null;
   ordersBeingProcessedCount: number | null;
   ordersBeingPackedCountLastSync: string | null;
@@ -15,7 +15,7 @@ export type GetPackingDashboardResponse = {
   packedByPacker: PackerStatsDto[];
 };
 
-export const packingDashboardKeys = {
+const packingDashboardKeys = {
   all: ["packingDashboard"] as const,
 };
 
