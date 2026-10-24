@@ -17,13 +17,32 @@
       "updated_at": "2026-10-23T03:10:14.519153Z"
     },
     "planning": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-10-24T21:09:45.870195Z"
     },
     "developing": {
       "status": "pending",
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "map-folder-links",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "regression-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "validate",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
