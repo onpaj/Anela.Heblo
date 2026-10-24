@@ -22,7 +22,7 @@ owns:
   - frontend/src/components/pages/PurchaseOrder*.tsx
   - frontend/src/components/purchase-orders/**
   - frontend/src/api/hooks/usePurchaseOrders.ts
-verified_at: "5e993f9e2"
+verified_at: "e6d02b4e5"
 related:
   - calc-purchase-stock-analysis
 ---

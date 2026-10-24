@@ -20,7 +20,7 @@ owns:
   - frontend/src/components/pricing/**
   - frontend/src/api/hooks/useProductPricing.ts
   - frontend/src/api/hooks/priceDivergenceMerge.ts
-verified_at: "290275262"
+verified_at: "e6d02b4e5"
 related:
   - calc-price-divergence
 ---
