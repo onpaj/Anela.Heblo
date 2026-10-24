@@ -52,9 +52,9 @@
     },
     {
       "name": "duplicate-exports-config",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-24T09:13:53.261345Z"
+      "updated_at": "2026-10-24T09:15:14.308133Z"
     },
     {
       "name": "trim-hook-exports",
