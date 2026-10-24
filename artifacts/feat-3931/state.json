@@ -21,16 +21,16 @@
       "updated_at": "2026-10-24T05:09:38.575510Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-24T05:17:56.862661Z"
     }
   },
   "tasks": [
     {
       "name": "baseline-knip",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-24T05:17:57.133854Z"
     },
     {
       "name": "delete-dead-files",
