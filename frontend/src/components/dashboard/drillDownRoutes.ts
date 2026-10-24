@@ -1,8 +1,8 @@
 import { getConfig } from '../../config/runtimeConfig';
 
-export type DashboardDrillDownRouteKey = 'dataQuality' | 'hangfireFailedJobs' | 'productPricing';
+type DashboardDrillDownRouteKey = 'dataQuality' | 'hangfireFailedJobs' | 'productPricing';
 
-export type DrillDownTarget =
+type DrillDownTarget =
   | { type: 'react-router'; path: string }
   | { type: 'external'; path: string };
 
@@ -12,7 +12,7 @@ export interface DashboardTileDrillDown {
   parameters?: Record<string, string>;
 }
 
-export interface DrillDownResolution {
+interface DrillDownResolution {
   url: string;
   strategy: DrillDownTarget['type'];
 }

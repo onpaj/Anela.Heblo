@@ -41,7 +41,7 @@ const LIGHT = {
 
 const MENU_Z_INDEX = 50000;
 
-export interface SelectStyleOptions {
+interface SelectStyleOptions {
   /** Whether the field is in an error state. */
   error?: boolean;
 }

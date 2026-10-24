@@ -5,13 +5,13 @@ import {
   IngredientOrderItem as GeneratedIngredientOrderItem,
 } from '../generated/api-client';
 
-export interface IngredientOrderItem {
+interface IngredientOrderItem {
   ingredientProductCode: string;
   sortOrder: number;
   phaseLabel?: string | null;
 }
 
-export interface UpdateProductCompositionOrderPayload {
+interface UpdateProductCompositionOrderPayload {
   productCode: string;
   order: IngredientOrderItem[];
 }

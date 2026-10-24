@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { getAuthenticatedApiClient, QUERY_KEYS } from '../client';
 
-export interface IssuedInvoiceSyncStats {
+interface IssuedInvoiceSyncStats {
   totalInvoices: number;
   syncedInvoices: number;
   unsyncedInvoices: number;
@@ -11,7 +11,7 @@ export interface IssuedInvoiceSyncStats {
   syncSuccessRate: number;
 }
 
-export interface UseIssuedInvoiceSyncStatsParams {
+interface UseIssuedInvoiceSyncStatsParams {
   fromDate?: Date;
   toDate?: Date;
 }

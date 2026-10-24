@@ -1,7 +1,7 @@
 import React from "react";
 import { getTagColor } from "./tagColor";
 
-export interface TagBadgeProps {
+interface TagBadgeProps {
   name: string;
   variant?: "default" | "overlay";
   onRemove?: () => void;
@@ -31,5 +31,3 @@ export const TagBadge: React.FC<TagBadgeProps> = ({
     </div>
   );
 };
-
-export default TagBadge;

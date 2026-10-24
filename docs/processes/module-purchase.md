@@ -89,8 +89,8 @@ indirectly, through the Catalog module's caches.
 - **The recommended order quantity ignores open orders.** It uses Available, not EffectiveStock (see
   `calc-purchase-stock-analysis`).
 - **A cold catalog at 02:00 makes the nightly price job a silent no-op**, reported as Success.
-- `POST /api/purchase-orders/recalculate-purchase-price` and the frontend hook `useRecalculatePurchasePrice`
-  exist, but no page calls them.
+- `POST /api/purchase-orders/recalculate-purchase-price` exists, but no page calls it (the unused frontend
+  hook `useRecalculatePurchasePrice` was removed).
 - The `Received` order state exists in the backend but not in the UI.
 
 ## Code entry points

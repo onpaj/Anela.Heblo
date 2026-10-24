@@ -51,7 +51,7 @@ export interface ArticleDetail {
   feedbackComment: string | null;
 }
 
-export interface ListArticlesParams {
+interface ListArticlesParams {
   status?: ArticleStatus;
   page?: number;
   pageSize?: number;
@@ -63,14 +63,14 @@ export interface SubmitArticleFeedbackPayload {
   comment?: string;
 }
 
-export interface SubmitArticleFeedbackResult {
+interface SubmitArticleFeedbackResult {
   alreadySubmitted?: true;
   precisionScore?: number | null;
   styleScore?: number | null;
   feedbackComment?: string | null;
 }
 
-export interface ArticleFeedbackListParams {
+interface ArticleFeedbackListParams {
   hasFeedback?: boolean;
   requestedBy?: string;
   sortBy?: string;
@@ -79,7 +79,7 @@ export interface ArticleFeedbackListParams {
   pageSize?: number;
 }
 
-export interface ArticleFeedbackSummary {
+interface ArticleFeedbackSummary {
   id: string;
   topic: string;
   title: string | null;
@@ -91,14 +91,14 @@ export interface ArticleFeedbackSummary {
   hasComment: boolean;
 }
 
-export interface ArticleFeedbackStats {
+interface ArticleFeedbackStats {
   totalArticles: number;
   totalWithFeedback: number;
   avgPrecisionScore: number | null;
   avgStyleScore: number | null;
 }
 
-export interface ArticleFeedbackListResponse {
+interface ArticleFeedbackListResponse {
   articles: ArticleFeedbackSummary[];
   totalCount: number;
   page: number;
@@ -115,7 +115,7 @@ export const IN_PROGRESS_STATUSES = new Set<ArticleStatus>([
 
 // ---- Query key factory ----
 
-export const articleKeys = {
+const articleKeys = {
   all: [...QUERY_KEYS.articles] as const,
   list: (params?: ListArticlesParams) =>
     [...QUERY_KEYS.articles, 'list', params ?? {}] as const,

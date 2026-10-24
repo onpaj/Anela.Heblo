@@ -16,7 +16,7 @@ interface MaterialAutocompleteProps {
   className?: string;
 }
 
-export const MaterialAutocomplete: React.FC<MaterialAutocompleteProps> = ({
+const MaterialAutocomplete: React.FC<MaterialAutocompleteProps> = ({
   value,
   onSelect,
   placeholder = "Vyberte položku z katalogu...",

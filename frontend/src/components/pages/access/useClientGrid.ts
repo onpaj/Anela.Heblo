@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 type SortValue = string | number | undefined | null;
 
-export interface ClientGrid<T> {
+interface ClientGrid<T> {
   sortBy: string;
   sortDescending: boolean;
   pageNumber: number;

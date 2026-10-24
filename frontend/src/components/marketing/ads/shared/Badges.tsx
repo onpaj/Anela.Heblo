@@ -6,7 +6,7 @@ export const GREEN_PILL = 'bg-green-100 text-green-800 dark:bg-emerald-900/30 da
 export const YELLOW_PILL = 'bg-yellow-100 text-yellow-800 dark:bg-amber-900/30 dark:text-amber-300';
 export const BLUE_PILL = 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
 export const RED_PILL = 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300';
-export const ORANGE_PILL = 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300';
+const ORANGE_PILL = 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300';
 const PURPLE_PILL = 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300';
 
 const STATUS_PILLS: Readonly<Record<string, string>> = {

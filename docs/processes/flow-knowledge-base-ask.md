@@ -176,9 +176,8 @@ None.
   `RagInteractionLogs` — without chunks, expanded query or prompt — and dropped it.
 - **The feedback page route is not permission-guarded in the frontend**; the API behind it
   requires write, so read-only users see an empty/error page.
-- **Two unused components** `KnowledgeBaseAskTab.tsx` and `KnowledgeBaseSearchTab.tsx` exist in
-  `frontend/src/components/knowledge-base/` that nothing imports; the page uses
-  `KnowledgeBaseSearchAskTab`.
+- The page uses `KnowledgeBaseSearchAskTab`; the unused `KnowledgeBaseAskTab.tsx` and
+  `KnowledgeBaseSearchTab.tsx` were removed.
 
 ## Code entry points
 - `backend/src/Anela.Heblo.Application/Features/KnowledgeBase/UseCases/AskQuestion/AskQuestionHandler.cs` — prompt assembly, answer, error handling

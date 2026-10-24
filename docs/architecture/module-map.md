@@ -129,7 +129,6 @@ analytics sources; caching, scheduled refresh and resilience around it.
 - `backend/src/Anela.Heblo.Application/Features/Catalog/Cache/`
 - `backend/src/Anela.Heblo.Domain/Features/Catalog/`
 - `backend/src/Anela.Heblo.Persistence/Catalog/`
-- `frontend/src/api/hooks/useManualCatalogRefresh.ts`
 
 **Key entry points:** `CatalogMergeService`, `CatalogMergeScheduler`, `CatalogCacheStore`, `CatalogDataRefreshService`,
 `CatalogResilienceService`, the `*SourceAdapter` classes.
@@ -492,7 +491,7 @@ containers/lots, difficulty settings and manufacture configuration.
 - `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Purchase/`
 - `frontend/src/components/pages/PurchaseOrderList.tsx`, `PurchaseOrderDetail.tsx`, `PurchaseOrderForm.tsx`
 - `frontend/src/components/purchase-orders/`
-- `frontend/src/api/hooks/usePurchaseOrders.ts`, `useRecalculatePurchasePrice.ts`
+- `frontend/src/api/hooks/usePurchaseOrders.ts`
 
 **Depends on:** #1, #44.
 

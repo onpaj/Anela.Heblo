@@ -10,7 +10,7 @@ import {
 } from "../generated/api-client";
 
 // Define request interface matching the backend contract
-export interface GetStockUpOperationsRequest {
+interface GetStockUpOperationsRequest {
   state?: string; // Changed to string to support "Active" special value
   pageSize?: number;
   page?: number;
@@ -105,7 +105,7 @@ export const useAcceptStockUpOperationMutation = () => {
   });
 };
 
-export interface UseStockUpOperationsSummaryOptions {
+interface UseStockUpOperationsSummaryOptions {
   enabled?: boolean;
 }
 

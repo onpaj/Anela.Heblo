@@ -34,7 +34,7 @@ owns:
   - frontend/src/components/access-management/**
   - frontend/src/components/pages/access/**
   - frontend/src/api/hooks/useAccessManagement.ts
-verified_at: "5e993f9e2"
+verified_at: "e6d02b4e5"
 related: [calc-permission-resolution, sync-entra-directory]
 ---
 

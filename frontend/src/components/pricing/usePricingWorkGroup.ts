@@ -6,7 +6,7 @@ import {
   toggleWorkGroupProductCode,
 } from "./pricingWorkGroup";
 
-export interface PricingWorkGroup {
+interface PricingWorkGroup {
   // Only the hand-picked codes: an edited row belongs to the work group through its
   // edit, not through this set (see isInWorkGroup).
   pinnedProductCodes: ReadonlySet<string>;

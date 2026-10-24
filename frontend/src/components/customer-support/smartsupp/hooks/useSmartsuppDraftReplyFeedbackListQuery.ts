@@ -5,7 +5,7 @@ import {
   type LocalFeedbackListResponse,
 } from "../../../feedback/ragFeedbackMapping";
 
-export interface DraftReplyFeedbackListParams {
+interface DraftReplyFeedbackListParams {
   pageNumber?: number;
   pageSize?: number;
   sortBy?: string;
@@ -14,7 +14,7 @@ export interface DraftReplyFeedbackListParams {
   userId?: string;
 }
 
-export type DraftReplyFeedbackListResponse = LocalFeedbackListResponse;
+type DraftReplyFeedbackListResponse = LocalFeedbackListResponse;
 
 const QUERY_KEY = ["smartsupp", "draft-reply", "feedback-list"] as const;
 

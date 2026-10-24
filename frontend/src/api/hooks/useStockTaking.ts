@@ -3,13 +3,13 @@ import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import { SubmitStockTakingRequest, SubmitStockTakingResponse, GetStockTakingHistoryResponse } from "../generated/api-client";
 import { useToast } from "../../contexts/ToastContext";
 
-export interface StockTakingSubmitRequest {
+interface StockTakingSubmitRequest {
   productCode: string;
   targetAmount: number;
   softStockTaking?: boolean;
 }
 
-export interface StockTakingHistoryRequest {
+interface StockTakingHistoryRequest {
   productCode?: string;
   pageNumber?: number;
   pageSize?: number;

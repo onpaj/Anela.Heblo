@@ -1,4 +1,4 @@
-export interface DraftReplyHint {
+interface DraftReplyHint {
   id: string;
   label: string;
 }

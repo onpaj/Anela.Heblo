@@ -1,7 +1,7 @@
 import React from 'react';
 import { PositionDto } from '../../api/generated/api-client';
 
-export interface PositionCardProps {
+interface PositionCardProps {
   position: PositionDto;
   getChildren: (parentId: string) => PositionDto[];
 }
@@ -143,4 +143,3 @@ function PositionCard({ position, getChildren }: PositionCardProps): JSX.Element
 }
 
 export { PositionCard };
-export default PositionCard;

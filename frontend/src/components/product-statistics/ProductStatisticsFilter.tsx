@@ -21,7 +21,7 @@ export interface SelectedProduct {
   productNameSuffix?: string;
 }
 
-export interface ProductStatisticsFilterProps {
+interface ProductStatisticsFilterProps {
   selectedProducts: SelectedProduct[];
   onProductsChange: (products: SelectedProduct[]) => void;
   dateFrom: string;

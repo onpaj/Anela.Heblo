@@ -24,7 +24,7 @@ const RESET_ERROR_MESSAGES: Partial<Record<string, string>> = {
 
 const GENERIC_RESET_ERROR = 'Chyba při invalidaci zásilky.';
 
-export type ResetOrderShipmentVariables = {
+type ResetOrderShipmentVariables = {
   orderCode: string;
   numberOfPackages?: number;
 };

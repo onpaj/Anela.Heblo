@@ -19,7 +19,7 @@ export type PackageDto = {
   packedByUserId?: string;
 };
 
-export type GetPackagesRequest = {
+type GetPackagesRequest = {
   orderCode?: string;
   customerName?: string;
   packageNumber?: string;
@@ -32,7 +32,7 @@ export type GetPackagesRequest = {
   sortDescending: boolean;
 };
 
-export type GetPackagesResponse = {
+type GetPackagesResponse = {
   items: PackageDto[];
   totalCount: number;
   pageNumber: number;
@@ -52,7 +52,7 @@ const toPackageDto = (dto: GeneratedPackageDto): PackageDto => ({
   packedByUserId: dto.packedByUserId,
 });
 
-export const packageKeys = {
+const packageKeys = {
   all: ["packages"] as const,
   list: (req: GetPackagesRequest) => [...packageKeys.all, "list", req] as const,
 };

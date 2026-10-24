@@ -19,7 +19,7 @@ export interface LeafletDocumentSummary {
   firstChunkId: string | null;
 }
 
-export interface GetLeafletDocumentsParams {
+interface GetLeafletDocumentsParams {
   pageNumber?: number;
   pageSize?: number;
   sortBy?: string;
@@ -29,7 +29,7 @@ export interface GetLeafletDocumentsParams {
   contentTypeFilter?: string;
 }
 
-export interface GetLeafletDocumentsResponse {
+interface GetLeafletDocumentsResponse {
   success: boolean;
   documents: LeafletDocumentSummary[];
   totalCount: number;
@@ -38,12 +38,12 @@ export interface GetLeafletDocumentsResponse {
   totalPages: number;
 }
 
-export interface GetLeafletContentTypesResponse {
+interface GetLeafletContentTypesResponse {
   success: boolean;
   contentTypes: string[];
 }
 
-export interface GetLeafletChunkDetailResponse {
+interface GetLeafletChunkDetailResponse {
   success: boolean;
   chunkId: string;
   documentId: string;
@@ -56,22 +56,22 @@ export interface GetLeafletChunkDetailResponse {
   sourcePath?: string;
 }
 
-export interface DeleteLeafletDocumentResponse {
+interface DeleteLeafletDocumentResponse {
   success: boolean;
 }
 
-export interface UploadLeafletDocumentResponse {
+interface UploadLeafletDocumentResponse {
   success: boolean;
   document: LeafletDocumentSummary | null;
 }
 
-export interface SubmitLeafletFeedbackResult {
+interface SubmitLeafletFeedbackResult {
   success: boolean;
   errorCode?: string | null;
   alreadySubmitted?: boolean;
 }
 
-export interface LeafletFeedbackListParams {
+interface LeafletFeedbackListParams {
   hasFeedback?: boolean;
   userId?: string;
   sortBy?: string;
@@ -80,7 +80,7 @@ export interface LeafletFeedbackListParams {
   pageSize?: number;
 }
 
-export interface LeafletFeedbackSummary {
+interface LeafletFeedbackSummary {
   id: string;
   topic: string;
   audience: string;
@@ -98,7 +98,7 @@ export interface LeafletFeedbackSummary {
   hasFeedback: boolean;
 }
 
-export interface LeafletFeedbackListResponse {
+interface LeafletFeedbackListResponse {
   items: LeafletFeedbackSummary[];
   totalCount: number;
   pageNumber: number;
@@ -114,7 +114,7 @@ export interface LeafletFeedbackListResponse {
 
 // ---- Query key factory ----
 
-export const leafletKeys = {
+const leafletKeys = {
   all: [...QUERY_KEYS.leaflet] as const,
   documents: (params?: GetLeafletDocumentsParams) =>
     [...QUERY_KEYS.leaflet, 'documents', params ?? {}] as const,
@@ -288,7 +288,7 @@ export const useUploadLeafletDocumentMutation = () => {
   });
 };
 
-export interface GenerateLeafletParams {
+interface GenerateLeafletParams {
   topic: string;
   audience: AudienceType;
   length: LeafletLength;

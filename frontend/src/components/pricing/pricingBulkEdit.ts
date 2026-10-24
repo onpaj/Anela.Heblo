@@ -31,7 +31,7 @@ export type PricingBulkEditField =
   | PricingEditField.ManufacturingCost
   | PricingEditField.ForecastQuantity;
 
-export interface PricingBulkEditResult {
+interface PricingBulkEditResult {
   overrides: IPricingOverrideDto[];
   // Products whose override this edit actually set or cleared.
   appliedCount: number;

@@ -1,6 +1,6 @@
 import { MarginHistoryDto } from "../../../../../api/generated/api-client";
 
-export interface MonthlyMarginArrays {
+interface MonthlyMarginArrays {
   m0PercentageData: number[];
   m1PercentageData: number[];
   m2PercentageData: number[];

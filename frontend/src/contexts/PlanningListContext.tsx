@@ -83,5 +83,3 @@ export const PlanningListProvider: React.FC<PlanningListProviderProps> = ({
     </PlanningListContext.Provider>
   );
 };
-
-export type { PlanningListItem };

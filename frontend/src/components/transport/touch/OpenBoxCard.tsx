@@ -3,7 +3,7 @@ import { Package, Calendar, ChevronRight, MapPin } from "lucide-react";
 import { GetTransportBoxesResponse } from "../../../api/generated/api-client";
 
 // The shape of a single box as returned by the transport-box list query.
-export type TransportBoxListItem = NonNullable<
+type TransportBoxListItem = NonNullable<
   GetTransportBoxesResponse["items"]
 >[number];
 

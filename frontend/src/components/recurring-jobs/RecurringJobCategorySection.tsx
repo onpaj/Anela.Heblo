@@ -6,7 +6,7 @@ import { getCategoryLabel } from './recurringJobCategories';
 /** Number of columns in the recurring jobs table, used to span the group header row. */
 const TABLE_COLUMN_COUNT = 7;
 
-export interface RecurringJobCategorySectionProps {
+interface RecurringJobCategorySectionProps {
   category: RecurringJobCategory;
   jobCount: number;
   isExpanded: boolean;

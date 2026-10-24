@@ -62,7 +62,7 @@ export interface ScanShipment {
   pendingCompletion?: boolean;
 }
 
-export interface ScanPackingOrderResult {
+interface ScanPackingOrderResult {
   order: PackingOrder;
   shipment: ScanShipment | null;
 }
@@ -119,7 +119,7 @@ const shipmentValidationFailedDetailed = (detail: string) =>
 
 const GENERIC_SCAN_ERROR = 'Chyba při skenování objednávky.';
 
-export type ScanPackingOrderVariables = {
+type ScanPackingOrderVariables = {
   orderCode: string;
   numberOfPackages?: number;
   packingUserId?: string | null;

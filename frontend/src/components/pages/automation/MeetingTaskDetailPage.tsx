@@ -11,7 +11,6 @@ import {
   ProposedTaskDto,
   ProposedTaskStatus,
   TaskFormData,
-  TranscriptStatus,
   useAddProposedTask,
   useDeleteMeeting,
   useExplainMeetingSummary,
@@ -762,8 +761,5 @@ const MeetingTaskDetailPage: React.FC = () => {
     </div>
   );
 };
-
-// Ensure module is treated as referencing exported types (silences ts unused-import warnings for narrow types):
-export type _MeetingTaskDetailTypes = TranscriptStatus;
 
 export default MeetingTaskDetailPage;

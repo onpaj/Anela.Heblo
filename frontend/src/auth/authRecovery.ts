@@ -94,6 +94,7 @@ export const resetAuthRecoveryCounter = (): void => {
 /**
  * Full reset: clear both the sessionStorage counter and the in-flight flag.
  * Call this only when recovery truly ends (e.g. before logoutRedirect or in tests).
+ * @public Consumed by tests via dynamic require (invisible to knip).
  */
 export const clearAuthRecoveryState = (): void => {
   redirectInFlight = false;
@@ -114,6 +115,7 @@ const saveReturnUrl = (): void => {
 /**
  * Determine which recovery step this 401 should trigger, advancing (and persisting)
  * the attempt counter. Exported for unit testing.
+ * @public Consumed by tests via dynamic require (invisible to knip).
  */
 export const nextRecoveryAttempt = (now: number, minAttempt: number = 1): number => {
   const prev = readState();

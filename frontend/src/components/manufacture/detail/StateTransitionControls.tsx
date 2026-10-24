@@ -25,7 +25,7 @@ const stateColors: Record<ManufactureOrderState, string> = {
   [ManufactureOrderState.Cancelled]: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
 };
 
-export const StateTransitionControls: React.FC<StateTransitionControlsProps> = ({
+const StateTransitionControls: React.FC<StateTransitionControlsProps> = ({
   order,
   currentStateTransitions,
   onStateChange,

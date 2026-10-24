@@ -30,7 +30,3 @@ export interface GridColumnState {
   width?: number; // px; undefined = use column defaultWidth
   hidden: boolean;
 }
-
-export interface GridLayoutPayload {
-  columns: GridColumnState[];
-}

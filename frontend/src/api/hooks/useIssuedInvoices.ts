@@ -5,7 +5,7 @@ import type {
   IGetIssuedInvoiceDetailResponse,
 } from '../generated/api-client';
 
-export interface IssuedInvoicesFilters {
+interface IssuedInvoicesFilters {
   pageNumber?: number;
   pageSize?: number;
   sortBy?: string;
@@ -19,7 +19,7 @@ export interface IssuedInvoicesFilters {
   showOnlyWithErrors?: boolean;
 }
 
-export interface UseIssuedInvoicesListOptions {
+interface UseIssuedInvoicesListOptions {
   enabled?: boolean;
 }
 

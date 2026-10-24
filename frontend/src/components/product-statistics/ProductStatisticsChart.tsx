@@ -31,7 +31,7 @@ export interface ProductStatisticsSeries {
   values: number[];
 }
 
-export interface ProductStatisticsChartProps {
+interface ProductStatisticsChartProps {
   months: string[];
   series: ProductStatisticsSeries[];
   yAxisLabel: string;

@@ -20,18 +20,18 @@ export interface DashboardTile {
   data?: any;
 }
 
-export interface UserDashboardTile {
+interface UserDashboardTile {
   tileId: string;
   isVisible: boolean;
   displayOrder: number;
 }
 
-export interface UserDashboardSettings {
+interface UserDashboardSettings {
   tiles: UserDashboardTile[];
   lastModified: string;
 }
 
-export interface SaveDashboardSettingsRequest {
+interface SaveDashboardSettingsRequest {
   tiles: UserDashboardTile[];
 }
 

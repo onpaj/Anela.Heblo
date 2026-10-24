@@ -160,18 +160,6 @@ const TERMINAL_ROUTE_PREFIX = "/terminal";
 const isTerminalRoute = (): boolean =>
   window.location.pathname.startsWith(TERMINAL_ROUTE_PREFIX);
 
-// Create API client instance with runtime configuration
-let apiClient: ApiClient;
-
-export const getApiClient = (): ApiClient => {
-  if (!apiClient) {
-    const config = getConfig();
-    console.log(`🌐 Creating API client with base URL: ${config.apiUrl}`);
-    apiClient = new ApiClient(config.apiUrl);
-  }
-  return apiClient;
-};
-
 /**
  * Get the API base URL from runtime configuration
  */
@@ -380,37 +368,6 @@ export const getAuthenticatedApiClient = (
   return new ApiClient(config.apiUrl, authenticatedHttp);
 };
 
-// Create an authenticated API client with custom token provider (for advanced scenarios)
-export const getAuthenticatedApiClientWithProvider = (
-  getAccessToken: () => Promise<string | null>,
-): ApiClient => {
-  const config = getConfig();
-
-  const customHttp = {
-    fetch: async (url: RequestInfo, init?: RequestInit): Promise<Response> => {
-      const token = await getAccessToken();
-
-      const headers: Record<string, string> = {
-        ...((init?.headers as Record<string, string>) || {}),
-        "Content-Type": "application/json",
-      };
-
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      return fetch(url, {
-        ...init,
-        headers,
-        // Include credentials (cookies) for E2E test mode
-        credentials: isE2ETestMode() ? "include" : "same-origin",
-      });
-    },
-  };
-
-  return new ApiClient(config.apiUrl, customHttp);
-};
-
 /**
  * Get an authenticated fetch function with the same headers as the API client.
  * Returns a fetch-like function that automatically attaches auth headers.
@@ -460,18 +417,6 @@ export const authenticatedFetch = async (url: string): Promise<Response> => {
     headers,
     credentials: isE2ETestMode() ? "include" : "same-origin",
   });
-};
-
-// Legacy export for backward compatibility
-export { getApiClient as apiClient };
-
-// API client configuration
-export const getApiConfig = () => {
-  const config = getConfig();
-  return {
-    baseUrl: config.apiUrl,
-    timeout: 30000, // 30 seconds
-  };
 };
 
 // Query keys for TanStack Query
@@ -532,12 +477,3 @@ export const QUERY_KEYS = {
   // users: ['users'] as const,
   // products: ['products'] as const,
 } as const;
-
-// Default query options
-export const DEFAULT_QUERY_OPTIONS = {
-  staleTime: 5 * 60 * 1000, // 5 minutes
-  gcTime: 10 * 60 * 1000, // 10 minutes (previously cacheTime)
-  retry: 3,
-  retryDelay: (attemptIndex: number) =>
-    Math.min(1000 * 2 ** attemptIndex, 30000),
-};

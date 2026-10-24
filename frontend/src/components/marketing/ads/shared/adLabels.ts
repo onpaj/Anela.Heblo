@@ -30,8 +30,6 @@ export const ENTITY_LEVEL_LABELS: LabelMap = {
   Ad: 'reklama',
 };
 
-export const MATCH_TYPE_LABELS: LabelMap = { Exact: 'přesná shoda', Phrase: 'frázová shoda', Broad: 'volná shoda' };
-
 export const LIMITS_OUTCOME_LABELS: LabelMap = {
   Allowed: 'V limitech',
   NeedsSecondApprover: 'Vyžaduje druhého schvalovatele',

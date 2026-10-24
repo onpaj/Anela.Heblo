@@ -1,18 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import {
-  GetManufactureOutputResponse,
   ManufactureOutputMonth,
   ProductContribution,
-  ProductionDetail,
 } from "../generated/api-client";
 
-export type {
-  GetManufactureOutputResponse,
-  ManufactureOutputMonth,
-  ProductContribution,
-  ProductionDetail,
-};
+export type { ManufactureOutputMonth, ProductContribution };
 
 export const useManufactureOutputQuery = (monthsBack: number = 13) => {
   return useQuery({

@@ -17,7 +17,7 @@ import { FailedJobsTile } from './FailedJobsTile';
 import { PackingStatsTile } from './PackingStatsTile';
 import { Truck, PackageCheck, Package, FileText, Landmark, ClipboardList, Beaker, AlertTriangle, Gift } from 'lucide-react';
 
-export type TileRenderer = React.FC<{ data: any; tile: DashboardTileType }>;
+type TileRenderer = React.FC<{ data: any; tile: DashboardTileType }>;
 
 export const TILE_RENDERERS: Record<string, TileRenderer> = {
   backgroundtaskstatus: ({ data }) => <BackgroundTasksTile data={data} />,

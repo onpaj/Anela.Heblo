@@ -28,7 +28,7 @@ export interface ReceiveState {
   boxes: ScannedBox[];
 }
 
-export interface ReceiveInitArg {
+interface ReceiveInitArg {
   mode: ReceiveMode;
   material?: SelectedMaterial | null;
 }
@@ -56,7 +56,7 @@ export const init = (arg: ReceiveInitArg): ReceiveState => {
   };
 };
 
-export type ReceiveAction =
+type ReceiveAction =
   | { type: 'SELECT_MATERIAL'; code: string; name: string }
   | { type: 'EDIT_MATERIAL' }
   | { type: 'CONFIRM_LOT'; lot: string }

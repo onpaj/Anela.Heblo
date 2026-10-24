@@ -22,7 +22,7 @@ owns:
   - backend/src/Anela.Heblo.API/Controllers/PurchaseStockAnalysisController.cs
   - frontend/src/components/pages/PurchaseStockAnalysis.tsx
   - frontend/src/api/hooks/usePurchaseStockAnalysis.ts
-verified_at: "282e4f521"
+verified_at: "e6d02b4e5"
 related:
   - calc-bundle-sales-expansion
   - flow-purchase-order

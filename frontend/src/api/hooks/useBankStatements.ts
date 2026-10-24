@@ -5,28 +5,20 @@ import {
   DailyBankStatementStatistics,
   BankStatementDateType,
   GetBankStatementListResponse,
-  BankStatementImportDto,
   BankStatementImportResultDto,
   BankAccountDto,
   BankImportRequestDto,
 } from '../generated/api-client';
 
-export type {
-  GetBankStatementImportStatisticsResponse,
-  DailyBankStatementStatistics,
-  BankStatementDateType,
-  GetBankStatementListResponse,
-  BankStatementImportDto,
-  BankStatementImportResultDto,
-};
+export type { DailyBankStatementStatistics };
 
-export interface GetBankStatementImportStatisticsRequest {
+interface GetBankStatementImportStatisticsRequest {
   startDate?: string;
   endDate?: string;
   dateType?: string;
 }
 
-export interface GetBankStatementListRequest {
+interface GetBankStatementListRequest {
   id?: number;
   transferId?: string;
   account?: string;
@@ -84,7 +76,7 @@ export const useBankStatementsList = (
   });
 };
 
-export interface BankImportRequest {
+interface BankImportRequest {
   accountName: string;
   dateFrom: string;
   dateTo: string;
@@ -105,7 +97,7 @@ export const useBankStatementImport = () => {
 };
 
 // Account option interface for display purposes
-export interface AccountOption {
+interface AccountOption {
   value: string;       // Account name used by the backend (e.g., "ShoptetPay-CZK")
   label: string;       // Display text (e.g., "ShoptetPay-CZK (ShoptetPay)")
   accountNumber: string;

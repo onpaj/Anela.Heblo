@@ -1,4 +1,4 @@
-export interface AgentColor {
+interface AgentColor {
   bg: string;
   text: string;
   ring: string;

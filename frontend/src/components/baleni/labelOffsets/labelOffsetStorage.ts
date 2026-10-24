@@ -15,7 +15,7 @@ export const CARRIER_NAMES: Record<LabelCarrier, string> = {
 };
 
 /** Largest move allowed in either direction; mirrors LabelOffsetQuery.MaxOffsetMm on the backend. */
-export const MAX_LABEL_OFFSET_MM = 30;
+const MAX_LABEL_OFFSET_MM = 30;
 
 export interface LabelOffset {
   xMm: number;
@@ -34,7 +34,7 @@ const isValidMm = (value: unknown): value is number =>
 export const clampMm = (value: number): number =>
   Math.max(-MAX_LABEL_OFFSET_MM, Math.min(MAX_LABEL_OFFSET_MM, Math.round(value)));
 
-export const isZeroOffset = (offset: LabelOffset): boolean => offset.xMm === 0 && offset.yMm === 0;
+const isZeroOffset = (offset: LabelOffset): boolean => offset.xMm === 0 && offset.yMm === 0;
 
 /** Reads this browser's offsets, dropping anything malformed. Never throws. */
 export const loadLabelOffsets = (): LabelOffsets => {

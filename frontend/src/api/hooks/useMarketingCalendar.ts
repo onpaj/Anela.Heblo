@@ -29,9 +29,9 @@ interface GetMarketingCalendarParams {
   endDate: Date;
 }
 
-export type CreateMarketingActionPayload = ICreateMarketingActionRequest;
-export type UpdateMarketingActionPayload = IUpdateMarketingActionRequest;
-export type ImportFromOutlookPayload = IImportFromOutlookRequest;
+type CreateMarketingActionPayload = ICreateMarketingActionRequest;
+type UpdateMarketingActionPayload = IUpdateMarketingActionRequest;
+type ImportFromOutlookPayload = IImportFromOutlookRequest;
 
 export const useMarketingActions = (
   params: GetMarketingActionsParams = {},

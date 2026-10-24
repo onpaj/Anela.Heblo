@@ -16,15 +16,15 @@ const PROPOSAL_LIST_REFETCH_MS = 60 * 1000;
 
 type ListProposalsArgs = Parameters<ApiClient['marketingAdsProposals_ListProposals']>;
 
-export interface ProposalRef {
+interface ProposalRef {
   id: string;
 }
 
-export interface ProposalDecision extends ProposalRef {
+interface ProposalDecision extends ProposalRef {
   version: number;
 }
 
-export interface ProposalRejection extends ProposalDecision {
+interface ProposalRejection extends ProposalDecision {
   reason: string;
 }
 

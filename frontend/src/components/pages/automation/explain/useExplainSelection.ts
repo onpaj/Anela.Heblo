@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export interface SelectionState {
+interface SelectionState {
   selectedText: string;
   anchorRect: DOMRect | null;
 }

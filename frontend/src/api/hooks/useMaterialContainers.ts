@@ -202,12 +202,3 @@ export const useMaterialContainersList = (request: MaterialContainersListRequest
     },
   });
 
-export type {
-  CreateMaterialContainerItem,
-  CreateMaterialContainersResponse,
-  GetMaterialContainerByCodeResponse,
-  GetLastUsedLotForMaterialResponse,
-  ListMaterialContainersResponse,
-  PrintMaterialContainerLabelsResponse,
-  PrintLotLabelsResponse,
-} from '../generated/api-client';

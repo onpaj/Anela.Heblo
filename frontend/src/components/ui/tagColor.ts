@@ -1,4 +1,4 @@
-export interface TagColorPair {
+interface TagColorPair {
   bg: string;
   text: string;
 }

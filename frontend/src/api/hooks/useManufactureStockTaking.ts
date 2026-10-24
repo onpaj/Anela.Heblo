@@ -10,27 +10,15 @@ import {
 } from "../generated/api-client";
 
 // Custom interfaces for request handling
-export interface GetManufactureStockTakingHistoryRequest {
+interface GetManufactureStockTakingHistoryRequest {
   productCode?: string;
   pageNumber?: number;
   pageSize?: number;
 }
 
 // Re-export types from generated client for convenience
-export type { SubmitManufactureStockTakingRequest, SubmitManufactureStockTakingResponse };
 
-export interface StockTakingHistoryRecord {
-  id?: string;
-  type?: string;
-  code?: string;
-  amountNew: number;
-  amountOld: number;
-  difference: number;
-  date: string;
-  user?: string;
-}
-
-export interface ManufactureStockTakingLotRequest {
+interface ManufactureStockTakingLotRequest {
   lotCode?: string | null;
   expiration?: Date | null;
   amount: number;

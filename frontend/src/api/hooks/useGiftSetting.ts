@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getAuthenticatedApiClient } from '../client';
 
-export interface GiftSettingDto {
+interface GiftSettingDto {
   isEnabled: boolean;
   thresholdCzk: number;
   text: string;
@@ -9,7 +9,7 @@ export interface GiftSettingDto {
   modifiedBy: string | null;
 }
 
-export interface SetGiftSettingRequest {
+interface SetGiftSettingRequest {
   isEnabled: boolean;
   thresholdCzk: number;
   text: string;

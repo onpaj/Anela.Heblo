@@ -21,13 +21,6 @@ import {
 } from "../generated/api-client";
 
 // Re-export the generated types for convenience
-export {
-  GetPricingBaselineResponse,
-  GetPricingScenarioResponse,
-  GetPricingScenariosResponse,
-  RecalculatePricingResponse,
-  SavePricingScenarioResponse,
-};
 
 export interface PricingBaselineFilter {
   productCode?: string;
@@ -51,7 +44,7 @@ export const usePricingBaselineQuery = (filter: PricingBaselineFilter = {}) => {
   });
 };
 
-export interface RecalculatePricingPayload {
+interface RecalculatePricingPayload {
   productCode?: string;
   productName?: string;
   productType?: ProductType;
@@ -140,7 +133,7 @@ export const usePricingScenarioQuery = (id?: string) => {
   });
 };
 
-export interface SavePricingScenarioPayload {
+interface SavePricingScenarioPayload {
   id?: string;
   name: string;
   description?: string;

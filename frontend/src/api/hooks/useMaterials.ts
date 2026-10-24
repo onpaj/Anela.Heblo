@@ -4,25 +4,6 @@ import { IMaterialForPurchaseDto } from "../generated/api-client";
 
 export type MaterialForPurchaseDto = IMaterialForPurchaseDto;
 
-export function useMaterialsForPurchase(
-  searchTerm?: string,
-  limit: number = 50,
-) {
-  return useQuery({
-    queryKey: [
-      ...QUERY_KEYS.catalog,
-      "materials-for-purchase",
-      searchTerm,
-      limit,
-    ],
-    queryFn: () =>
-      getAuthenticatedApiClient().catalog_GetMaterialsForPurchase(searchTerm, limit),
-    enabled: true, // Always enabled, but we can debounce the search term
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-  });
-}
-
 export function useMaterialByProductCode(productCode?: string) {
   return useQuery({
     queryKey: [...QUERY_KEYS.catalog, "material-by-product-code", productCode],

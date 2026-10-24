@@ -8,9 +8,7 @@ import {
 } from "../../utils/timePeriod";
 import {
   TimePeriod as GeneratedTimePeriod,
-  GetManufacturingStockAnalysisResponse,
   ManufacturingStockItemDto,
-  ManufacturingStockSummaryDto,
   ManufacturingStockSeverity,
   ManufacturingStockSortBy,
 } from "../generated/api-client";
@@ -20,13 +18,7 @@ export { getTimePeriodDisplayText };
 
 // Re-exported so existing consumers (ManufacturingStockAnalysis.tsx, ManufactureBatchPlanning.tsx)
 // keep importing types/enums from this hook module unchanged, per spec FR-4 / arch-review Decision 1.
-export {
-  GetManufacturingStockAnalysisResponse,
-  ManufacturingStockItemDto,
-  ManufacturingStockSummaryDto,
-  ManufacturingStockSeverity,
-  ManufacturingStockSortBy,
-};
+export { ManufacturingStockItemDto, ManufacturingStockSeverity, ManufacturingStockSortBy };
 
 export function calculateTimePeriodRange(
   period: TimePeriod,

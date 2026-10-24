@@ -16,7 +16,7 @@ export interface ArticleGenerationStep {
   errorMessage: string | null;
 }
 
-export interface ArticleTrace {
+interface ArticleTrace {
   articleId: string;
   steps: ArticleGenerationStep[];
 }

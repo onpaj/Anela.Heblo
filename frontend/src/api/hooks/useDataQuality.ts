@@ -11,7 +11,7 @@ import {
 
 // ---- Types ----
 
-export interface GetDqtRunsParams {
+interface GetDqtRunsParams {
   testType?: DqtTestType;
   status?: DqtRunStatus;
   pageNumber?: number;
@@ -20,7 +20,7 @@ export interface GetDqtRunsParams {
 
 // ---- Query key factory ----
 
-export const dataQualityKeys = {
+const dataQualityKeys = {
   all: [...QUERY_KEYS.dataQuality] as const,
   runs: (params?: GetDqtRunsParams) =>
     [...QUERY_KEYS.dataQuality, 'runs', params ?? {}] as const,

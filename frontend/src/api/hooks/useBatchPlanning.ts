@@ -1,9 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { getAuthenticatedApiClient } from "../client";
 import { 
-  BatchPlanItemDto, 
-  BatchPlanSummaryDto, 
-  SemiproductInfoDto, 
   CalculateBatchPlanResponse, 
   CalculateBatchPlanRequest,
   BatchPlanControlMode,
@@ -12,16 +9,7 @@ import {
 } from "../generated/api-client";
 
 // Re-export types from generated API client for convenience
-export { 
-  BatchPlanItemDto, 
-  BatchPlanSummaryDto, 
-  SemiproductInfoDto, 
-  CalculateBatchPlanResponse, 
-  CalculateBatchPlanRequest,
-  BatchPlanControlMode,
-  ProductSizeConstraint,
-  ManufactureType
-};
+export { CalculateBatchPlanRequest, BatchPlanControlMode, ProductSizeConstraint, ManufactureType };
 
 export const useBatchPlanningMutation = () => {
   return useMutation({
@@ -57,8 +45,4 @@ export const formatDays = (days: number): string => {
     return "∞";
   }
   return `${days.toFixed(1)} days`;
-};
-
-export const formatPercentage = (percentage: number): string => {
-  return `${percentage.toFixed(1)}%`;
 };

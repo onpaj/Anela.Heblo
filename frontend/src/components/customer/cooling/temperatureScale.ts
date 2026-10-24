@@ -19,7 +19,7 @@ export function getTemperatureColor(temp: number): string {
   return 'bg-red-500';
 }
 
-export interface TemperatureRangeBar {
+interface TemperatureRangeBar {
   left: number;
   width: number;
 }

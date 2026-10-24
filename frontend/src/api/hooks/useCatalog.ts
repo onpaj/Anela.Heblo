@@ -3,13 +3,8 @@ import { getAuthenticatedApiClient, QUERY_KEYS } from "../client";
 import {
   CatalogItemDto,
   ProductType,
-  StockDto,
-  PropertiesDto,
-  PriceDto,
   EshopPriceDto,
-  ErpPriceDto,
   CatalogManufactureRecordDto,
-  CatalogHistoricalDataDto,
   CatalogSalesRecordDto,
   CatalogPurchaseRecordDto,
   CatalogConsumedRecordDto,
@@ -17,25 +12,11 @@ import {
 } from "../generated/api-client";
 
 // Re-export types from generated API client
-export {
-  CatalogItemDto,
-  ProductType,
-  StockDto,
-  PropertiesDto,
-  PriceDto,
-  EshopPriceDto,
-  ErpPriceDto,
-  CatalogManufactureRecordDto,
-  CatalogHistoricalDataDto,
-  CatalogSalesRecordDto,
-  CatalogPurchaseRecordDto,
-  CatalogConsumedRecordDto,
-  GetCatalogDetailResponse,
-};
+export { CatalogItemDto, ProductType, EshopPriceDto, CatalogManufactureRecordDto, CatalogSalesRecordDto, CatalogPurchaseRecordDto, CatalogConsumedRecordDto };
 
 // All DTOs are now imported from generated API client - no custom interfaces needed
 
-export interface GetCatalogListRequest {
+interface GetCatalogListRequest {
   productTypes?: ProductType[];
   pageNumber?: number;
   pageSize?: number;
@@ -109,16 +90,6 @@ const fetchCatalogDetail = async (
   return apiClient.catalog_GetCatalogDetail(productCode, monthsBack);
 };
 
-// React Query hook
-export const useCatalogList = (params: GetCatalogListRequest = {}) => {
-  return useQuery({
-    queryKey: [...QUERY_KEYS.catalog, "list", params],
-    queryFn: () => fetchCatalogList(params),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-  });
-};
-
 // Hook for filtered and paginated catalog data
 export const useCatalogQuery = (
   productNameFilter?: string,
@@ -185,7 +156,7 @@ export interface IngredientDto {
   phaseLabel?: string | null;
 }
 
-export interface ProductCompositionResponse {
+interface ProductCompositionResponse {
   ingredients: IngredientDto[];
 }
 

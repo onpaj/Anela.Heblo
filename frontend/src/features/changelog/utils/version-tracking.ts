@@ -115,7 +115,7 @@ export function getVersionTracking(): VersionTracking {
 /**
  * Save version tracking data to localStorage
  */
-export function saveVersionTracking(tracking: VersionTracking): void {
+function saveVersionTracking(tracking: VersionTracking): void {
   try {
     const serialized = JSON.stringify(tracking);
     localStorage.setItem(VERSION_TRACKING_KEY, serialized);
@@ -149,7 +149,7 @@ export function isNewVersion(version: string): boolean {
  * @param version Version to check
  * @returns True if user has seen this version before
  */
-export function hasSeenVersion(version: string): boolean {
+function hasSeenVersion(version: string): boolean {
   try {
     const tracking = getVersionTracking();
     return tracking.seenVersions.includes(version);
@@ -190,46 +190,6 @@ export function markVersionAsSeen(version: string): void {
       `Failed to mark version as seen: ${version}`,
       error instanceof Error ? error : undefined
     );
-  }
-}
-
-/**
- * Reset version tracking (useful for testing)
- */
-export function resetVersionTracking(): void {
-  try {
-    localStorage.removeItem(VERSION_TRACKING_KEY);
-  } catch (error) {
-    throw new VersionTrackingError(
-      'Failed to reset version tracking',
-      error instanceof Error ? error : undefined
-    );
-  }
-}
-
-/**
- * Get last shown version
- */
-export function getLastShownVersion(): string {
-  try {
-    const tracking = getVersionTracking();
-    return tracking.lastShownVersion;
-  } catch (error) {
-    console.error('Failed to get last shown version:', error);
-    return '0.0.0';
-  }
-}
-
-/**
- * Get all seen versions
- */
-export function getSeenVersions(): string[] {
-  try {
-    const tracking = getVersionTracking();
-    return [...tracking.seenVersions];
-  } catch (error) {
-    console.error('Failed to get seen versions:', error);
-    return [];
   }
 }
 

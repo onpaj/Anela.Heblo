@@ -12,7 +12,7 @@ interface MessageAttachmentsProps {
 const KIB = 1024;
 const MIB = KIB * KIB;
 
-export function formatFileSize(size: number): string {
+function formatFileSize(size: number): string {
   if (size < KIB) return `${size} B`;
   if (size < MIB) return `${Math.floor(size / KIB)} kB`;
   return `${(size / MIB).toFixed(1).replace(".", ",")} MB`;

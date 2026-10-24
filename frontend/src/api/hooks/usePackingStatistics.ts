@@ -63,7 +63,7 @@ export interface PackingStatisticsResponse {
   packagesPerOrder: PackagesPerOrderBucket[];
 }
 
-export interface PackingStatisticsParams {
+interface PackingStatisticsParams {
   /** Inclusive start of the local-day window (YYYY-MM-DD). */
   fromDate?: string;
   /** Inclusive end of the local-day window (YYYY-MM-DD). */
@@ -110,7 +110,7 @@ const toPackingStatisticsSummary = (dto: PackingStatisticsSummaryDto): PackingSt
   busiestHour: dto.busiestHour ? toHourBucket(dto.busiestHour) : null,
 });
 
-export const packingStatisticsKeys = {
+const packingStatisticsKeys = {
   all: ["packingStatistics"] as const,
   detail: (params: PackingStatisticsParams) =>
     [...packingStatisticsKeys.all, params] as const,

@@ -4,7 +4,7 @@ import React from "react";
 const BUTTON_CLASS =
   "px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white hover:border-gray-400 disabled:opacity-40 disabled:cursor-not-allowed dark:border-graphite-border dark:bg-graphite-surface/90 dark:text-graphite-muted dark:hover:bg-graphite-surface";
 
-export interface MindMapToolbarProps {
+interface MindMapToolbarProps {
   isReadOnly: boolean;
   hasSelection: boolean;
   onExpandAll: () => void;

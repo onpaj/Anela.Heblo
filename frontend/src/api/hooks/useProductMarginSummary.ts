@@ -7,7 +7,7 @@ import {
 } from "../generated/api-client";
 
 // Re-export the generated types for convenience
-export { GetProductMarginSummaryResponse, ProductGroupingMode, MarginLevel };
+export { ProductGroupingMode, MarginLevel };
 
 export const useProductMarginSummaryQuery = (
   timeWindow: string = "current-year",

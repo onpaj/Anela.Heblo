@@ -17,13 +17,13 @@
 
 import type { ErrorCodes } from './generated/api-client';
 
-export interface ApiErrorEnvelope {
+interface ApiErrorEnvelope {
   errorCode?: ErrorCodes;
   params?: Record<string, string>;
 }
 
 /** The subset of a generated `BaseResponse` these helpers care about. */
-export interface ApiEnvelopeResponse {
+interface ApiEnvelopeResponse {
   success?: boolean;
   errorCode?: ErrorCodes;
   params?: { [key: string]: string } | undefined;

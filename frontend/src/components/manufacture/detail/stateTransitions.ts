@@ -1,6 +1,6 @@
 import { ManufactureOrderState, ManufactureType } from "../../../api/generated/api-client";
 
-export interface StateTransitions {
+interface StateTransitions {
   next: ManufactureOrderState | null;
   previous: ManufactureOrderState | null;
 }

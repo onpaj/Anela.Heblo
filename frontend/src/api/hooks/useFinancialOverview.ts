@@ -4,18 +4,10 @@ import {
   GetFinancialOverviewResponse,
   MonthlyFinancialDataDto,
   FinancialSummaryDto,
-  StockChangeDto,
-  StockSummaryDto,
 } from "../generated/api-client";
 
 // Re-export the generated types for convenience
-export {
-  GetFinancialOverviewResponse,
-  MonthlyFinancialDataDto,
-  FinancialSummaryDto,
-  StockChangeDto,
-  StockSummaryDto,
-};
+export { MonthlyFinancialDataDto, FinancialSummaryDto };
 
 export const useFinancialOverviewQuery = (
   months: number = 6,

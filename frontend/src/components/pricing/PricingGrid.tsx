@@ -7,7 +7,7 @@ import { isInWorkGroup } from "./pricingWorkGroup";
 import PricingBulkEditHeader from "./PricingBulkEditHeader";
 import { PricingBulkEdit, PricingBulkEditField } from "./pricingBulkEdit";
 
-export interface PricingGridProps {
+interface PricingGridProps {
   rows: PricingRowDto[];
   // (productCode, field, value) => void, committed on blur/Enter by PricingEditableCell.
   onEdit?: (productCode: string, field: PricingEditField, value: number) => void;

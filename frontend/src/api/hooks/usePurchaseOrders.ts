@@ -289,20 +289,3 @@ export const useUpdatePurchaseOrderInvoiceAcquiredMutation = () => {
 };
 
 // Re-export types from generated client for backward compatibility
-export type {
-  GetPurchaseOrdersResponse,
-  PurchaseOrderSummaryDto,
-  GetPurchaseOrderByIdResponse,
-  PurchaseOrderLineDto,
-  PurchaseOrderHistoryDto,
-  CreatePurchaseOrderRequest,
-  CreatePurchaseOrderLineRequest,
-  CreatePurchaseOrderResponse,
-  UpdatePurchaseOrderRequest,
-  UpdatePurchaseOrderLineRequest,
-  UpdatePurchaseOrderResponse,
-  UpdatePurchaseOrderStatusRequest,
-  UpdatePurchaseOrderStatusResponse,
-  UpdatePurchaseOrderInvoiceAcquiredRequest,
-  UpdatePurchaseOrderInvoiceAcquiredResponse,
-} from "../generated/api-client";

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { ProductStatisticsSeries } from "./ProductStatisticsChart";
 
-export interface ProductStatisticsTableProps {
+interface ProductStatisticsTableProps {
   months: string[];
   series: ProductStatisticsSeries[];
 }

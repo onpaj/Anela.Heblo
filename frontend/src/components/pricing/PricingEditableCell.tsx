@@ -10,7 +10,7 @@ import {
 } from "./pricingDelta";
 import PricingValueEditorPopover from "./PricingValueEditorPopover";
 
-export interface PricingEditableCellProps {
+interface PricingEditableCellProps {
   row: PricingRowDto;
   field: PricingEditField;
   onCommit: (productCode: string, field: PricingEditField, value: number) => void;

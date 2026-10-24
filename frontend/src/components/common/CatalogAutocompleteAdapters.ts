@@ -30,13 +30,6 @@ export const catalogItemToProductCode = (item: CatalogItemDto): string => {
 };
 
 /**
- * Simple display adapter - returns just the product name
- */
-export const catalogItemToProductName = (item: CatalogItemDto): string => {
-  return item.productName || item.productCode || "";
-};
-
-/**
  * Combined product code and name for display
  */
 export const catalogItemToCodeAndName = (item: CatalogItemDto): string => {
@@ -59,14 +52,6 @@ export const materialDisplayValue = (
     material.productName,
     material.productNameSuffix,
   );
-};
-
-export const productCodeDisplayValue = (productCode: string): string => {
-  return productCode;
-};
-
-export const catalogItemDisplayValue = (item: CatalogItemDto): string => {
-  return item.productName || item.productCode || "";
 };
 
 /**

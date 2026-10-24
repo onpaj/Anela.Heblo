@@ -1,5 +1,5 @@
 /** Separator between a product name and its name suffix (ABRA Flexi "Popis FR") in single-line labels. */
-export const PRODUCT_NAME_SUFFIX_SEPARATOR = " · ";
+const PRODUCT_NAME_SUFFIX_SEPARATOR = " · ";
 
 /** A suffix that is missing or whitespace-only counts as no suffix. */
 export const normalizeProductNameSuffix = (

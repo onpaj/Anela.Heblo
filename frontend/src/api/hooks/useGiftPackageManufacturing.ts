@@ -8,12 +8,11 @@ import {
   CreateGiftPackageManufactureResponse,
   DisassembleGiftPackageRequest,
   DisassembleGiftPackageResponse,
-  GetManufactureLogResponse,
 } from "../generated/api-client";
 
 
 // Helper to get the correct API client instance
-export const getGiftPackageClient = (): GeneratedApiClient => {
+const getGiftPackageClient = (): GeneratedApiClient => {
   const apiClient = getAuthenticatedApiClient();
   return apiClient as any as GeneratedApiClient;
 };
@@ -102,29 +101,4 @@ export const useDisassembleGiftPackage = () => {
       queryClient.invalidateQueries({ queryKey: [...QUERY_KEYS.giftPackages, "manufacture", "log"] });
     },
   });
-};
-
-/**
- * Hook to get manufacturing log
- */
-export const useManufactureLog = (count: number = 10) => {
-  return useQuery({
-    queryKey: [...QUERY_KEYS.giftPackages, "manufacture", "log", count],
-    queryFn: async (): Promise<GetManufactureLogResponse> => {
-      const client = getGiftPackageClient();
-      return await client.logistics_GetManufactureLog(count);
-    },
-    staleTime: 1 * 60 * 1000, // 1 minute
-    gcTime: 5 * 60 * 1000, // 5 minutes
-  });
-};
-
-// Export centralized query key factory for external use (e.g., manual cache invalidation)
-export const giftPackageQueryKeys = {
-  all: () => QUERY_KEYS.giftPackages,
-  available: () => [...QUERY_KEYS.giftPackages, "available"] as const,
-  detail: (giftPackageCode: string) => [...QUERY_KEYS.giftPackages, "detail", giftPackageCode] as const,
-  validation: () => [...QUERY_KEYS.giftPackages, "validation"] as const,
-  manufacture: () => [...QUERY_KEYS.giftPackages, "manufacture"] as const,
-  log: () => [...QUERY_KEYS.giftPackages, "manufacture", "log"] as const,
 };

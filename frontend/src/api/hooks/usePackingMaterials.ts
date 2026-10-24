@@ -3,18 +3,11 @@ import { getAuthenticatedApiClient } from "../client";
 import {
   PackingMaterialDto,
   PackingMaterialLogDto,
-  GetPackingMaterialsListResponse,
-  GetPackingMaterialLogsResponse,
   CreatePackingMaterialRequest,
   ICreatePackingMaterialRequest,
-  CreatePackingMaterialResponse,
   UpdatePackingMaterialRequest,
   IUpdatePackingMaterialRequest,
-  UpdatePackingMaterialResponse,
-  UpdatePackingMaterialQuantityResponse,
   ProcessDailyConsumptionRequest,
-  ProcessDailyConsumptionResponse,
-  GetConsumptionHistoryResponse,
   MaterialConsumptionHistoryItemDto,
   ConsumptionType,
   LogEntryType,
@@ -22,27 +15,11 @@ import {
   UpdateQuantityRequest as UpdateQuantityRequestGenerated,
 } from "../generated/api-client";
 
-export {
-  PackingMaterialDto,
-  PackingMaterialLogDto,
-  GetPackingMaterialsListResponse,
-  GetPackingMaterialLogsResponse,
-  CreatePackingMaterialRequest,
-  CreatePackingMaterialResponse,
-  UpdatePackingMaterialRequest,
-  UpdatePackingMaterialResponse,
-  UpdatePackingMaterialQuantityResponse,
-  ProcessDailyConsumptionRequest,
-  ProcessDailyConsumptionResponse,
-  GetConsumptionHistoryResponse,
-  ConsumptionType,
-  LogEntryType,
-  HistoryRecordType,
-};
+export { PackingMaterialDto, PackingMaterialLogDto, ConsumptionType, LogEntryType, HistoryRecordType };
 
 export type ConsumptionHistoryItemDto = MaterialConsumptionHistoryItemDto;
 
-export interface UpdateQuantityRequest {
+interface UpdateQuantityRequest {
   newQuantity: number;
   date: string;
 }

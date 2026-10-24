@@ -5,8 +5,8 @@ import React, {
 import type { FlashState, FlashTone, ScanActions, ScanEcho } from './types';
 
 export const ScanActionsContext = createContext<ScanActions | null>(null);
-export const ScanEchoContext = createContext<ScanEcho>({ buffer: '', lastCode: null, lastTone: null });
-export const FlashContext = createContext<FlashState | null>(null);
+const ScanEchoContext = createContext<ScanEcho>({ buffer: '', lastCode: null, lastTone: null });
+const FlashContext = createContext<FlashState | null>(null);
 
 const REFOCUS_DELAY_MS = 100;
 const SAFETY_REFOCUS_MS = 2000;

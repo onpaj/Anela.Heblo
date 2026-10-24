@@ -24,12 +24,12 @@ export interface TerminalBox {
   items: TerminalBoxItem[];
 }
 
-export interface BoxFillResult extends BaseResponse {
+interface BoxFillResult extends BaseResponse {
   transportBox?: TerminalBox;
   resumed?: boolean;
 }
 
-export interface AddBoxItemInput {
+interface AddBoxItemInput {
   boxId: number;
   productCode: string;
   productName: string;

@@ -3,7 +3,7 @@ import { PricingEditField } from "../../api/generated/api-client";
 import { PricingBulkEdit, PricingBulkEditField } from "./pricingBulkEdit";
 import { czechPlural } from "./czechPlural";
 
-export interface PricingBulkEditPopoverProps {
+interface PricingBulkEditPopoverProps {
   field: PricingBulkEditField;
   /** How many products the change will land on — everything the grid lists. */
   productCount: number;

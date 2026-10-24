@@ -11,7 +11,7 @@ export const PRODUCT_PICKER_RESULT_LIMIT = 100;
 const SEARCH_MIN_LENGTH = 2;
 const SEARCH_DEBOUNCE_MS = 300;
 
-export interface ProductPickerModalProps {
+interface ProductPickerModalProps {
   isOpen: boolean;
   selectedProducts: SelectedProduct[];
   maxProducts: number;

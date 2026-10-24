@@ -1,32 +1,7 @@
 import {
-  Configuration,
   PopupRequest,
   RedirectRequest,
 } from "@azure/msal-browser";
-
-// MSAL configuration
-export const msalConfig: Configuration = {
-  auth: {
-    clientId: process.env.REACT_APP_AZURE_CLIENT_ID!,
-    authority: process.env.REACT_APP_AZURE_AUTHORITY!,
-    redirectUri:
-      typeof window !== "undefined"
-        ? window.location.origin
-        : "http://localhost:3000",
-    postLogoutRedirectUri:
-      typeof window !== "undefined"
-        ? window.location.origin
-        : "http://localhost:3000",
-    clientCapabilities: ["CP1"], // This lets the resource owner know that this client is capable of handling claims challenges.
-  },
-  cache: {
-    cacheLocation: "localStorage", // Use localStorage to persist tokens across browser sessions and tabs
-    storeAuthStateInCookie: false, // Set this to "true" if you are having issues on IE11 or Edge
-  },
-  system: {
-    allowNativeBroker: false, // Disables WAM Broker
-  },
-};
 
 // Add scopes here for ID token to be used at Microsoft identity platform endpoints.
 export const loginRequest: PopupRequest = {
@@ -38,11 +13,6 @@ export const loginRequest: PopupRequest = {
 export const loginRedirectRequest: RedirectRequest = {
   scopes: ["User.Read", "openid", "profile"],
   prompt: "select_account",
-};
-
-// Add the endpoints here for Microsoft Graph API services you'd like to use.
-export const graphConfig = {
-  graphMeEndpoint: "https://graph.microsoft.com/v1.0/me",
 };
 
 // API scopes for backend

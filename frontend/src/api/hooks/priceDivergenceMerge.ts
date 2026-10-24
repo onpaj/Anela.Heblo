@@ -19,7 +19,7 @@ const countOfKind = (rows: PriceDivergenceRowDto[], kind: PriceDivergenceKind) =
  * Counts the rows by the `kind` the backend already classified — it never decides for itself
  * whether a row agrees, so the comparison rules stay in `PriceComparisonService` alone.
  */
-export const tallySummary = (rows: PriceDivergenceRowDto[]): PriceDivergenceSummaryDto =>
+const tallySummary = (rows: PriceDivergenceRowDto[]): PriceDivergenceSummaryDto =>
   // `fromJS`, never `new PriceDivergenceSummaryDto(...)`: constructing the generated DTOs
   // directly is unreliable under this project's class-fields transform.
   PriceDivergenceSummaryDto.fromJS({

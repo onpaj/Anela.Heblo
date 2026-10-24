@@ -9,7 +9,7 @@ const INVENTORY_TYPES: ProductType[] = [
   ProductType.Set,
 ];
 
-export interface GetInventoryListRequest {
+interface GetInventoryListRequest {
   type?: ProductType;
   pageNumber?: number;
   pageSize?: number;
@@ -19,7 +19,7 @@ export interface GetInventoryListRequest {
   productCode?: string;
 }
 
-export interface GetInventoryListResponse {
+interface GetInventoryListResponse {
   items: CatalogItemDto[];
   totalCount: number;
   pageNumber: number;
