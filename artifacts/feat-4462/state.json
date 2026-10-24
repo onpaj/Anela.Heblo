@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4462",
+  "issue_number": 4462,
+  "created_at": "2026-10-23T02:10:16.334909Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-23T02:11:07.570378Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-23T02:11:10.252618Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-23T02:11:12.856747Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-24T13:10:41.230992Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-24T22:14:15.316443Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-24T23:20:48.630808Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "kill-helper",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-24T20:17:33.243487Z"
+    },
+    {
+      "name": "wire-registration",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-24T21:17:24.934527Z"
+    },
+    {
+      "name": "update-process-doc",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-24T22:14:29.781508Z"
+    }
+  ]
+}
