@@ -29,6 +29,57 @@ public class ShoptetOrderClientTests
         };
     }
 
+    private static ShoptetOrderClient BuildOrderRoutingClient(
+        Dictionary<int, object> listPages,
+        Dictionary<string, object> details,
+        List<string> requests)
+    {
+        return BuildClient(req =>
+        {
+            var pathAndQuery = req.RequestUri!.PathAndQuery;
+            requests.Add(pathAndQuery);
+
+            var path = req.RequestUri.AbsolutePath;
+            if (path == "/api/orders")
+            {
+                var query = System.Web.HttpUtility.ParseQueryString(req.RequestUri.Query);
+                if (int.TryParse(query["page"], out var page) && listPages.TryGetValue(page, out var listBody))
+                    return Json(listBody);
+            }
+            else if (path.StartsWith("/api/orders/", StringComparison.Ordinal))
+            {
+                var code = path["/api/orders/".Length..];
+                if (details.TryGetValue(code, out var detailBody))
+                    return Json(detailBody);
+            }
+
+            return new HttpResponseMessage(HttpStatusCode.NotFound);
+        });
+    }
+
+    private static object ListPage(int page, int pageCount, params (string code, string? email)[] orders)
+    {
+        return new
+        {
+            data = new
+            {
+                orders = orders.Select(o => new { code = o.code, email = o.email, status = new { id = 1 } }).ToArray(),
+                paginator = new { page, pageCount, totalCount = orders.Length },
+            },
+        };
+    }
+
+    private static object Detail(string code, string? externalCode, string? email, int statusId)
+    {
+        return new
+        {
+            data = new
+            {
+                order = new { code, externalCode, email, status = new { id = statusId } },
+            },
+        };
+    }
+
     [Fact]
     public async Task GetOrdersByStatusAsync_ReturnsFullHeaderData()
     {
@@ -237,5 +288,140 @@ public class ShoptetOrderClientTests
         await client.AppendEshopRemarkAsync("ORDER-1", "blocked by accounting");
 
         patchedRemark.Should().Contain("previous staff note\\nblocked by accounting");
+    }
+
+    [Fact]
+    public async Task ListByExternalCodePrefixAsync_SinglePage_ReturnsOnlyPrefixMatches()
+    {
+        var requests = new List<string>();
+        var client = BuildOrderRoutingClient(
+            new Dictionary<int, object>
+            {
+                [1] = ListPage(1, 1, ("A", "a@example.com"), ("B", "b@example.com")),
+            },
+            new Dictionary<string, object>
+            {
+                ["A"] = Detail("A", "TEST-1", "a@example.com", 7),
+                ["B"] = Detail("B", "OTHER-1", "b@example.com", 7),
+            },
+            requests);
+
+        var result = await client.ListByExternalCodePrefixAsync("TEST-");
+
+        result.Should().HaveCount(1);
+        result[0].Code.Should().Be("A");
+        result[0].ExternalCode.Should().Be("TEST-1");
+        result[0].Email.Should().Be("a@example.com");
+        result[0].StatusId.Should().Be(7);
+        requests.Count(r => r.StartsWith("/api/orders?", StringComparison.Ordinal)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ListByExternalCodePrefixAsync_MultiplePages_FindsMatchOnLaterPageAndStops()
+    {
+        var requests = new List<string>();
+        var client = BuildOrderRoutingClient(
+            new Dictionary<int, object>
+            {
+                [1] = ListPage(1, 2, ("A", "a@example.com")),
+                [2] = ListPage(2, 2, ("B", "b@example.com")),
+                [3] = ListPage(3, 2, ("C", "c@example.com")),
+            },
+            new Dictionary<string, object>
+            {
+                ["A"] = Detail("A", "OTHER-1", "a@example.com", 1),
+                ["B"] = Detail("B", "TEST-2", "b@example.com", 1),
+                ["C"] = Detail("C", "TEST-3", "c@example.com", 1),
+            },
+            requests);
+
+        var result = await client.ListByExternalCodePrefixAsync("TEST-");
+
+        result.Should().ContainSingle().Which.Code.Should().Be("B");
+        requests.Should().Contain(r => r.Contains("page=1", StringComparison.Ordinal));
+        requests.Should().Contain(r => r.Contains("page=2", StringComparison.Ordinal));
+        requests.Should().NotContain(r => r.Contains("page=3", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task ListByExternalCodePrefixAsync_PrefixIsCaseSensitive_AndNullExternalCodeIgnored()
+    {
+        var requests = new List<string>();
+        var client = BuildOrderRoutingClient(
+            new Dictionary<int, object>
+            {
+                [1] = ListPage(1, 1, ("A", "a@example.com"), ("B", "b@example.com")),
+            },
+            new Dictionary<string, object>
+            {
+                ["A"] = Detail("A", "test-1", "a@example.com", 1),
+                ["B"] = Detail("B", null, "b@example.com", 1),
+            },
+            requests);
+
+        var result = await client.ListByExternalCodePrefixAsync("TEST-");
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ListByExternalCodePrefixAsync_EmailFilter_ReturnsOnlyMatchingEmailCaseInsensitive()
+    {
+        var requests = new List<string>();
+        var client = BuildOrderRoutingClient(
+            new Dictionary<int, object>
+            {
+                [1] = ListPage(1, 1, ("A", "Customer@Example.com"), ("B", "other@example.com")),
+            },
+            new Dictionary<string, object>
+            {
+                ["A"] = Detail("A", "TEST-1", "Customer@Example.com", 1),
+                ["B"] = Detail("B", "TEST-2", "other@example.com", 1),
+            },
+            requests);
+
+        var result = await client.ListByExternalCodePrefixAsync("TEST-", "customer@EXAMPLE.COM");
+
+        result.Should().ContainSingle().Which.Code.Should().Be("A");
+        requests.Should().NotContain(r => r.StartsWith("/api/orders/B", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task ListByExternalCodePrefixAsync_PageCountOne_NoMatch_ReturnsEmpty()
+    {
+        var requests = new List<string>();
+        var client = BuildOrderRoutingClient(
+            new Dictionary<int, object>
+            {
+                [1] = ListPage(1, 1, ("A", "a@example.com")),
+            },
+            new Dictionary<string, object>
+            {
+                ["A"] = Detail("A", "OTHER-1", "a@example.com", 1),
+            },
+            requests);
+
+        var result = await client.ListByExternalCodePrefixAsync("TEST-");
+
+        result.Should().BeEmpty();
+        requests.Count(r => r.StartsWith("/api/orders?", StringComparison.Ordinal)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ListByExternalCodePrefixAsync_PageCountZero_ReturnsEmpty()
+    {
+        var requests = new List<string>();
+        var client = BuildOrderRoutingClient(
+            new Dictionary<int, object>
+            {
+                [1] = ListPage(1, 0),
+            },
+            new Dictionary<string, object>(),
+            requests);
+
+        var result = await client.ListByExternalCodePrefixAsync("TEST-");
+
+        result.Should().BeEmpty();
+        requests.Should().ContainSingle();
     }
 }

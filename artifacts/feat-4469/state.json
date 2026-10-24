@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4469",
+  "issue_number": 4469,
+  "created_at": "2026-10-23T08:10:21.968506Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-23T08:10:59.332913Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-23T08:11:02.611029Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-23T08:11:22.932193Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-23T08:11:25.777423Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-23T09:15:27.711007Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-23T11:26:45.330282Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "move-dtos-to-contracts",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T08:21:06.449874Z"
+    },
+    {
+      "name": "add-stock-analysis-filter",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T09:59:23.404308Z"
+    },
+    {
+      "name": "update-process-doc-and-validate",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T10:24:00.621128Z"
+    }
+  ]
+}

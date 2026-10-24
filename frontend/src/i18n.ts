@@ -268,6 +268,9 @@ const resources = {
         SmartsuppCloseConversationUnavailable: "Uzavření konverzace selhalo — služba je nedostupná. Zkuste to prosím znovu.",
         SmartsuppDraftReplyFeedbackLogNotFound: "Záznam zpětné vazby nenalezen",
         SmartsuppDraftReplyFeedbackAlreadySubmitted: "Zpětná vazba již byla odeslána",
+        SmartsuppAttachmentInvalid: "Soubor nelze odeslat — nepodporovaný typ nebo příliš mnoho souborů (max 5).",
+        SmartsuppAttachmentTooLarge: "Soubor je větší než 10 MB.",
+        SmartsuppAttachmentUploadFailed: "Nahrání souboru selhalo. Zprávu můžete odeslat bez přílohy.",
 
         // Inventory module errors
         LotNotFound: "Šarže nebyla nalezena.",

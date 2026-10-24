@@ -44,7 +44,12 @@ public class ExpeditionListArchiveController : BaseApiController
         var request = new DownloadExpeditionListRequest { BlobPath = blobPath };
         var response = await _mediator.Send(request);
 
-        if (!response.Success || response.Stream == null)
+        if (!response.Success)
+        {
+            return HandleResponse(response).Result!;
+        }
+
+        if (response.Stream == null)
         {
             return BadRequest(response);
         }
