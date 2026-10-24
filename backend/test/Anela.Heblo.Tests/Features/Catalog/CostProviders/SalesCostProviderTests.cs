@@ -61,7 +61,8 @@ public class SalesCostProviderTests
             serviceProviderMock.Object,
             (ledgerMock ?? new Mock<ILedgerService>()).Object,
             (loggerMock ?? new Mock<ILogger<SalesCostProvider>>()).Object,
-            Options.Create(new DataSourceOptions { ManufactureCostHistoryDays = manufactureCostHistoryDays }));
+            Options.Create(new DataSourceOptions { ManufactureCostHistoryDays = manufactureCostHistoryDays }),
+            TimeProvider.System);
     }
 
     private static void VerifyLog(
