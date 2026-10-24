@@ -40,9 +40,9 @@
     },
     {
       "name": "ledger-service-tests",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-24T06:20:40.863300Z"
     },
     {
       "name": "lots-refresh-logging",
