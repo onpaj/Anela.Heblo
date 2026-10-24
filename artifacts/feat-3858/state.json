@@ -21,16 +21,16 @@
       "updated_at": "2026-10-24T04:09:19.367762Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-24T04:24:28.030548Z"
     }
   },
   "tasks": [
     {
       "name": "ledger-options-and-di",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-24T04:24:28.667514Z"
     },
     {
       "name": "ledger-service-singleflight-ttl-logging",
