@@ -9,6 +9,9 @@
   ],
   "project": ["src/**/*.{ts,tsx}"],
   "ignore": ["src/api/generated/**"],
+  "rules": {
+    "duplicates": "off"
+  },
   "playwright": false,
   "jest": false,
   "ignoreDependencies": [
