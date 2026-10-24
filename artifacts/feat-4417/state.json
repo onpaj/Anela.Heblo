@@ -17,13 +17,26 @@
       "updated_at": "2026-10-21T11:16:47.719316Z"
     },
     "planning": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-10-24T09:10:03.723977Z"
     },
     "developing": {
       "status": "pending",
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "handler-propagate-exceptions",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "process-docs-check",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
