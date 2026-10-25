@@ -52,9 +52,9 @@
     },
     {
       "name": "update-existing-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-25T03:14:42.422877Z"
+      "updated_at": "2026-10-25T03:45:32.812208Z"
     },
     {
       "name": "docs-and-validate",
