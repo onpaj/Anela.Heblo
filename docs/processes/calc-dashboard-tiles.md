@@ -17,7 +17,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Manufacture/DashboardTiles/**
   - backend/src/Anela.Heblo.Application/Features/Packaging/DashboardTiles/**
   - backend/src/Anela.Heblo.Application/Features/Purchase/DashboardTiles/**
-verified_at: "0cffacd62"
+verified_at: "abe05bfd"
 related:
   - module-dashboard
   - sync-weather-forecast
@@ -39,13 +39,18 @@ On demand, no Hangfire job, no BackgroundRefresh task.
 - `GET api/dashboard/settings` — page open and after every settings save.
 
 ## Data flow
-1. **Resolve the user's layout** (`GetUserSettingsHandler`, under a per-user in-process lock):
+1. **Resolve the user's layout** (`GetUserSettingsHandler` -> `IUserDashboardSettingsReader`,
+   read-only, no lock):
    - load `public."UserDashboardSettings"` + `public."UserDashboardTiles"` for the caller's
      user id (`"anonymous"` if none);
-   - **first visit**: create the settings row with one visible tile row per registered tile
-     that has `DefaultEnabled && AutoShow`, in registry order (`DisplayOrder` 0, 1, 2, …);
-   - **later visits**: any `DefaultEnabled && AutoShow` tile the user has no row for is
-     appended as visible at `max(DisplayOrder)+1…`, and saved.
+   - **no row yet**: return an in-memory default with one visible tile per registered tile that
+     has `DefaultEnabled && AutoShow`, in registry order (`DisplayOrder` 0, 1, 2, ...). Nothing
+     is saved;
+   - **existing row**: any `DefaultEnabled && AutoShow` tile the user has no row for is
+     projected as visible at `max(DisplayOrder)+1...`, in memory only.
+   - Persistence happens on the first mutation (enable/disable/save): the mutator calls
+     `UserDashboardSettingsProvisioner.EnsureProvisionedAsync` under the per-user in-process
+     lock, which creates the row and back-fills the missing Auto tiles.
 2. **Pick tiles to load** (`GetTileDataHandler`): rows with `IsVisible=true`, ordered by
    `DisplayOrder`.
 3. **Permission check**: SuperUser role sees everything; otherwise the caller's permissions
@@ -157,8 +162,9 @@ BackgroundRefresh tasks. "Today"/"yesterday" are **UTC** dates unless stated.
 - **UTC day boundaries.** "Today", "tomorrow" and "yesterday" in the production, DQT and
   invoice tiles are UTC dates. Between 00:00 and 01:00/02:00 Prague time the "today" tile still
   shows the previous day, and "yesterday" lags by a day.
-- **Reads write.** Every `GET data` first runs the settings provisioning (step 1), which can
-  insert rows; a newly released Auto tile shows up for every user on their next refresh.
+- **Reads project, mutations persist.** `GET data` / `GET settings` no longer insert rows; a
+  newly released Auto tile shows up for every user on their next refresh as an in-memory
+  projection and is stored on the user's first enable/disable/save.
 - **Comments disagree with code** in `InventorySummaryTileBase` and the three summary tiles:
   comments say 120/250 days, the code uses 180/365 days. The code is authoritative.
 - `lowstockalert` divides by `SalesHistoryDays` even for products that started selling
@@ -176,7 +182,8 @@ BackgroundRefresh tasks. "Today"/"yesterday" are **UTC** dates unless stated.
   could race on the unique `UserId` index.
 
 ## Code entry points
-- `backend/src/Anela.Heblo.Application/Features/Dashboard/UseCases/GetUserSettings/GetUserSettingsHandler.cs` — provisioning + back-fill.
+- `backend/src/Anela.Heblo.Application/Features/Dashboard/UseCases/GetUserSettings/GetUserSettingsHandler.cs` — read-only query.
+- `backend/src/Anela.Heblo.Application/Features/Dashboard/Infrastructure/UserDashboardSettingsReader.cs`, `UserDashboardSettingsProvisioner.cs`, `UserDashboardSettingsDefaults.cs` — in-memory projection, write-time provisioning, shared defaults/back-fill logic.
 - `backend/src/Anela.Heblo.Application/Features/Dashboard/UseCases/GetTileData/GetTileDataHandler.cs` — loading, permissions, error tiles.
 - `backend/src/Anela.Heblo.Xcc/Services/Dashboard/TileRegistry.cs`, `TileRegistryExtensions.cs` — registration and duplicate-id validation at startup.
 - `backend/src/Anela.Heblo.Application/Features/*/DashboardTiles/*.cs` — one class per tile (formulas above).

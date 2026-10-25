@@ -4,7 +4,7 @@ kind: module
 module: dashboard
 summary: The personal home page (Dashboard) — a per-user, reorderable grid of tiles that each show one live number or short list from another Heblo module.
 owns: []
-verified_at: "0cffacd62"
+verified_at: "abe05bfd"
 related:
   - calc-dashboard-tiles
   - sync-weather-forecast
@@ -101,10 +101,13 @@ Hangfire storage (`failedjobs`). Each of these is read-only.
 - Nothing reads from the Dashboard module.
 
 ## Known quirks
-- **Reading the dashboard writes to the DB.** `GET settings` and `GET data` both run
-  `GetUserSettingsHandler`, which creates the user's settings on first visit and back-fills any
-  newly-released Auto tile. A new Auto tile therefore appears for every existing user on their
-  next page load, appended at the end.
+- **Reads no longer write; the first mutation provisions.** `GET settings` and `GET data` run
+  `GetUserSettingsHandler`, which only asks `IUserDashboardSettingsReader` for an in-memory
+  projection: the default Auto-tile layout when the user has no row yet, or the stored layout
+  plus any newly-released Auto tile (appended at the end). Nothing is persisted. The row is
+  created, and missing Auto tiles back-filled, by `UserDashboardSettingsProvisioner` on the
+  user's first mutation (enable/disable/save, via `UserDashboardSettingsMutator`, under the
+  per-user lock).
 - **`DefaultEnabled` alone does nothing.** Only tiles with `DefaultEnabled && AutoShow` are
   provisioned. The five "Opt-in" tiles above have `DefaultEnabled=true` but `AutoShow=false`,
   so nobody sees them until they switch them on.
@@ -126,7 +129,9 @@ Hangfire storage (`failedjobs`). Each of these is read-only.
 
 ## Code entry points
 - `backend/src/Anela.Heblo.API/Controllers/DashboardController.cs` — the six endpoints.
-- `backend/src/Anela.Heblo.Application/Features/Dashboard/UseCases/GetUserSettings/GetUserSettingsHandler.cs` — provisioning and back-fill.
+- `backend/src/Anela.Heblo.Application/Features/Dashboard/UseCases/GetUserSettings/GetUserSettingsHandler.cs` — read-only query; delegates to the reader.
+- `backend/src/Anela.Heblo.Application/Features/Dashboard/Infrastructure/UserDashboardSettingsReader.cs` — in-memory default / back-fill projection (no writes).
+- `backend/src/Anela.Heblo.Application/Features/Dashboard/Infrastructure/UserDashboardSettingsProvisioner.cs` — creates the row and back-fills missing Auto tiles (called on mutation).
 - `backend/src/Anela.Heblo.Application/Features/Dashboard/UseCases/GetTileData/GetTileDataHandler.cs` — parallel tile loading, permission check, error tiles.
 - `backend/src/Anela.Heblo.Application/Features/Dashboard/Infrastructure/UserDashboardSettingsMutator.cs` — enable/disable/save scaffold.
 - `backend/src/Anela.Heblo.Xcc/Services/Dashboard/` — `ITile`, `TileRegistry`, `[TileId]`, `DashboardOptions`.
