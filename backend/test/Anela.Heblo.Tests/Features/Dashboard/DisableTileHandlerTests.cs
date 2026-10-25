@@ -1,10 +1,8 @@
 using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.DisableTile;
-using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
 using Anela.Heblo.Domain.Features.Dashboard;
 using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
-using MediatR;
 using Moq;
 using Xunit;
 
@@ -14,7 +12,7 @@ public class DisableTileHandlerTests
 {
     private readonly Mock<IUserDashboardSettingsRepository> _repositoryMock;
     private readonly Mock<IUserDashboardSettingsLock> _lockMock;
-    private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<IUserDashboardSettingsProvisioner> _provisionerMock;
     private readonly Mock<ICurrentUserService> _currentUserMock;
     private readonly TimeProvider _timeProvider;
     private readonly DisableTileHandler _handler;
@@ -25,7 +23,7 @@ public class DisableTileHandlerTests
     {
         _repositoryMock = new Mock<IUserDashboardSettingsRepository>();
         _lockMock = new Mock<IUserDashboardSettingsLock>();
-        _mediatorMock = new Mock<IMediator>();
+        _provisionerMock = new Mock<IUserDashboardSettingsProvisioner>();
         _currentUserMock = new Mock<ICurrentUserService>();
 
         var timeProviderMock = new Mock<TimeProvider>();
@@ -43,10 +41,10 @@ public class DisableTileHandlerTests
             .Setup(x => x.AcquireAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(noOpDisposable.Object);
 
-        // Mediator returns a default GetUserSettingsResponse
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new GetUserSettingsResponse());
+        // Provisioner returns default settings
+        _provisionerMock
+            .Setup(x => x.EnsureProvisionedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UserDashboardSettings());
 
         // Default current user mock to return user123
         _currentUserMock
@@ -57,7 +55,7 @@ public class DisableTileHandlerTests
             _repositoryMock.Object,
             _lockMock.Object,
             _timeProvider,
-            _mediatorMock.Object);
+            _provisionerMock.Object);
 
         _handler = new DisableTileHandler(mutator, _currentUserMock.Object);
     }
@@ -162,7 +160,7 @@ public class DisableTileHandlerTests
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _provisionerMock.Verify(x => x.EnsureProvisionedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         _repositoryMock.Verify(x => x.GetByUserIdAsync(It.IsAny<string>()), Times.Never);
         _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<UserDashboardSettings>()), Times.Never);
     }
@@ -180,7 +178,7 @@ public class DisableTileHandlerTests
         result.Should().NotBeNull();
         result.Success.Should().BeFalse();
 
-        _mediatorMock.Verify(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _provisionerMock.Verify(x => x.EnsureProvisionedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
         _repositoryMock.Verify(x => x.GetByUserIdAsync(It.IsAny<string>()), Times.Never);
         _repositoryMock.Verify(x => x.UpdateAsync(It.IsAny<UserDashboardSettings>()), Times.Never);
     }
@@ -204,7 +202,7 @@ public class DisableTileHandlerTests
     }
 
     [Fact]
-    public async Task Handle_SendsGetUserSettingsBeforeAcquiringLock()
+    public async Task Handle_EnsuresProvisionedBeforeAcquiringLock()
     {
         // Arrange
         var userId = "user123";
@@ -216,10 +214,10 @@ public class DisableTileHandlerTests
 
         var callOrder = new List<string>();
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()))
-            .Callback(() => callOrder.Add("mediator"))
-            .ReturnsAsync(new GetUserSettingsResponse());
+        _provisionerMock
+            .Setup(x => x.EnsureProvisionedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("provisioner"))
+            .ReturnsAsync(new UserDashboardSettings());
 
         var noOpDisposable = new Mock<IAsyncDisposable>();
         noOpDisposable.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
@@ -232,10 +230,8 @@ public class DisableTileHandlerTests
         await _handler.Handle(request, CancellationToken.None);
 
         // Assert
-        callOrder.Should().ContainInOrder("mediator", "lock");
-        _mediatorMock.Verify(x => x.Send(
-            It.IsAny<GetUserSettingsRequest>(),
-            It.IsAny<CancellationToken>()),
+        callOrder.Should().ContainInOrder("provisioner", "lock");
+        _provisionerMock.Verify(x => x.EnsureProvisionedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
