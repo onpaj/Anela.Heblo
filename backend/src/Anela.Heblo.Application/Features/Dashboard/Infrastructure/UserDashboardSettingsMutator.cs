@@ -1,7 +1,5 @@
 using Anela.Heblo.Application.Features.Dashboard.Contracts;
-using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
 using Anela.Heblo.Domain.Features.Dashboard;
-using MediatR;
 
 namespace Anela.Heblo.Application.Features.Dashboard.Infrastructure;
 
@@ -10,18 +8,18 @@ internal sealed class UserDashboardSettingsMutator : IUserDashboardSettingsMutat
     private readonly IUserDashboardSettingsRepository _repository;
     private readonly IUserDashboardSettingsLock _lock;
     private readonly TimeProvider _timeProvider;
-    private readonly IMediator _mediator;
+    private readonly IUserDashboardSettingsProvisioner _provisioner;
 
     public UserDashboardSettingsMutator(
         IUserDashboardSettingsRepository repository,
         IUserDashboardSettingsLock @lock,
         TimeProvider timeProvider,
-        IMediator mediator)
+        IUserDashboardSettingsProvisioner provisioner)
     {
         _repository = repository;
         _lock = @lock;
         _timeProvider = timeProvider;
-        _mediator = mediator;
+        _provisioner = provisioner;
     }
 
     public async Task<UserDashboardSettingsMutationResult> MutateAsync(
@@ -34,7 +32,7 @@ internal sealed class UserDashboardSettingsMutator : IUserDashboardSettingsMutat
         var resolvedUserId = string.IsNullOrEmpty(userId) ? "anonymous" : userId;
 
         // Trigger provisioning outside the write lock (lock is non-reentrant).
-        await _mediator.Send(new GetUserSettingsRequest(), cancellationToken);
+        await _provisioner.EnsureProvisionedAsync(resolvedUserId, cancellationToken);
 
         await using var lockHandle = await _lock.AcquireAsync(resolvedUserId, cancellationToken);
 
@@ -97,7 +95,7 @@ internal sealed class UserDashboardSettingsMutator : IUserDashboardSettingsMutat
         var resolvedUserId = string.IsNullOrEmpty(userId) ? "anonymous" : userId;
 
         // Trigger provisioning outside the write lock (lock is non-reentrant).
-        await _mediator.Send(new GetUserSettingsRequest(), cancellationToken);
+        await _provisioner.EnsureProvisionedAsync(resolvedUserId, cancellationToken);
 
         await using var lockHandle = await _lock.AcquireAsync(resolvedUserId, cancellationToken);
 

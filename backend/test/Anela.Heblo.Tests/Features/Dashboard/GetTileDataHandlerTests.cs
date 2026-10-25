@@ -1,11 +1,10 @@
 using Anela.Heblo.Application.Features.Dashboard.Contracts;
 using Anela.Heblo.Application.Features.Dashboard.UseCases.GetTileData;
-using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
+using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
 using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using FluentAssertions;
-using MediatR;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
@@ -15,7 +14,7 @@ namespace Anela.Heblo.Tests.Features.Dashboard;
 
 public class GetTileDataHandlerTests
 {
-    private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<IUserDashboardSettingsReader> _readerMock;
     private readonly Mock<ITileRegistry> _tileRegistryMock;
     private readonly Mock<ILogger<GetTileDataHandler>> _loggerMock;
     private readonly Mock<ICurrentUserService> _currentUserMock;
@@ -24,7 +23,7 @@ public class GetTileDataHandlerTests
 
     public GetTileDataHandlerTests()
     {
-        _mediatorMock = new Mock<IMediator>();
+        _readerMock = new Mock<IUserDashboardSettingsReader>();
         _tileRegistryMock = new Mock<ITileRegistry>();
         _loggerMock = new Mock<ILogger<GetTileDataHandler>>();
         _currentUserMock = new Mock<ICurrentUserService>();
@@ -40,19 +39,14 @@ public class GetTileDataHandlerTests
         _currentUserMock.Setup(x => x.IsInRole(AccessRoles.SuperUser)).Returns(true);
 
         var options = Options.Create(new DashboardOptions { MaxConcurrentTileLoads = 4 });
-        _handler = new GetTileDataHandler(_mediatorMock.Object, _tileRegistryMock.Object, options, _loggerMock.Object, _currentUserMock.Object, _permissionResolverMock.Object);
+        _handler = new GetTileDataHandler(_readerMock.Object, _tileRegistryMock.Object, options, _loggerMock.Object, _currentUserMock.Object, _permissionResolverMock.Object);
     }
 
     private void SetupUserSettings(string userId, UserDashboardTileDto[] tiles)
     {
-        _mediatorMock
-            .Setup(x => x.Send(
-                It.IsAny<GetUserSettingsRequest>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new GetUserSettingsResponse
-            {
-                Settings = new UserDashboardSettingsDto { Tiles = tiles }
-            });
+        _readerMock
+            .Setup(x => x.GetEffectiveSettingsAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UserDashboardSettingsDto { Tiles = tiles });
     }
 
     [Fact]
@@ -60,6 +54,7 @@ public class GetTileDataHandlerTests
     {
         // Arrange
         var request = new GetTileDataRequest();
+        _currentUserMock.Setup(x => x.GetCurrentUser()).Returns(new CurrentUser(null, null, null, false));
         SetupUserSettings("anonymous", Array.Empty<UserDashboardTileDto>());
 
         // Act
@@ -67,8 +62,8 @@ public class GetTileDataHandlerTests
 
         // Assert
         result.Should().NotBeNull();
-        _mediatorMock.Verify(
-            x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()),
+        _readerMock.Verify(
+            x => x.GetEffectiveSettingsAsync("anonymous", It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -77,6 +72,7 @@ public class GetTileDataHandlerTests
     {
         // Arrange
         var request = new GetTileDataRequest();
+        _currentUserMock.Setup(x => x.GetCurrentUser()).Returns(new CurrentUser("", null, null, false));
         SetupUserSettings("anonymous", Array.Empty<UserDashboardTileDto>());
 
         // Act
@@ -84,8 +80,8 @@ public class GetTileDataHandlerTests
 
         // Assert
         result.Should().NotBeNull();
-        _mediatorMock.Verify(
-            x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()),
+        _readerMock.Verify(
+            x => x.GetEffectiveSettingsAsync("anonymous", It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -261,7 +257,7 @@ public class GetTileDataHandlerTests
         });
 
         var options = Options.Create(new DashboardOptions { MaxConcurrentTileLoads = 2 });
-        var handler = new GetTileDataHandler(_mediatorMock.Object, _tileRegistryMock.Object, options, _loggerMock.Object, _currentUserMock.Object, _permissionResolverMock.Object);
+        var handler = new GetTileDataHandler(_readerMock.Object, _tileRegistryMock.Object, options, _loggerMock.Object, _currentUserMock.Object, _permissionResolverMock.Object);
 
         foreach (var id in new[] { "slow-tile-1", "slow-tile-2" })
         {
