@@ -64,7 +64,7 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
     public async Task GetPurchaseOrders_WithDateRange_ShouldReturnOk()
     {
         var fromDate = DateTime.UtcNow.Date.AddDays(-30).ToString("yyyy-MM-dd");
-        var toDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd");
+        var toDate = DateTime.UtcNow.Date;
 
         var response = await _client.GetAsync($"/api/purchase-orders?fromDate={fromDate}&toDate={toDate}");
 
@@ -110,8 +110,8 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var request = new CreatePurchaseOrderRequest
         {
             SupplierId = 1,
-            OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
-            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
+            OrderDate = DateTime.UtcNow.Date,
+            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14),
             Notes = "Integration test order",
             OrderNumber = null, // OrderNumber - let system generate
             Lines = new List<CreatePurchaseOrderLineRequest>
@@ -142,8 +142,8 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var request = new CreatePurchaseOrderRequest
         {
             SupplierId = 1,
-            OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
-            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
+            OrderDate = DateTime.UtcNow.Date,
+            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14),
             Notes = "Empty order",
             OrderNumber = null, // OrderNumber - let system generate
             Lines = new List<CreatePurchaseOrderLineRequest>()
@@ -165,8 +165,8 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var request = new CreatePurchaseOrderRequest
         {
             SupplierId = 1,
-            OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
-            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
+            OrderDate = DateTime.UtcNow.Date,
+            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14),
             Notes = "Order with invalid line",
             OrderNumber = null, // OrderNumber - let system generate
             Lines = new List<CreatePurchaseOrderLineRequest>
@@ -186,8 +186,8 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var createRequest = new CreatePurchaseOrderRequest
         {
             SupplierId = 1,
-            OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
-            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
+            OrderDate = DateTime.UtcNow.Date,
+            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14),
             Notes = "Test order for retrieval",
             OrderNumber = null, // OrderNumber - let system generate
             Lines = new List<CreatePurchaseOrderLineRequest>
@@ -231,8 +231,8 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var createRequest = new CreatePurchaseOrderRequest
         {
             SupplierId = 1,
-            OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
-            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
+            OrderDate = DateTime.UtcNow.Date,
+            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14),
             Notes = "Order to update",
             OrderNumber = null, // OrderNumber - let system generate
             Lines = new List<CreatePurchaseOrderLineRequest>
@@ -315,8 +315,8 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var createRequest = new CreatePurchaseOrderRequest
         {
             SupplierId = 1,
-            OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
-            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
+            OrderDate = DateTime.UtcNow.Date,
+            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14),
             Notes = "Order for status update",
             OrderNumber = null, // OrderNumber - let system generate
             Lines = new List<CreatePurchaseOrderLineRequest>
@@ -346,8 +346,8 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var createRequest = new CreatePurchaseOrderRequest
         {
             SupplierId = 1,
-            OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
-            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
+            OrderDate = DateTime.UtcNow.Date,
+            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14),
             Notes = "Order for invalid status update",
             OrderNumber = null, // OrderNumber - let system generate
             Lines = new List<CreatePurchaseOrderLineRequest>
@@ -383,8 +383,8 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var createRequest = new CreatePurchaseOrderRequest
         {
             SupplierId = 1,
-            OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
-            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
+            OrderDate = DateTime.UtcNow.Date,
+            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14),
             Notes = "Order for history test",
             OrderNumber = null, // OrderNumber - let system generate
             Lines = new List<CreatePurchaseOrderLineRequest>
@@ -428,8 +428,8 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var request = new CreatePurchaseOrderRequest
         {
             SupplierId = 1,
-            OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
-            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
+            OrderDate = DateTime.UtcNow.Date,
+            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14),
             Notes = "Custom order number test",
             OrderNumber = customOrderNumber, // Custom order number
             Lines = new List<CreatePurchaseOrderLineRequest>
@@ -453,8 +453,8 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var request = new CreatePurchaseOrderRequest
         {
             SupplierId = 1,
-            OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
-            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
+            OrderDate = DateTime.UtcNow.Date,
+            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14),
             Notes = "Auto-generated order number test",
             OrderNumber = null, // Let system generate
             Lines = new List<CreatePurchaseOrderLineRequest>
@@ -481,8 +481,8 @@ public class PurchaseOrdersControllerTests : IClassFixture<PurchaseOrdersTestFac
         var createRequest = new CreatePurchaseOrderRequest
         {
             SupplierId = 1,
-            OrderDate = DateTime.UtcNow.Date.ToString("yyyy-MM-dd"),
-            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14).ToString("yyyy-MM-dd"),
+            OrderDate = DateTime.UtcNow.Date,
+            ExpectedDeliveryDate = DateTime.UtcNow.Date.AddDays(14),
             Notes = "Order to update order number",
             OrderNumber = null, // Let system generate
             Lines = new List<CreatePurchaseOrderLineRequest>

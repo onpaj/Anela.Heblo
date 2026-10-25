@@ -90,8 +90,12 @@ export const createPurchaseOrderRequest = (
 
   return new CreatePurchaseOrderRequest({
     supplierId: formData.selectedSupplier?.id || 0,
-    orderDate: formData.orderDate,
-    expectedDeliveryDate: formData.expectedDeliveryDate || undefined,
+    // Form value is a calendar date (YYYY-MM-DD); send it as UTC midnight so
+    // the serialized date cannot shift with the browser's timezone.
+    orderDate: new Date(formData.orderDate + "T00:00:00Z"),
+    expectedDeliveryDate: formData.expectedDeliveryDate
+      ? new Date(formData.expectedDeliveryDate + "T00:00:00Z")
+      : undefined,
     contactVia: formData.contactVia || undefined,
     notes: formData.notes || undefined,
     orderNumber: formData.orderNumber || undefined,

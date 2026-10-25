@@ -26,8 +26,8 @@ public class CreatePurchaseOrderHandlerTests
 
     private const long ValidSupplierId = 1;
     private const string ValidSupplierName = "Test Supplier";
-    private const string ValidOrderDate = "2024-08-02";
-    private const string ValidExpectedDeliveryDate = "2024-08-16";
+    private static readonly DateTime ValidOrderDate = new(2024, 8, 2);
+    private static readonly DateTime ValidExpectedDeliveryDate = new(2024, 8, 16);
     private const string ValidNotes = "Test purchase order";
     private const string ValidMaterialId = "MAT001";
     private const string ValidCode = "CODE001";
@@ -72,7 +72,7 @@ public class CreatePurchaseOrderHandlerTests
     {
         var request = CreateValidRequest();
         _orderNumberGeneratorMock
-            .Setup(x => x.GenerateCandidate(DateTime.Parse(ValidOrderDate), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
+            .Setup(x => x.GenerateCandidate(ValidOrderDate, It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
             .Returns(GeneratedOrderNumber);
 
         _repositoryMock
@@ -88,8 +88,8 @@ public class CreatePurchaseOrderHandlerTests
         result.Should().NotBeNull();
         result.OrderNumber.Should().Be(GeneratedOrderNumber);
         result.SupplierName.Should().Be(ValidSupplierName);
-        result.OrderDate.Should().Be(DateTime.Parse(ValidOrderDate));
-        result.ExpectedDeliveryDate.Should().Be(DateTime.Parse(ValidExpectedDeliveryDate));
+        result.OrderDate.Should().Be(ValidOrderDate);
+        result.ExpectedDeliveryDate.Should().Be(ValidExpectedDeliveryDate);
         result.Status.Should().Be("Draft");
         result.Notes.Should().Be(ValidNotes);
         result.TotalAmount.Should().Be(255.00m);
@@ -103,6 +103,34 @@ public class CreatePurchaseOrderHandlerTests
         line.UnitPrice.Should().Be(25.50m);
         line.LineTotal.Should().Be(255.00m);
         line.Notes.Should().Be("Line notes");
+    }
+
+    [Fact]
+    public async Task Handle_WithLocalKindDateTimeAndTimeComponent_ShouldPersistDateOnlyAsUtc()
+    {
+        var request = CreateValidRequest();
+        request.OrderDate = DateTime.SpecifyKind(new DateTime(2024, 8, 2, 23, 45, 10), DateTimeKind.Local);
+        request.ExpectedDeliveryDate = DateTime.SpecifyKind(new DateTime(2024, 8, 16, 1, 5, 0), DateTimeKind.Local);
+        PurchaseOrder? saved = null;
+
+        _orderNumberGeneratorMock
+            .Setup(x => x.GenerateCandidate(It.IsAny<DateTime>(), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
+            .Returns(GeneratedOrderNumber);
+        _repositoryMock
+            .Setup(x => x.AddAsync(It.IsAny<PurchaseOrder>(), It.IsAny<CancellationToken>()))
+            .Callback((PurchaseOrder po, CancellationToken ct) => saved = po)
+            .ReturnsAsync((PurchaseOrder po, CancellationToken ct) => po);
+        _repositoryMock
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        saved.Should().NotBeNull();
+        saved!.OrderDate.Should().Be(new DateTime(2024, 8, 2));
+        saved.OrderDate.Kind.Should().Be(DateTimeKind.Utc);
+        saved.ExpectedDeliveryDate.Should().Be(new DateTime(2024, 8, 16));
+        saved.ExpectedDeliveryDate!.Value.Kind.Should().Be(DateTimeKind.Utc);
     }
 
     [Fact]
@@ -124,7 +152,7 @@ public class CreatePurchaseOrderHandlerTests
         };
 
         _orderNumberGeneratorMock
-            .Setup(x => x.GenerateCandidate(DateTime.Parse(ValidOrderDate), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
+            .Setup(x => x.GenerateCandidate(ValidOrderDate, It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
             .Returns(GeneratedOrderNumber);
 
         _repositoryMock
@@ -155,7 +183,7 @@ public class CreatePurchaseOrderHandlerTests
         };
 
         _orderNumberGeneratorMock
-            .Setup(x => x.GenerateCandidate(DateTime.Parse(ValidOrderDate), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
+            .Setup(x => x.GenerateCandidate(ValidOrderDate, It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
             .Returns(GeneratedOrderNumber);
 
         _repositoryMock
@@ -177,7 +205,7 @@ public class CreatePurchaseOrderHandlerTests
     {
         var request = CreateValidRequest();
         _orderNumberGeneratorMock
-            .Setup(x => x.GenerateCandidate(DateTime.Parse(ValidOrderDate), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
+            .Setup(x => x.GenerateCandidate(ValidOrderDate, It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
             .Returns(GeneratedOrderNumber);
 
         _repositoryMock
@@ -191,7 +219,7 @@ public class CreatePurchaseOrderHandlerTests
         await _handler.Handle(request, CancellationToken.None);
 
         _orderNumberGeneratorMock.Verify(
-            x => x.GenerateCandidate(DateTime.Parse(ValidOrderDate), It.IsAny<DateTimeOffset>(), 1),
+            x => x.GenerateCandidate(ValidOrderDate, It.IsAny<DateTimeOffset>(), 1),
             Times.Once);
     }
 
@@ -200,7 +228,7 @@ public class CreatePurchaseOrderHandlerTests
     {
         var request = CreateValidRequest();
         _orderNumberGeneratorMock
-            .Setup(x => x.GenerateCandidate(DateTime.Parse(ValidOrderDate), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
+            .Setup(x => x.GenerateCandidate(ValidOrderDate, It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
             .Returns(GeneratedOrderNumber);
 
         _repositoryMock
@@ -217,7 +245,7 @@ public class CreatePurchaseOrderHandlerTests
             x => x.AddAsync(It.Is<PurchaseOrder>(po =>
                 po.OrderNumber == GeneratedOrderNumber &&
                 po.SupplierName == ValidSupplierName &&
-                po.OrderDate == DateTime.Parse(ValidOrderDate) &&
+                po.OrderDate == ValidOrderDate &&
                 po.Lines.Count == 1),
                 It.IsAny<CancellationToken>()),
             Times.Once);
@@ -232,7 +260,7 @@ public class CreatePurchaseOrderHandlerTests
     {
         var request = CreateValidRequest();
         _orderNumberGeneratorMock
-            .Setup(x => x.GenerateCandidate(DateTime.Parse(ValidOrderDate), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
+            .Setup(x => x.GenerateCandidate(ValidOrderDate, It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
             .Returns(GeneratedOrderNumber);
 
         _repositoryMock
@@ -269,7 +297,7 @@ public class CreatePurchaseOrderHandlerTests
     {
         var request = CreateValidRequest();
         _orderNumberGeneratorMock
-            .Setup(x => x.GenerateCandidate(DateTime.Parse(ValidOrderDate), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
+            .Setup(x => x.GenerateCandidate(ValidOrderDate, It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
             .Returns(GeneratedOrderNumber);
 
         _repositoryMock
@@ -290,10 +318,10 @@ public class CreatePurchaseOrderHandlerTests
         var secondCandidate = "PO20240802-143022-2";
 
         _orderNumberGeneratorMock
-            .Setup(x => x.GenerateCandidate(DateTime.Parse(ValidOrderDate), FixedNow, 1))
+            .Setup(x => x.GenerateCandidate(ValidOrderDate, FixedNow, 1))
             .Returns(firstCandidate);
         _orderNumberGeneratorMock
-            .Setup(x => x.GenerateCandidate(DateTime.Parse(ValidOrderDate), FixedNow, 2))
+            .Setup(x => x.GenerateCandidate(ValidOrderDate, FixedNow, 2))
             .Returns(secondCandidate);
 
         _repositoryMock
@@ -315,9 +343,9 @@ public class CreatePurchaseOrderHandlerTests
 
         result.OrderNumber.Should().Be(secondCandidate);
         result.Success.Should().BeTrue();
-        _orderNumberGeneratorMock.Verify(x => x.GenerateCandidate(DateTime.Parse(ValidOrderDate), FixedNow, 1), Times.Once);
-        _orderNumberGeneratorMock.Verify(x => x.GenerateCandidate(DateTime.Parse(ValidOrderDate), FixedNow, 2), Times.Once);
-        _orderNumberGeneratorMock.Verify(x => x.GenerateCandidate(DateTime.Parse(ValidOrderDate), FixedNow, 3), Times.Never);
+        _orderNumberGeneratorMock.Verify(x => x.GenerateCandidate(ValidOrderDate, FixedNow, 1), Times.Once);
+        _orderNumberGeneratorMock.Verify(x => x.GenerateCandidate(ValidOrderDate, FixedNow, 2), Times.Once);
+        _orderNumberGeneratorMock.Verify(x => x.GenerateCandidate(ValidOrderDate, FixedNow, 3), Times.Never);
     }
 
     [Fact]
@@ -326,7 +354,7 @@ public class CreatePurchaseOrderHandlerTests
         var request = CreateValidRequest();
 
         _orderNumberGeneratorMock
-            .Setup(x => x.GenerateCandidate(DateTime.Parse(ValidOrderDate), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
+            .Setup(x => x.GenerateCandidate(ValidOrderDate, It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
             .Returns((DateTime orderDate, DateTimeOffset now, int attempt) => $"PO-collision-{attempt}");
 
         _repositoryMock
@@ -374,7 +402,7 @@ public class CreatePurchaseOrderHandlerTests
         request.ContactVia = ContactVia.Email;
 
         _orderNumberGeneratorMock
-            .Setup(x => x.GenerateCandidate(DateTime.Parse(ValidOrderDate), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
+            .Setup(x => x.GenerateCandidate(ValidOrderDate, It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
             .Returns(GeneratedOrderNumber);
 
         _repositoryMock
@@ -398,7 +426,7 @@ public class CreatePurchaseOrderHandlerTests
         request.ContactVia = null;
 
         _orderNumberGeneratorMock
-            .Setup(x => x.GenerateCandidate(DateTime.Parse(ValidOrderDate), It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
+            .Setup(x => x.GenerateCandidate(ValidOrderDate, It.IsAny<DateTimeOffset>(), It.IsAny<int>()))
             .Returns(GeneratedOrderNumber);
 
         _repositoryMock
