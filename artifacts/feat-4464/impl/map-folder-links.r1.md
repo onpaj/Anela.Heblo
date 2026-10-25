@@ -1,0 +1,2 @@
+# map-folder-links r1
+Added module-level `mapFolderLinks` helper in MarketingCalendarPage.tsx (folderKey -> path, folderType passthrough; no label since MarketingActionFolderLinkDto has none) and used it at both mapping sites (list and detail). Updated the two existing mapping-test expectations in MarketingCalendarPage.test.tsx to expect `path`. Verified: tsc on src clean, eslint clean on the file, 25 page tests pass, react-scripts build succeeds.
