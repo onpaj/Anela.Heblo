@@ -46046,8 +46046,8 @@ export interface IPurchaseOrderHistoryDto {
 
 export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
     supplierId!: number;
-    orderDate!: string;
-    expectedDeliveryDate?: string | undefined;
+    orderDate?: Date;
+    expectedDeliveryDate?: Date | undefined;
     contactVia?: ContactVia | undefined;
     notes?: string | undefined;
     orderNumber?: string | undefined;
@@ -46065,8 +46065,8 @@ export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
     init(_data?: any) {
         if (_data) {
             this.supplierId = _data["supplierId"];
-            this.orderDate = _data["orderDate"];
-            this.expectedDeliveryDate = _data["expectedDeliveryDate"];
+            this.orderDate = _data["orderDate"] ? new Date(_data["orderDate"].toString()) : <any>undefined;
+            this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
             this.contactVia = _data["contactVia"];
             this.notes = _data["notes"];
             this.orderNumber = _data["orderNumber"];
@@ -46088,8 +46088,8 @@ export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["supplierId"] = this.supplierId;
-        data["orderDate"] = this.orderDate;
-        data["expectedDeliveryDate"] = this.expectedDeliveryDate;
+        data["orderDate"] = this.orderDate ? this.orderDate.toISOString() : <any>undefined;
+        data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
         data["contactVia"] = this.contactVia;
         data["notes"] = this.notes;
         data["orderNumber"] = this.orderNumber;
@@ -46104,8 +46104,8 @@ export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
 
 export interface ICreatePurchaseOrderRequest {
     supplierId: number;
-    orderDate: string;
-    expectedDeliveryDate?: string | undefined;
+    orderDate?: Date;
+    expectedDeliveryDate?: Date | undefined;
     contactVia?: ContactVia | undefined;
     notes?: string | undefined;
     orderNumber?: string | undefined;
