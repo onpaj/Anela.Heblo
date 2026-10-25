@@ -10,9 +10,9 @@ namespace Anela.Heblo.Application.Features.Dashboard.Infrastructure;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>Provisioning order:</b> The mutator issues <c>GetUserSettingsRequest</c> via MediatR
+/// <b>Provisioning order:</b> The mutator calls <see cref="IUserDashboardSettingsProvisioner"/>
 /// BEFORE acquiring <see cref="IUserDashboardSettingsLock"/>. The underlying lock is
-/// non-reentrant — invoking GetUserSettingsHandler from inside the lock would deadlock.
+/// non-reentrant — invoking the provisioner (which takes the lock itself) from inside the lock would deadlock.
 /// </para>
 /// <para>
 /// <b>Timestamping:</b> The mutator reads <c>TimeProvider.GetUtcNow()</c> exactly once per

@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-10-25T01:14:42.854226Z"
+      "updated_at": "2026-10-25T02:16:08.421723Z"
     }
   },
   "tasks": [
@@ -46,9 +46,9 @@
     },
     {
       "name": "rewire-consumers",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-25T02:16:08.755596Z"
     },
     {
       "name": "update-existing-tests",
