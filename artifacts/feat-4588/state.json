@@ -1,0 +1,36 @@
+{
+  "feature_id": "feat-4588",
+  "issue_number": 4588,
+  "created_at": "2026-10-26T09:10:28.739909Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-26T09:11:07.860107Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-26T09:11:08.005382Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-26T09:11:08.151587Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-26T09:11:08.307415Z"
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-cookie-validation-tests",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
+}
