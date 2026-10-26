@@ -17,13 +17,32 @@
       "updated_at": "2026-10-26T06:14:24.862014Z"
     },
     "planning": {
-      "status": "pending",
-      "updated_at": null
+      "status": "completed",
+      "updated_at": "2026-10-26T06:14:43.092554Z"
     },
     "developing": {
       "status": "pending",
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "extract-helpers",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "test-helpers",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "test-url-init",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
