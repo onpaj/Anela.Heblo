@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-10-26T07:24:46.454874Z"
+      "updated_at": "2026-10-26T08:21:22.759690Z"
     }
   },
   "tasks": [
@@ -40,9 +40,9 @@
     },
     {
       "name": "test-url-init",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-26T08:21:23.042008Z"
     }
   ]
 }
