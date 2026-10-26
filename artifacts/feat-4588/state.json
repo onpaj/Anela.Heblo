@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "add-cookie-validation-tests",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-10-26T09:16:52.948723Z"
+      "updated_at": "2026-10-26T09:19:04.702001Z"
     }
   ]
 }
