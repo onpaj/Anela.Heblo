@@ -24,6 +24,7 @@ import {
   useAcceptStockUpOperationMutation,
 } from "../api/hooks/useStockUpOperations";
 import { StockUpOperationState, StockUpSourceType } from "../api/generated/api-client";
+import { isOperationStuck, canRetry } from "./stockOperationsUtils";
 import { CatalogAutocomplete } from "../components/common/CatalogAutocomplete";
 import {
   catalogItemToCodeAndName,
@@ -144,19 +145,6 @@ const StockOperationsPage: React.FC = () => {
   const acceptMutation = useAcceptStockUpOperationMutation();
 
   // Helper functions
-  const isOperationStuck = (operation: any): boolean => {
-    const now = new Date();
-    if (operation.state === StockUpOperationState.Submitted && operation.submittedAt) {
-      const minutesSinceSubmit = differenceInMinutes(now, new Date(operation.submittedAt));
-      return minutesSinceSubmit > 5;
-    }
-    if (operation.state === StockUpOperationState.Pending) {
-      const minutesSinceCreation = differenceInMinutes(now, new Date(operation.createdAt));
-      return minutesSinceCreation > 10;
-    }
-    return false;
-  };
-
   const getStuckMessage = (operation: any): string => {
     const now = new Date();
     if (operation.state === StockUpOperationState.Submitted && operation.submittedAt) {
@@ -198,15 +186,6 @@ const StockOperationsPage: React.FC = () => {
       default:
         return null;
     }
-  };
-
-  const canRetry = (state?: StockUpOperationState): boolean => {
-    if (!state) return false;
-    return (
-      state === StockUpOperationState.Failed ||
-      state === StockUpOperationState.Submitted ||
-      state === StockUpOperationState.Pending
-    );
   };
 
   const getRetryButtonColor = (state?: StockUpOperationState): string => {

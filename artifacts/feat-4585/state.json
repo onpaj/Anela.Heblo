@@ -21,16 +21,16 @@
       "updated_at": "2026-10-26T06:14:43.092554Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-10-26T06:20:49.213758Z"
     }
   },
   "tasks": [
     {
       "name": "extract-helpers",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-10-26T06:23:36.102583Z"
     },
     {
       "name": "test-helpers",
