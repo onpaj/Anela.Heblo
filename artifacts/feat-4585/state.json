@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4585",
+  "issue_number": 4585,
+  "created_at": "2026-10-26T06:13:38.133466Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-26T06:14:19.923488Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-26T06:14:22.712673Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-26T06:14:24.862014Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-26T06:14:43.092554Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-26T08:21:22.759690Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-26T09:17:14.070466Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "extract-helpers",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-26T06:23:36.102583Z"
+    },
+    {
+      "name": "test-helpers",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-26T07:25:57.309015Z"
+    },
+    {
+      "name": "test-url-init",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-26T08:24:04.338127Z"
+    }
+  ]
+}
