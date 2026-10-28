@@ -98,7 +98,8 @@ public class CostPoolSalesCostParityTests
             serviceProviderMock.Object,
             ledger,
             new Mock<ILogger<SalesCostProvider>>().Object,
-            options);
+            options,
+            TimeProvider.System);
 
         var poolCacheMock = new Mock<ICostPoolCache>();
         poolCacheMock.Setup(c => c.GetCachedDataAsync(It.IsAny<CancellationToken>()))
@@ -227,7 +228,8 @@ public class CostPoolSalesCostParityTests
             serviceProviderMock.Object,
             ledger,
             new Mock<ILogger<SalesCostProvider>>().Object,
-            options);
+            options,
+            TimeProvider.System);
 
         var poolCacheMock = new Mock<ICostPoolCache>();
         poolCacheMock.Setup(c => c.GetCachedDataAsync(It.IsAny<CancellationToken>()))
