@@ -149,7 +149,7 @@ const resources = {
         AbraIntegrationFailed: "Integrace s ABRA selhala: {{details}}",
         ShoptetSyncFailed: "Synchronizace se Shoptet selhala: {{details}}",
         StockTakingFailed: "Inventura selhala: {{details}}",
-        TopProductWriteFailed: "Příznak Top produkt se nepodařilo uložit do ABRA Flexi: {{details}}",
+        TopProductWriteFailed: "Příznak Top produkt se nepodařilo uložit do ABRA Flexi.",
 
         // Transport module errors
         TransportBoxNotFound: "Přepravní box nenalezen (ID: {id})",

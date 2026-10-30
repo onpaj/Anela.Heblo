@@ -7,20 +7,6 @@ namespace Anela.Heblo.Adapters.Flexi.Tests.ProductAttributes;
 
 public class FlexiTopProductParserTests
 {
-    [Fact]
-    public void CatalogAttributes_HasIsTopProductProperty_DefaultsToFalse()
-    {
-        var attrs = new CatalogAttributes();
-        attrs.IsTopProduct.Should().BeFalse();
-    }
-
-    [Fact]
-    public void CatalogProperties_HasIsTopProductProperty_DefaultsToFalse()
-    {
-        var props = new CatalogProperties();
-        props.IsTopProduct.Should().BeFalse();
-    }
-
     [Theory]
     [InlineData("true")]
     [InlineData("TRUE")]

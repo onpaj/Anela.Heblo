@@ -28,7 +28,7 @@ function TopProductToggle({ productCode, isTopProduct }: TopProductToggleProps) 
           checked={isChecked}
           disabled={!canEdit || setTopProduct.isPending}
           onChange={() =>
-            setTopProduct.mutate({ productCode, isTopProduct: !isTopProduct })
+            setTopProduct.mutate({ productCode, isTopProduct: !isChecked })
           }
           className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed"
         />

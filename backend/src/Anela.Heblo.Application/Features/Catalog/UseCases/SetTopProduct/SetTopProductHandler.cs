@@ -40,13 +40,13 @@ public class SetTopProductHandler : IRequestHandler<SetTopProductRequest, SetTop
         {
             await _topProductWriter.SetAsync(request.ProductCode, request.IsTopProduct, cancellationToken);
         }
-        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+        catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException && !cancellationToken.IsCancellationRequested)
         {
             _logger.LogError(ex, "Failed to write top product flag to the ERP. ProductCode: {ProductCode}, IsTopProduct: {IsTopProduct}",
                 request.ProductCode, request.IsTopProduct);
             return new SetTopProductResponse(
                 ErrorCodes.TopProductWriteFailed,
-                new Dictionary<string, string> { { "productCode", request.ProductCode }, { "details", ex.Message } });
+                new Dictionary<string, string> { { "productCode", request.ProductCode } });
         }
 
         await RefreshAttributesAfterWriteAsync(request.ProductCode, cancellationToken);

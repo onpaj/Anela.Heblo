@@ -26,12 +26,13 @@ export const useSetTopProduct = () => {
         new SetTopProductRequest({ productCode, isTopProduct }),
       );
     },
-    onSuccess: () => {
-      // The flag is shown in the catalog list/detail and in the manufacturing stock analysis
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.catalog });
-      queryClient.invalidateQueries({
-        queryKey: manufacturingStockAnalysisKeys.all,
-      });
-    },
+    // Returned so the mutation stays pending until the refetch lands and the UI never shows the stale flag
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.catalog }),
+        queryClient.invalidateQueries({
+          queryKey: manufacturingStockAnalysisKeys.all,
+        }),
+      ]),
   });
 };
