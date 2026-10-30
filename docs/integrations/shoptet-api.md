@@ -628,15 +628,15 @@ Returns the full product including a `variants[]` array with `code` fields — *
 
 ### 4.2.1 Product images (`include=images`) — verified live 2026-10-29
 
-Read-only GETs against the live store (181 products, 444 variants, 614 images).
+Read-only GETs against the **test store (780175)** (181 products, 444 variants, 614 images).
 
 - **List:** `GET /api/products?include=images` adds a `mainImage` object per product only (not the whole gallery).
 - **Detail:** `GET /api/products/{guid}?include=images` adds `images[]` (the full gallery). Without the include, the detail response has **no** image keys at all.
 - **Image object fields:** `name` (original file name, e.g. `66-7.jpg`), `seoName`, `cdnName` (signed CDN name incl. size query), `signedCdnNames[]` (`{type, name}`), `priority` (1 = first), `isMainImage`, `description` (alt text), `gallery` (`"shop"`), `changeTime`. `signedCdnNames` types: `big` (1024px), `detail` (423px), `detail_small`, `category`, `related`, `admin_detail`, `detail_alt_1`.
 - **Public URL:** `https://780175.myshoptet.com/user/shop/{orig|big}/{seoName}` returns 200 `image/jpeg` without auth. `cdn.myshoptet.com/usr/780175.myshoptet.com/...` answers 301 to an HTML page for the same file, so do not use it directly.
 - **Admin numeric id is not in the API.** The `id` in `/admin/produkty-detail/?id=66` appears only as the image file-name prefix (`66-7.jpg`); product responses carry `guid` only.
-- **No lookup by code on the list.** `code` and `query` are rejected with 400 `Unsupported query parameters found`. Finding a product by variant code (e.g. `SER002*` → Bezstarostná teenka) needs one detail call per product, matching `variants[].code`. Prefer §4.3 for bulk code lists.
-- **Bulk reads must be sequential.** The full export (list + 181 detail calls) hit 429 with 6 parallel workers; one call at a time with a back-off retry on 429 completed (see the rate-limit table in §3.14).
+- **No lookup by code on the list.** `code` and `query` are rejected with 400 `Unsupported query parameters found`. Finding a product by variant code (example: `SER002*` → Bezstarostná teenka) needs one detail call per product, matching `variants[].code`. Avoid this unless §4.3 cannot answer the question — the stock CSV gives codes but not guids or images.
+- **Bulk reads must be sequential.** The full export (list + 181 detail calls) hit 429 with 6 parallel workers; one call at a time with a back-off retry on 429 completed, consistent with the guidance in §3.14.
 
 ### 4.3 Getting all variant codes efficiently
 
