@@ -49,7 +49,8 @@ public class ManufactureAnalysisMapper : IManufactureAnalysisMapper
             BatchSize = catalogItem.Properties.BatchSize.ToString(),
             ProductFamily = catalogItem.ProductFamily ?? string.Empty,
             Severity = severity,
-            IsConfigured = catalogItem.Properties.OptimalStockDaysSetup > 0
+            IsConfigured = catalogItem.Properties.OptimalStockDaysSetup > 0,
+            IsTopProduct = catalogItem.Properties.IsTopProduct
         };
 
         _logger.LogDebug("Mapped catalog item {Code} to DTO: severity {Severity}, stock days {StockDays}, overstock {Overstock}%",

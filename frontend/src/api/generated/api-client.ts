@@ -2445,6 +2445,47 @@ export class ApiClient {
         return Promise.resolve<RecalculateProductWeightResponse>(null as any);
     }
 
+    catalog_SetTopProduct(productCode: string, request: SetTopProductRequest): Promise<SetTopProductResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/{productCode}/top-product";
+        if (productCode === undefined || productCode === null)
+            throw new Error("The parameter 'productCode' must be defined.");
+        url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_SetTopProduct(_response);
+        });
+    }
+
+    protected processCatalog_SetTopProduct(response: Response): Promise<SetTopProductResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SetTopProductResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SetTopProductResponse>(null as any);
+    }
+
     catalog_RecalculateProductWeight2(productCode: string): Promise<RecalculateProductWeightResponse> {
         let url_ = this.baseUrl + "/api/Catalog/recalculate-product-weight/{productCode}";
         if (productCode === undefined || productCode === null)
@@ -16090,6 +16131,7 @@ export enum ErrorCodes {
     AbraIntegrationFailed = "AbraIntegrationFailed",
     ShoptetSyncFailed = "ShoptetSyncFailed",
     StockTakingFailed = "StockTakingFailed",
+    TopProductWriteFailed = "TopProductWriteFailed",
     TransportBoxNotFound = "TransportBoxNotFound",
     TransportBoxStateChangeError = "TransportBoxStateChangeError",
     TransportBoxCreationError = "TransportBoxCreationError",
@@ -20330,6 +20372,7 @@ export class PropertiesDto implements IPropertiesDto {
     batchSize?: number;
     seasonMonths?: number[];
     cooling?: Cooling;
+    isTopProduct?: boolean;
 
     constructor(data?: IPropertiesDto) {
         if (data) {
@@ -20351,6 +20394,7 @@ export class PropertiesDto implements IPropertiesDto {
                     this.seasonMonths!.push(item);
             }
             this.cooling = _data["cooling"];
+            this.isTopProduct = _data["isTopProduct"];
         }
     }
 
@@ -20372,6 +20416,7 @@ export class PropertiesDto implements IPropertiesDto {
                 data["seasonMonths"].push(item);
         }
         data["cooling"] = this.cooling;
+        data["isTopProduct"] = this.isTopProduct;
         return data;
     }
 }
@@ -20382,6 +20427,7 @@ export interface IPropertiesDto {
     batchSize?: number;
     seasonMonths?: number[];
     cooling?: Cooling;
+    isTopProduct?: boolean;
 }
 
 export class LotDto implements ILotDto {
@@ -22047,6 +22093,83 @@ export class RecalculateProductWeightRequest implements IRecalculateProductWeigh
 
 export interface IRecalculateProductWeightRequest {
     productCode?: string | undefined;
+}
+
+export class SetTopProductResponse extends BaseResponse implements ISetTopProductResponse {
+    productCode?: string;
+    isTopProduct?: boolean;
+
+    constructor(data?: ISetTopProductResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.isTopProduct = _data["isTopProduct"];
+        }
+    }
+
+    static override fromJS(data: any): SetTopProductResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetTopProductResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["isTopProduct"] = this.isTopProduct;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISetTopProductResponse extends IBaseResponse {
+    productCode?: string;
+    isTopProduct?: boolean;
+}
+
+export class SetTopProductRequest implements ISetTopProductRequest {
+    productCode?: string;
+    isTopProduct?: boolean;
+
+    constructor(data?: ISetTopProductRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.isTopProduct = _data["isTopProduct"];
+        }
+    }
+
+    static fromJS(data: any): SetTopProductRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetTopProductRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["isTopProduct"] = this.isTopProduct;
+        return data;
+    }
+}
+
+export interface ISetTopProductRequest {
+    productCode?: string;
+    isTopProduct?: boolean;
 }
 
 export class ListCatalogDocumentsResponse extends BaseResponse implements IListCatalogDocumentsResponse {
@@ -30536,6 +30659,7 @@ export class BatchPlanItemDto implements IBatchPlanItemDto {
     wasOptimized?: boolean;
     optimizationNote?: string;
     enabled?: boolean;
+    isTopProduct?: boolean;
 
     constructor(data?: IBatchPlanItemDto) {
         if (data) {
@@ -30565,6 +30689,7 @@ export class BatchPlanItemDto implements IBatchPlanItemDto {
             this.wasOptimized = _data["wasOptimized"];
             this.optimizationNote = _data["optimizationNote"];
             this.enabled = _data["enabled"];
+            this.isTopProduct = _data["isTopProduct"];
         }
     }
 
@@ -30594,6 +30719,7 @@ export class BatchPlanItemDto implements IBatchPlanItemDto {
         data["wasOptimized"] = this.wasOptimized;
         data["optimizationNote"] = this.optimizationNote;
         data["enabled"] = this.enabled;
+        data["isTopProduct"] = this.isTopProduct;
         return data;
     }
 }
@@ -30616,6 +30742,7 @@ export interface IBatchPlanItemDto {
     wasOptimized?: boolean;
     optimizationNote?: string;
     enabled?: boolean;
+    isTopProduct?: boolean;
 }
 
 export class BatchPlanSummaryDto implements IBatchPlanSummaryDto {
@@ -33998,6 +34125,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
     productFamily?: string | undefined;
     severity?: ManufacturingStockSeverity;
     isConfigured?: boolean;
+    isTopProduct?: boolean;
 
     constructor(data?: IManufacturingStockItemDto) {
         if (data) {
@@ -34032,6 +34160,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
             this.productFamily = _data["productFamily"];
             this.severity = _data["severity"];
             this.isConfigured = _data["isConfigured"];
+            this.isTopProduct = _data["isTopProduct"];
         }
     }
 
@@ -34066,6 +34195,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
         data["productFamily"] = this.productFamily;
         data["severity"] = this.severity;
         data["isConfigured"] = this.isConfigured;
+        data["isTopProduct"] = this.isTopProduct;
         return data;
     }
 }
@@ -34093,6 +34223,7 @@ export interface IManufacturingStockItemDto {
     productFamily?: string | undefined;
     severity?: ManufacturingStockSeverity;
     isConfigured?: boolean;
+    isTopProduct?: boolean;
 }
 
 export enum ManufacturingStockSeverity {

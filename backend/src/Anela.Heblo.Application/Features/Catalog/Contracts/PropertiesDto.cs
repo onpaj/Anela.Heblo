@@ -9,4 +9,5 @@ public class PropertiesDto
     public int BatchSize { get; set; }
     public int[] SeasonMonths { get; set; } = Array.Empty<int>();
     public Cooling Cooling { get; set; }
+    public bool IsTopProduct { get; set; }
 }

@@ -63,6 +63,7 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddScoped<IErpStockDomainService, FlexiStockTakingDomainService>();
 
         services.AddSingleton<ICatalogAttributesClient, FlexiProductAttributesQueryClient>();
+        services.AddSingleton<ICatalogTopProductWriter, FlexiTopProductWriter>();
         services.AddSingleton<ICatalogSalesClient, FlexiCatalogSalesClient>();
         services.AddSingleton<ICatalogSetPartsClient, FlexiCatalogSetPartsClient>();
         services.AddSingleton<IConsumedMaterialsClient, FlexiConsumedMaterialsQueryClient>();

@@ -99,10 +99,13 @@ public class CatalogAggregateSnapshotMapperTests
             BatchSize = 100,
             ExpirationMonths = 24,
             AllowedResiduePercentage = 2.5,
+            IsTopProduct = true,
         };
 
         var props = CatalogAggregateSnapshotMapper.ToSnapshot(aggregate).Properties;
 
+        Assert.False(defaults.IsTopProduct);
+        Assert.True(props.IsTopProduct);
         Assert.Equal(30, props.OptimalStockDaysSetup);
         Assert.Equal(5m, props.StockMinSetup);
         Assert.Equal(100, props.BatchSize);

@@ -101,7 +101,7 @@ Field origin per aggregate (`CatalogMergeService`):
 | `PurchaseHistory`, `ConsumedHistory`, `ManufactureHistory` | Flexi | replaced when present |
 | `StockTakingHistory` | Heblo `StockTakingRecords` | replaced when present, newest first |
 | `Stock.Lots` | Flexi lots | replaced when present |
-| `Properties.*` (`OptimalStockDaysSetup`, `StockMinSetup`, `BatchSize`, `ExpirationMonths`, `SeasonMonths`, `AllowedResiduePercentage`, `Cooling`), `MinimalManufactureQuantity` | Flexi query 38 | replaced when present |
+| `Properties.*` (`OptimalStockDaysSetup`, `StockMinSetup`, `BatchSize`, `ExpirationMonths`, `SeasonMonths`, `AllowedResiduePercentage`, `Cooling`, `IsTopProduct`), `MinimalManufactureQuantity` | Flexi query 38 | replaced when present |
 | `EshopPrice`, `ErpPrice`, `Url` | Shoptet price list, Flexi query 41, Heureka feed | replaced when present |
 | `ManufactureDifficultySettings` | Heblo `ManufactureDifficultySettings` | replaced when present |
 | `Margins` | `RefreshMarginData` | see `calc-margins` |
