@@ -7,4 +7,5 @@ public class ProductPropertiesSnapshot
     public int BatchSize { get; init; }
     public int ExpirationMonths { get; init; } = 12;
     public double AllowedResiduePercentage { get; init; }
+    public bool IsTopProduct { get; init; }
 }

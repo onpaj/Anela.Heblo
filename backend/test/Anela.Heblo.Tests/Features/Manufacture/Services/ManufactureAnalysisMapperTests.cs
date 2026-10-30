@@ -104,6 +104,25 @@ public class ManufactureAnalysisMapperTests
         result.IsConfigured.Should().BeTrue();
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void MapToDto_CarriesIsTopProductFromCatalogProperties(bool isTopProduct)
+    {
+        // Arrange
+        var catalogItem = new ProductCatalogSnapshot
+        {
+            ProductCode = "TOP001",
+            Properties = new ProductPropertiesSnapshot { IsTopProduct = isTopProduct }
+        };
+
+        // Act
+        var result = _mapper.MapToDto(catalogItem, ManufacturingStockSeverity.Adequate, 1, 1, 1, 1, false);
+
+        // Assert
+        result.IsTopProduct.Should().Be(isTopProduct);
+    }
+
     [Fact]
     public void MapToDto_WithInfiniteStockDays_UsesConfiguredIndicator()
     {

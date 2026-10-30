@@ -22,6 +22,7 @@ import { QUERY_KEYS } from "../../api/client";
 import ManufactureOrderDetail from "../manufacture/pages/ManufactureOrderDetail";
 import { usePlanningList } from "../../contexts/PlanningListContext";
 import { useCatalogAutocomplete } from "../../api/hooks/useCatalogAutocomplete";
+import TopProductStar from "../common/TopProductStar";
 import { TimePeriod, resolveTimePeriod, getTimePeriodDisplayText } from '../../utils/timePeriod';
 import { calculateTimePeriodRange } from '../../api/hooks/useManufacturingStockAnalysis';
 import { useScreenView } from '../../telemetry/useScreenView';
@@ -235,7 +236,8 @@ const BatchPlanningCalculator: React.FC = () => {
     currentCoverage: product.currentDaysCoverage || 0,
     recommendedQuantity: product.recommendedUnitsToProduceHumanReadable || 0,
     futureCoverage: product.futureDaysCoverage || 0,
-    enabled: product.enabled ?? true // Add enabled field from API
+    enabled: product.enabled ?? true, // Add enabled field from API
+    isTopProduct: product.isTopProduct ?? false
   }));
 
   // Show loading state or actual data
@@ -880,6 +882,7 @@ const BatchPlanningCalculator: React.FC = () => {
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-900 dark:text-graphite-text">
                                 {product.productName}
+                                <TopProductStar isTopProduct={product.isTopProduct} className="ml-1.5" />
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-900 dark:text-graphite-text">
                                 {product.netWeight.toFixed(0)} g

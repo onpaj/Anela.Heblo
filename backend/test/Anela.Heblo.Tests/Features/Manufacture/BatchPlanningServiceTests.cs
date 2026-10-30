@@ -86,6 +86,49 @@ public class BatchPlanningServiceTests
     }
 
     [Fact]
+    public async Task CalculateBatchPlan_FlagsOnlyTopProductsInProductSizes()
+    {
+        // Arrange
+        var request = new CalculateBatchPlanRequest
+        {
+            ProductCode = "SEMI001",
+            ControlMode = BatchPlanControlMode.MmqMultiplier,
+            MmqMultiplier = 1.5,
+            FromDate = DateTime.Now.AddDays(-30),
+            ToDate = DateTime.Now
+        };
+
+        var semiproduct = CreateSemiproduct("SEMI001", 1000);
+        var templates = CreateManufactureTemplates();
+        var defaultProducts = CreateProducts();
+        var first = defaultProducts[0];
+        var products = new List<ProductCatalogSnapshot>
+        {
+            new ProductCatalogSnapshot
+            {
+                ProductCode = first.ProductCode,
+                ProductName = first.ProductName,
+                Stock = first.Stock,
+                NetWeight = first.NetWeight,
+                MinimalManufactureQuantity = first.MinimalManufactureQuantity,
+                SalesHistory = first.SalesHistory,
+                Properties = new ProductPropertiesSnapshot { IsTopProduct = true }
+            },
+            defaultProducts[1]
+        };
+
+        SetupRepositoryMocks(semiproduct, templates, products);
+
+        // Act
+        var result = await _service.CalculateBatchPlan(request, DefaultRanges, CancellationToken.None);
+
+        // Assert
+        Assert.True(result.Success);
+        Assert.True(result.ProductSizes.First(p => p.ProductCode == "PROD001").IsTopProduct);
+        Assert.False(result.ProductSizes.First(p => p.ProductCode == "PROD002").IsTopProduct);
+    }
+
+    [Fact]
     public async Task CalculateBatchPlan_MMQMultiplierMode_CalculatesCorrectly()
     {
         // Arrange

@@ -14,7 +14,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Manufacture/Services/ProductBatch.cs
   - backend/src/Anela.Heblo.Application/Features/Manufacture/Services/ProductVariant.cs
   - backend/src/Anela.Heblo.Application/Features/Manufacture/Validators/CalculateBatchPlanRequestValidator.cs
-verified_at: "53a0fb62d"
+verified_at: "b24ee0e7f"
 related:
   - calc-batch-calculation
   - flow-manufacture-order
@@ -43,6 +43,8 @@ On demand: `POST /api/manufacture-batch/calculate-batch-plan` (permission
    (`FindByIngredientAsync`, kusovník "where used"); for each one found in the catalog read
    `Stock.Total`, `Stock.Planned`, `NetWeight` (grams per piece) and `SalesHistory`.
 4. **Single-phase**: the product itself.
+   Each size also carries `IsTopProduct` (the Flexi "Top produkt" attribute from catalog
+   properties) as a display-only flag; it does not affect the distribution.
 5. Optimise → per-size recommended pieces, future stock and coverage, summary.
 
 ## Logic & formulas

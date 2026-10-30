@@ -141,6 +141,8 @@ public enum ErrorCodes
     ShoptetSyncFailed = 1315,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     StockTakingFailed = 1316,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    TopProductWriteFailed = 1317,
 
     // Transport module errors (14XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]

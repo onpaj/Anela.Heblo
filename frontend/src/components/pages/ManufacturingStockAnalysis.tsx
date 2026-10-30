@@ -15,6 +15,7 @@ import {
   Plus,
   Check,
 } from "lucide-react";
+import TopProductStar from "../common/TopProductStar";
 import {
   useManufacturingStockAnalysisQuery,
   GetManufacturingStockAnalysisRequest,
@@ -283,7 +284,10 @@ const ManufacturingStockAnalysis: React.FC = () => {
             )}
             <div className={`w-1 h-8 mr-3 rounded-sm ${getSeverityStripColor(item.severity)}`} />
             <div className="flex-1 min-w-0">
-              <div className="text-xs text-gray-900 dark:text-graphite-text truncate font-medium">{item.name}</div>
+              <div className="flex items-center gap-1 text-xs text-gray-900 dark:text-graphite-text font-medium">
+                <span className="truncate">{item.name}</span>
+                <TopProductStar isTopProduct={item.isTopProduct} />
+              </div>
               <div className="text-xs text-gray-500 dark:text-graphite-muted">{item.code}</div>
               {item.productFamily && <div className="text-xs text-gray-400 dark:text-graphite-faint">{item.productFamily}</div>}
             </div>
@@ -680,8 +684,9 @@ const ManufacturingStockAnalysis: React.FC = () => {
                   className={`w-1 h-6 mr-3 rounded-sm ${getSeverityStripColor(subItem.severity)}`}
                 ></div>
                 <div className="flex-1 min-w-0 pl-6">
-                  <div className="text-xs text-gray-700 dark:text-graphite-muted truncate font-medium">
-                    {subItem.name}
+                  <div className="flex items-center gap-1 text-xs text-gray-700 dark:text-graphite-muted font-medium">
+                    <span className="truncate">{subItem.name}</span>
+                    <TopProductStar isTopProduct={subItem.isTopProduct} />
                   </div>
                   <div className="text-xs text-gray-400 dark:text-graphite-faint">{subItem.code}</div>
                 </div>

@@ -20,6 +20,7 @@ public class FlexiProductAttributesQueryClient : UserQueryClient<ProductAttribut
     private const int ExpiraceMonthsId = 86;
     private const int AllowedResiduePercentageID = 87;
     private const int CoolingAttributeId = 89;
+    internal const int TopProductAttributeId = 90;
 
     public FlexiProductAttributesQueryClient(
         FlexiBeeSettings connection,
@@ -56,6 +57,7 @@ public class FlexiProductAttributesQueryClient : UserQueryClient<ProductAttribut
             SeasonMonthsArray = _seasonalDataParser.GetSeasonalMonths(values.FirstOrDefault(w => w.AttributeId == SeasonalAttributeId)?.Value),
             AllowedResiduePercentage = StrToDoubleDef(values.FirstOrDefault(w => w.AttributeId == AllowedResiduePercentageID)?.Value, 0),
             Cooling = ParseCooling(values.FirstOrDefault(w => w.AttributeId == CoolingAttributeId)?.Value),
+            IsTopProduct = ParseIsTopProduct(values.FirstOrDefault(w => w.AttributeId == TopProductAttributeId)?.Value),
         }).ToList();
     }
 
@@ -86,8 +88,13 @@ public class FlexiProductAttributesQueryClient : UserQueryClient<ProductAttribut
         return Cooling.None;
     }
 
+    internal static bool ParseIsTopProduct(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
 
-
+        return value.Trim().ToLowerInvariant() is "true" or "1" or "ano" or "yes";
+    }
 
     private static ProductType ParseProductType(string productType)
     {

@@ -2,6 +2,7 @@ import React from "react";
 import { Layers, Settings } from "lucide-react";
 import { CatalogItemDto } from "../../../../../api/hooks/useCatalog";
 import { Cooling } from "../../../../../api/generated/api-client";
+import TopProductToggle from "./TopProductToggle";
 
 interface ProductPropertiesInfoProps {
   item: CatalogItemDto;
@@ -94,6 +95,11 @@ const ProductPropertiesInfo: React.FC<ProductPropertiesInfoProps> = ({
               {coolingDisplay.label}
             </span>
           </div>
+
+          <TopProductToggle
+            productCode={item.productCode ?? ""}
+            isTopProduct={item.properties?.isTopProduct ?? false}
+          />
         </div>
       </div>
     </div>
