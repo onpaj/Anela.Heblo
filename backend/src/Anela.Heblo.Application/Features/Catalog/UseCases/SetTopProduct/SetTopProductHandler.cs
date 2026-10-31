@@ -49,7 +49,7 @@ public class SetTopProductHandler : IRequestHandler<SetTopProductRequest, SetTop
                 new Dictionary<string, string> { { "productCode", request.ProductCode } });
         }
 
-        await RefreshAttributesAfterWriteAsync(request.ProductCode, cancellationToken);
+        await ApplyToCatalogCacheAsync(request.ProductCode, request.IsTopProduct, cancellationToken);
 
         _logger.LogInformation("Top product flag for {ProductCode} set to {IsTopProduct}", request.ProductCode, request.IsTopProduct);
 
@@ -61,18 +61,19 @@ public class SetTopProductHandler : IRequestHandler<SetTopProductRequest, SetTop
     }
 
     /// <summary>
-    /// The flag is already stored in the ERP at this point, so a failed refresh must not fail the request;
-    /// the hourly attributes refresh picks the change up.
+    /// The flag is already stored in the ERP at this point, so a failed cache patch must not fail the
+    /// request; the hourly attributes refresh picks the change up. Patching the single product (instead
+    /// of waiting for the debounced catalog-wide merge) is what lets the UI refetch see the new value.
     /// </summary>
-    private async Task RefreshAttributesAfterWriteAsync(string productCode, CancellationToken cancellationToken)
+    private async Task ApplyToCatalogCacheAsync(string productCode, bool isTopProduct, CancellationToken cancellationToken)
     {
         try
         {
-            await _catalogRepository.RefreshAttributesData(cancellationToken);
+            await _catalogRepository.ApplyTopProductFlagAsync(productCode, isTopProduct);
         }
         catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
-            _logger.LogWarning(ex, "Top product flag for {ProductCode} was saved, but the catalog attributes refresh failed; the hourly refresh will catch up",
+            _logger.LogWarning(ex, "Top product flag for {ProductCode} was saved, but the catalog cache patch failed; the hourly refresh will catch up",
                 productCode);
         }
     }

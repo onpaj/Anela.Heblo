@@ -193,6 +193,7 @@ public class TestCatalogRepository : ICatalogRepository
     public Task RefreshEshopUrlData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct) => Task.CompletedTask;
     public Task RefreshMarginData(CancellationToken ct) => Task.CompletedTask;
+    public Task ApplyTopProductFlagAsync(string productCode, bool isTopProduct) => Task.CompletedTask;
     public Task WaitForCurrentMergeAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     public Task<List<CatalogAggregate>> GetProductsWithSalesInPeriod(DateTime fromDate, DateTime toDate, ProductType[] productTypes,
