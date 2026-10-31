@@ -172,6 +172,11 @@ cancelled job stops instead of running through its retries.
 - **Some writers patch cached objects in place** (stock taking `SyncStockTaking`, weight
   recalculation `NetWeight`), against the clone-and-swap rule; the next merge overwrites those
   patches from the source caches.
+- **Top product write-back patches the caches directly.** `CatalogCacheStore.ApplyTopProductAsync`
+  (via `ICatalogRepository.ApplyTopProductFlagAsync`, called by SetTopProduct) swaps a patched clone
+  of the product into the attributes source cache and the current and stale merged catalogs, then
+  schedules a debounced merge (`TopProductWriteBack`) so a merge already in flight, which may have
+  read the old flag, converges. Details: sync-catalog-master-data.
 - Staging/Test windows are 100 days for every history source, so YoY views look empty there —
   agent memory `gotcha_saleshistorydays_100_on_staging`.
 - `BackgroundRefresh:IManufactureCostCalculationService:Reload` and

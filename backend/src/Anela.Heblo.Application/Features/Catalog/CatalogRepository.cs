@@ -178,6 +178,9 @@ public sealed class CatalogRepository : ICatalogRepository
         }
     }
 
+    public Task ApplyTopProductFlagAsync(string productCode, bool isTopProduct) =>
+        _cacheStore.ApplyTopProductAsync(productCode, isTopProduct);
+
     // --- Load date properties ---
 
     public DateTime? TransportLoadDate => _cacheStore.GetLoadDateFromCache("CachedInTransportData");

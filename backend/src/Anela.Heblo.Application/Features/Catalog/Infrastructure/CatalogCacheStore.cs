@@ -255,7 +255,10 @@ public sealed class CatalogCacheStore
 
     public void SetCatalogAttributesData(IList<CatalogAttributes> value)
     {
-        _cache.Set(CachedCatalogAttributesDataKey, value);
+        lock (_sourceCacheLock)
+        {
+            _cache.Set(CachedCatalogAttributesDataKey, value);
+        }
         InvalidateSourceData(CachedCatalogAttributesDataKey);
         SetLoadDateInCache(CachedCatalogAttributesDataKey);
     }
@@ -468,7 +471,8 @@ public sealed class CatalogCacheStore
             ApplyStockTakingToLotsSource(productCode, lots);
         }
 
-        // Same guard the merge uses, so a merge completing mid-patch is not reverted either.
+        // Same guard the replacement uses. A merge already in flight can still install a list built from
+        // the old flag, so a debounced merge is scheduled below to converge.
         await _cacheReplacementSemaphore.WaitAsync();
         try
         {
@@ -577,6 +581,95 @@ public sealed class CatalogCacheStore
         {
             // Re-setting drops the entry's expiry, so reapply it. This does restart the stale
             // retention window, which is acceptable for the rare stock taking write-back.
+            _cache.Set(cacheKey, updated, _cacheOptions.Value.StaleDataRetentionPeriod);
+            return;
+        }
+
+        _cache.Set(cacheKey, updated);
+    }
+
+    #endregion
+
+    #region Top Product Write-Back
+
+    /// <summary>
+    /// Applies a Top product flag that the ERP has just accepted to the merged catalog cache AND to
+    /// the attributes source cache, for a single product and without scheduling a merge.
+    ///
+    /// The flag only reaches the merged catalog through a catalog-wide merge that runs after a
+    /// debounce, so without this the UI refetch right after a toggle reads the old value. Patching
+    /// the source cache as well keeps the next merge from reverting it.
+    /// </summary>
+    public async Task ApplyTopProductAsync(string productCode, bool isTopProduct)
+    {
+        if (string.IsNullOrWhiteSpace(productCode))
+        {
+            throw new ArgumentException("Product code is required", nameof(productCode));
+        }
+
+        lock (_sourceCacheLock)
+        {
+            ApplyTopProductToAttributesSource(productCode, isTopProduct);
+        }
+
+        // Same guard the merge uses, so a merge completing mid-patch is not reverted either.
+        await _cacheReplacementSemaphore.WaitAsync();
+        try
+        {
+            ApplyTopProductToMergedCache(CurrentCatalogCacheKey, productCode, isTopProduct);
+            ApplyTopProductToMergedCache(StaleCatalogCacheKey, productCode, isTopProduct);
+        }
+        finally
+        {
+            _cacheReplacementSemaphore.Release();
+        }
+
+        _mergeScheduler.ScheduleMerge("TopProductWriteBack");
+
+        _logger.LogInformation("Applied Top product flag to catalog caches for {ProductCode}: {IsTopProduct}", productCode, isTopProduct);
+    }
+
+    private void ApplyTopProductToAttributesSource(string productCode, bool isTopProduct)
+    {
+        var current = _cache.Get<List<CatalogAttributes>>(CachedCatalogAttributesDataKey);
+        var index = current?.FindIndex(a => a.ProductCode == productCode) ?? -1;
+        if (current == null || index < 0)
+        {
+            // A product whose only attribute row is the Top flag is absent from the attributes query.
+            // MergeAttributes skips it, so the merge keeps the merged aggregate's (patched) value, and
+            // the next attributes refresh picks the new row up.
+            return;
+        }
+
+        var replacement = current[index].Clone();
+        replacement.IsTopProduct = isTopProduct;
+
+        var updated = new List<CatalogAttributes>(current) { [index] = replacement };
+
+        // Re-set without InvalidateSourceData or a new load date: the merged cache is patched
+        // directly, and this is not a fresh load from the ERP.
+        _cache.Set(CachedCatalogAttributesDataKey, updated);
+    }
+
+    private void ApplyTopProductToMergedCache(string cacheKey, string productCode, bool isTopProduct)
+    {
+        var products = _cache.Get<List<CatalogAggregate>>(cacheKey);
+        var index = products?.FindIndex(p => p.ProductCode == productCode) ?? -1;
+        if (products == null || index < 0)
+        {
+            return;
+        }
+
+        // Never mutate an aggregate that is live in the cache - see ApplyStockTakingToMergedCache.
+        // Clone() copies Properties, so writing to the clone cannot reach the cached instance.
+        var patched = products[index].Clone();
+        patched.Properties.IsTopProduct = isTopProduct;
+
+        var updated = new List<CatalogAggregate>(products) { [index] = patched };
+
+        if (cacheKey == StaleCatalogCacheKey)
+        {
+            // Re-setting drops the entry's expiry, so reapply it.
             _cache.Set(cacheKey, updated, _cacheOptions.Value.StaleDataRetentionPeriod);
             return;
         }

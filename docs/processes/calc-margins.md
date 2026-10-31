@@ -12,7 +12,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Catalog/MarginLevel.cs
   - backend/src/Anela.Heblo.Application/Features/Catalog/CatalogRepository.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Accounting/Ledger/LedgerService.cs
-verified_at: "6b5578b47"
+verified_at: "67313d478"
 related: [calc-bundle-sales-expansion]
 ---
 

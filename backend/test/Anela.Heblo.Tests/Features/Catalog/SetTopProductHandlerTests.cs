@@ -34,7 +34,7 @@ public class SetTopProductHandlerTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task Handle_ExistingProduct_WritesFlagThenRefreshesAttributes(bool isTopProduct)
+    public async Task Handle_ExistingProduct_WritesFlagThenPatchesCatalogCache(bool isTopProduct)
     {
         // Arrange
         SetupProductExists(true);
@@ -44,8 +44,8 @@ public class SetTopProductHandlerTests
             .Callback(() => callOrder.Add("write"))
             .Returns(Task.CompletedTask);
         _catalogRepositoryMock
-            .Setup(r => r.RefreshAttributesData(It.IsAny<CancellationToken>()))
-            .Callback(() => callOrder.Add("refresh"))
+            .Setup(r => r.ApplyTopProductFlagAsync(ProductCode, isTopProduct))
+            .Callback(() => callOrder.Add("cache"))
             .Returns(Task.CompletedTask);
 
         // Act
@@ -57,7 +57,7 @@ public class SetTopProductHandlerTests
         response.Success.Should().BeTrue();
         response.ProductCode.Should().Be(ProductCode);
         response.IsTopProduct.Should().Be(isTopProduct);
-        callOrder.Should().Equal("write", "refresh");
+        callOrder.Should().Equal("write", "cache");
     }
 
     [Fact]
@@ -76,11 +76,11 @@ public class SetTopProductHandlerTests
         response.ErrorCode.Should().Be(ErrorCodes.ProductNotFound);
         response.Params.Should().Contain("productCode", ProductCode);
         _writerMock.VerifyNoOtherCalls();
-        _catalogRepositoryMock.Verify(r => r.RefreshAttributesData(It.IsAny<CancellationToken>()), Times.Never);
+        _catalogRepositoryMock.Verify(r => r.ApplyTopProductFlagAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
     }
 
     [Fact]
-    public async Task Handle_WhenErpWriteFails_ReturnsTopProductWriteFailedAndSkipsRefresh()
+    public async Task Handle_WhenErpWriteFails_ReturnsTopProductWriteFailedAndSkipsCachePatch()
     {
         // Arrange
         SetupProductExists(true);
@@ -97,11 +97,11 @@ public class SetTopProductHandlerTests
         response.Success.Should().BeFalse();
         response.ErrorCode.Should().Be(ErrorCodes.TopProductWriteFailed);
         response.Params.Should().Contain("productCode", ProductCode);
-        _catalogRepositoryMock.Verify(r => r.RefreshAttributesData(It.IsAny<CancellationToken>()), Times.Never);
+        _catalogRepositoryMock.Verify(r => r.ApplyTopProductFlagAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
     }
 
     [Fact]
-    public async Task Handle_WhenRefreshFailsAfterSuccessfulWrite_StillReportsSuccess()
+    public async Task Handle_WhenCachePatchFailsAfterSuccessfulWrite_StillReportsSuccess()
     {
         // Arrange - the flag is already in Flexi; the hourly refresh will catch up with it
         SetupProductExists(true);
@@ -109,8 +109,8 @@ public class SetTopProductHandlerTests
             .Setup(w => w.SetAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _catalogRepositoryMock
-            .Setup(r => r.RefreshAttributesData(It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new HttpRequestException("query 38 timed out"));
+            .Setup(r => r.ApplyTopProductFlagAsync(It.IsAny<string>(), It.IsAny<bool>()))
+            .ThrowsAsync(new InvalidOperationException("cache unavailable"));
 
         // Act
         var response = await _handler.Handle(

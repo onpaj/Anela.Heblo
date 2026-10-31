@@ -25,6 +25,12 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
     Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct);
     Task RefreshMarginData(CancellationToken ct);
 
+    /// <summary>
+    /// Applies a Top product flag the ERP has just accepted to the cached catalog for one product,
+    /// without waiting for a catalog-wide merge.
+    /// </summary>
+    Task ApplyTopProductFlagAsync(string productCode, bool isTopProduct);
+
     // Data load timestamps - stored in cache with same expiration as data
     DateTime? TransportLoadDate { get; }
     DateTime? ManufacturedLoadDate { get; }

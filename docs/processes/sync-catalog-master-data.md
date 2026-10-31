@@ -52,7 +52,7 @@ clone of the product into the live cache. An ERP stock taking reloads one produc
 (`flow-stock-taking`).
 
 Ticking or unticking "Top produkt" in the catalog detail (`PUT /api/Catalog/{productCode}/top-product`,
-`products.catalog.write`) writes the flag to Flexi and then runs `RefreshAttributesData` once.
+`products.catalog.write`) writes the flag to Flexi and then patches that one product in the catalog caches (no full refresh).
 
 ## Data flow
 1. **Attributes** — Flexi user query **38** (all rows, through `CatalogResilienceService`), one
@@ -84,8 +84,15 @@ Ticking or unticking "Top produkt" in the catalog detail (`PUT /api/Catalog/{pro
    the catalog, then `FlexiTopProductWriter` calls the SDK `IProductAttributeClient` for attribute
    **90**: ticking upserts boolean `true`, unticking **deletes** the attribute row (so "not set"
    and "false" both read back as not top). A Flexi failure returns `TopProductWriteFailed` (1317,
-   503) and nothing is refreshed. After a successful write `RefreshAttributesData` reloads query 38
-   (all rows); if that refresh fails the request still succeeds and the hourly refresh catches up.
+   503) and the caches are left alone. After a successful write `ICatalogRepository.ApplyTopProductFlagAsync`
+   (`CatalogCacheStore.ApplyTopProductAsync`) swaps a patched clone of the product into the merged
+   catalog (current and stale) **and** into the attributes source cache, and schedules a debounced merge so a racing in-flight merge converges.
+   Both are needed: the merged catalog only gets the flag through a catalog-wide merge that runs after
+   a 5 s debounce, so the UI refetch right after a toggle would read the old value, and a merge reads
+   the attributes source cache, so patching only the merged catalog is reverted by the next merge. A
+   product with no attributes row (its only row was the Top flag) is patched in the merged catalog
+   only; the next hourly refresh finds the new row. If the patch throws, the request still succeeds
+   and the hourly refresh catches up.
 
 ## Logic & formulas
 - **Current difficulty**: the setting whose `[ValidFrom, ValidTo]` (null = open) contains the
@@ -122,11 +129,19 @@ Ticking or unticking "Top produkt" in the catalog detail (`PUT /api/Catalog/{pro
 - **The top-product write is not idempotent against duplicate attribute rows**: if Flexi already
   holds several rows for product × attribute 90 the SDK answers 409 and the save fails with
   `TopProductWriteFailed`; fix the duplicate in Flexi.
+- **Query 38 must return boolean attributes in `hodnota`.** The SDK stores attribute 90 (type
+  `typAtribut.boolean`) in the row's `valBoolean` column and leaves `hodnota` empty, while the other
+  attributes are string-typed and use `hodnota`. The query's SQL lives only in Flexi (read it with
+  `GET uzivatelsky-dotaz/38.json?detail=full`); on 2026-10-31 it was changed to select
+  `COALESCE(NULLIF(A.hodnota,''), CASE WHEN A.valboolean THEN 'true' END) as hodnota`. Without it
+  every Top flag reads back as false even though the write succeeded (HTTP 200, no log line). If
+  the query is ever recreated, keep the `COALESCE`.
 
 ## Code entry points
 - `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/ProductAttributes/FlexiProductAttributesQueryClient.cs` — query 38 and the attribute-id map
 - `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/ProductAttributes/FlexiTopProductWriter.cs` — set/clear attribute 90 through the SDK
-- `backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/SetTopProduct/SetTopProductHandler.cs` — validation, write, cache refresh
+- `backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/SetTopProduct/SetTopProductHandler.cs` — validation, write, single-product cache patch
+- `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogCacheStore.cs` — `ApplyTopProductAsync`, the cache patch
 - `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Lots/FlexiLotsClient.cs` — Flexi lots
 - `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogReferenceRefreshService.cs` — stock takings, difficulty (all / single product)
 - `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogMetaRefreshService.cs` — `RefreshAttributesData`, `RefreshLotsData`
