@@ -86,7 +86,7 @@ Ticking or unticking "Top produkt" in the catalog detail (`PUT /api/Catalog/{pro
    and "false" both read back as not top). A Flexi failure returns `TopProductWriteFailed` (1317,
    503) and the caches are left alone. After a successful write `ICatalogRepository.ApplyTopProductFlagAsync`
    (`CatalogCacheStore.ApplyTopProductAsync`) swaps a patched clone of the product into the merged
-   catalog (current and stale) **and** into the attributes source cache, without scheduling a merge.
+   catalog (current and stale) **and** into the attributes source cache, and schedules a debounced merge so a racing in-flight merge converges.
    Both are needed: the merged catalog only gets the flag through a catalog-wide merge that runs after
    a 5 s debounce, so the UI refetch right after a toggle would read the old value, and a merge reads
    the attributes source cache, so patching only the merged catalog is reverted by the next merge. A

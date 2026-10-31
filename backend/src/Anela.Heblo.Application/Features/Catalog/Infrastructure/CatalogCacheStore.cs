@@ -471,7 +471,8 @@ public sealed class CatalogCacheStore
             ApplyStockTakingToLotsSource(productCode, lots);
         }
 
-        // Same guard the merge uses, so a merge completing mid-patch is not reverted either.
+        // Same guard the replacement uses. A merge already in flight can still install a list built from
+        // the old flag, so a debounced merge is scheduled below to converge.
         await _cacheReplacementSemaphore.WaitAsync();
         try
         {
@@ -622,6 +623,8 @@ public sealed class CatalogCacheStore
         {
             _cacheReplacementSemaphore.Release();
         }
+
+        _mergeScheduler.ScheduleMerge("TopProductWriteBack");
 
         _logger.LogInformation("Applied Top product flag to catalog caches for {ProductCode}: {IsTopProduct}", productCode, isTopProduct);
     }

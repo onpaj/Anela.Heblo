@@ -142,9 +142,9 @@ public class CatalogCacheStoreTopProductTests
     }
 
     [Fact]
-    public async Task ApplyTopProduct_DoesNotScheduleAMerge()
+    public async Task ApplyTopProduct_SchedulesAMergeSoARacingMergeConverges()
     {
-        // Arrange - the patch already produces the merged result, so a catalog-wide merge is pure cost
+        // Arrange - a merge already in flight may install a list built from the old flag; a debounced merge converges
         var (store, _) = await CreateMergedCatalog(isTopProduct: false);
         _schedulerMock.Invocations.Clear();
 
@@ -152,7 +152,7 @@ public class CatalogCacheStoreTopProductTests
         await store.ApplyTopProductAsync(ProductCode, true);
 
         // Assert
-        _schedulerMock.Verify(s => s.ScheduleMerge(It.IsAny<string>()), Times.Never);
+        _schedulerMock.Verify(s => s.ScheduleMerge("TopProductWriteBack"), Times.Once);
     }
 
     [Fact]
