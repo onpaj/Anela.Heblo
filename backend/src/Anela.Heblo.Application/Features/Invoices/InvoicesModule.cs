@@ -11,7 +11,6 @@ using Anela.Heblo.Persistence.Invoices;
 using Anela.Heblo.Application.Features.Invoices.Services;
 using Anela.Heblo.Application.Features.PackingMaterials.Contracts;
 using Anela.Heblo.Domain.Features.Analytics;
-using Anela.Heblo.Domain.Features.Bank;
 
 namespace Anela.Heblo.Application.Features.Invoices;
 
