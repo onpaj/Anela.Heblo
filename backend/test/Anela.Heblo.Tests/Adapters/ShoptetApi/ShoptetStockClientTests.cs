@@ -324,7 +324,7 @@ public class ShoptetStockClientTests
     {
         // Arrange
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-        var weights = new[] { "0,035", "0,1", "0,25", "" };
+        var weights = new[] { "0,035", "0,1", "0,25", "", "1,005", "1,250" };
         var lines = new List<string> { string.Join(";", Enumerable.Range(0, 32).Select(i => $"h{i}")) };
         for (var row = 0; row < weights.Length; row++)
         {
@@ -353,6 +353,6 @@ public class ShoptetStockClientTests
         var result = await client.ListAsync(CancellationToken.None);
 
         // Assert
-        result.Select(r => r.Weight).Should().Equal(35d, 100d, 250d, null);
+        result.Select(r => r.Weight).Should().Equal(35d, 100d, 250d, null, 1005d, 1250d);
     }
 }

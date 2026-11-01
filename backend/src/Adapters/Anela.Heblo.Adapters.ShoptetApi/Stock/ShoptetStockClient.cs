@@ -245,7 +245,7 @@ public class ShoptetStockClient : IEshopStockClient
                 return null;
             }
 
-            return double.Parse(text, NumberStyles.Float, CzechCulture) * 1000;
+            return (double)(decimal.Parse(text, NumberStyles.Float, CzechCulture) * 1000m);
         }
     }
 }
