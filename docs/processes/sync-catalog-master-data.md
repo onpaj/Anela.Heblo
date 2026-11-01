@@ -51,7 +51,7 @@ On demand: creating, editing or deleting a difficulty setting (catalog detail, `
 clone of the product into the live cache. An ERP stock taking reloads one product's Flexi lots
 (`flow-stock-taking`).
 
-Ticking or unticking "Top produkt" in the catalog detail (`PUT /api/Catalog/{productCode}/nd`,
+Ticking or unticking "ND" in the catalog detail (`PUT /api/Catalog/{productCode}/nd`,
 `products.catalog.write`) writes the flag to Flexi and then patches that one product in the catalog caches (no full refresh).
 
 ## Data flow
