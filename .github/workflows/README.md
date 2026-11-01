@@ -192,6 +192,15 @@ gh workflow run e2e-nightly-regression.yml -f deploy_staging=false
 
 ## How to...
 
+### Skip Tests (hotfix / urgent deploy)
+
+Tests are skipped, the Docker image is still built and versioned. A test *failure* still blocks the build; only a deliberate skip bypasses it.
+
+- **PR → staging:** put `[skip-tests]` in the PR's head commit message and push. `🚦 Test Gate` detects it, the frontend/backend tests are skipped, and the image is built. Then run `deploy-staging-manual.yml`. (`📚 Process Docs` still runs.)
+- **main → production:** Actions → *CI - Main Branch* → *Run workflow* on `main` → tick `skip_tests`. The `production` environment approval still applies. Runs from any other ref do not build or deploy.
+
+Skipped test jobs report as passing, so `[skip-tests]` also satisfies required status checks on the PR. The push to `main` re-runs the tests, and the nightly E2E regression remains the backstop.
+
 ### Deploy a Feature Branch to Staging
 
 **Automatic process:**
