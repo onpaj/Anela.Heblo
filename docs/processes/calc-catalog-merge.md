@@ -56,6 +56,7 @@ and the MCP tools `GetCatalogList`, `GetCatalogDetail`, `GetProductMargins`, …
    |---|---|---|---|
    | `CachedErpStockData` | `RefreshErpStockData` | Flexi stock-to-date, warehouses 5/20/4 | sync-catalog-stock |
    | `CachedEshopStockData` | `RefreshEshopStockData` | Shoptet product CSV export | sync-catalog-stock |
+   | `CachedEshopProductData` | `RefreshEshopProductData` | Shoptet REST product sweep (image, weight, dimensions, flags) | sync-catalog-eshop-products |
    | `CachedInTransportData`, `CachedInReserveData`, `CachedInQuarantineData` | `RefreshTransportData`, `RefreshReserveData` | Heblo `TransportBoxes` | sync-catalog-stock |
    | `CachedOrderedData` | `RefreshOrderedData` | Heblo purchase orders | sync-catalog-stock |
    | `CachedPlannedData`, `CachedManufacturedData` | `RefreshPlannedData`, `RefreshManufacturedData` | Heblo manufacture orders / sklad výroby | sync-catalog-stock |
@@ -95,7 +96,8 @@ Field origin per aggregate (`CatalogMergeService`):
 | `Type` | ERP `ProductTypeId` via `BundleProductRule.Resolve` | ERP Product with code `BAL*`/`SET*` → `Set` (99); else the ERP type |
 | `Stock.Erp` | ERP stock row `Stock` | — |
 | `Stock.StockPrice` | ERP `Price` (Flexi average stock price) | only when ERP stock > 0 and price > 0, else null |
-| `Stock.Eshop`, `Location`, `Image`, `DefaultImage`, `GrossWeight`, `Height`, `Width`, `Depth`, `AtypicalShipping` | Shoptet CSV row | only when the code is in the CSV; also sets `PrimaryStockSource = Eshop` |
+| `Stock.Eshop`, `Location` | Shoptet CSV row | only when the code is in the CSV; also sets `PrimaryStockSource = Eshop` |
+| `Image`, `DefaultImage`, `GrossWeight` (grams), `Height`, `Width`, `Depth`, `AtypicalShipping`, `EshopFlags` | Shoptet REST product sweep (`CachedEshopProductData`) | when the code is in the sweep; otherwise legacy CSV fields (flags stay empty) |
 | `Stock.Transport`, `Reserve`, `Quarantine`, `Ordered`, `Planned`, `Manufactured` | Heblo | always set, 0 when the code is absent |
 | `SalesHistory` | query 37 + bundle expansion | replaced when present |
 | `PurchaseHistory`, `ConsumedHistory`, `ManufactureHistory` | Flexi | replaced when present |

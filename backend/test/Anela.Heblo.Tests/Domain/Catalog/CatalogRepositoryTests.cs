@@ -145,6 +145,7 @@ public class CatalogRepositoryTests
         _stockRefreshService = new CatalogStockRefreshService(
             _erpStockClientMock.Object,
             _eshopStockClientMock.Object,
+            new Mock<Anela.Heblo.Domain.Features.Catalog.Eshop.IEshopProductClient>().Object,
             _transportSourceMock.Object,
             _purchaseSourceMock.Object,
             _manufactureSourceMock.Object,

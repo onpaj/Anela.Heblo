@@ -238,6 +238,7 @@ public class MarginCostWindowAlignmentTests
         var stockRefreshService = new CatalogStockRefreshService(
             Mock.Of<IErpStockClient>(),
             Mock.Of<IEshopStockClient>(),
+            Mock.Of<Anela.Heblo.Domain.Features.Catalog.Eshop.IEshopProductClient>(),
             Mock.Of<ICatalogTransportSource>(),
             Mock.Of<ICatalogPurchaseSource>(),
             Mock.Of<ICatalogManufactureSource>(),

@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Catalog.Eshop;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
@@ -87,7 +88,10 @@ public sealed class CatalogMergeService
 
         // Build all lookup maps from cache data
         var attributesMap = _cacheStore.GetCatalogAttributesData().ToDictionary(k => k.ProductCode, v => v);
-        var eshopProductsMap = _cacheStore.GetEshopStockData().ToDictionary(k => k.Code, v => v);
+        var eshopStockMap = _cacheStore.GetEshopStockData().ToDictionary(k => k.Code, v => v);
+        var eshopProductMap = _cacheStore.GetEshopProductData()
+            .GroupBy(p => p.Code)
+            .ToDictionary(g => g.Key, g => g.First());
         var erpProductsMap = _cacheStore.GetErpStockData().ToDictionary(k => k.ProductCode, v => v);
         var consumedMap = _cacheStore.GetConsumedData()
             .GroupBy(p => p.ProductCode)
@@ -126,7 +130,7 @@ public sealed class CatalogMergeService
             MergeSalesHistory(product, salesMap);
             MergeAttributes(product, attributesMap);
             MergeStockData(product, inTransportData, manufacturedData, inReserveData, inQuarantineData, orderedData, plannedData);
-            MergeEshopData(product, eshopProductsMap);
+            MergeEshopData(product, eshopStockMap, eshopProductMap);
             MergeHistoryData(product, consumedMap, purchaseMap, manufactureMap, stockTakingMap);
             MergeLots(product, lotsMap);
             MergePrices(product, eshopPriceMap, erpPriceMap);
@@ -202,20 +206,39 @@ public sealed class CatalogMergeService
         product.Stock.Planned = plannedData.ContainsKey(product.ProductCode) ? plannedData[product.ProductCode] : 0;
     }
 
-    private static void MergeEshopData(CatalogAggregate product, IDictionary<string, EshopStock> eshopProductsMap)
+    private static void MergeEshopData(
+        CatalogAggregate product,
+        IDictionary<string, EshopStock> eshopStockMap,
+        IDictionary<string, EshopProduct> eshopProductMap)
     {
-        if (eshopProductsMap.TryGetValue(product.ProductCode, out var eshopProduct))
+        if (eshopStockMap.TryGetValue(product.ProductCode, out var eshopStock))
         {
-            product.Stock.Eshop = eshopProduct.Stock;
+            product.Stock.Eshop = eshopStock.Stock;
             product.Stock.PrimaryStockSource = StockSource.Eshop;
-            product.Location = eshopProduct.Location;
-            product.Image = eshopProduct.Image;
-            product.DefaultImage = eshopProduct.DefaultImage;
-            product.GrossWeight = eshopProduct.Weight;
+            product.Location = eshopStock.Location;
+        }
+
+        if (eshopProductMap.TryGetValue(product.ProductCode, out var eshopProduct))
+        {
+            product.Image = eshopProduct.ImageUrl;
+            product.DefaultImage = eshopProduct.DefaultImageUrl;
+            product.GrossWeight = eshopProduct.WeightGrams;
             product.Height = eshopProduct.Height;
             product.Width = eshopProduct.Width;
             product.Depth = eshopProduct.Depth;
             product.AtypicalShipping = eshopProduct.AtypicalShipping;
+            product.EshopFlags = eshopProduct.Flags;
+        }
+        else if (eshopStock != null)
+        {
+            // Legacy CSV fallback, removed together with the CSV fields.
+            product.Image = eshopStock.Image;
+            product.DefaultImage = eshopStock.DefaultImage;
+            product.GrossWeight = eshopStock.Weight;
+            product.Height = eshopStock.Height;
+            product.Width = eshopStock.Width;
+            product.Depth = eshopStock.Depth;
+            product.AtypicalShipping = eshopStock.AtypicalShipping;
         }
     }
 

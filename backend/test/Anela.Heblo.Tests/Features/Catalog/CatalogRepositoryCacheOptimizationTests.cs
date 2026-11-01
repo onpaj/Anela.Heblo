@@ -6,6 +6,7 @@ using Anela.Heblo.Application.Features.Catalog.Services;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
+using Anela.Heblo.Domain.Features.Catalog.Eshop;
 using Anela.Heblo.Domain.Features.Catalog.Lots;
 using Anela.Heblo.Domain.Features.Catalog.EshopUrl;
 using Anela.Heblo.Domain.Features.Catalog.Price;
@@ -29,6 +30,7 @@ public class CatalogRepositoryCacheOptimizationTests
     private readonly Mock<ICatalogSalesClient> _salesClientMock;
     private readonly Mock<ICatalogAttributesClient> _attributesClientMock;
     private readonly Mock<IEshopStockClient> _eshopStockClientMock;
+    private readonly Mock<IEshopProductClient> _eshopProductClientMock = new();
     private readonly Mock<IConsumedMaterialsClient> _consumedMaterialClientMock;
     private readonly Mock<IPurchaseHistoryClient> _purchaseHistoryClientMock;
     private readonly Mock<IErpStockClient> _erpStockClientMock;
@@ -165,6 +167,7 @@ public class CatalogRepositoryCacheOptimizationTests
         _stockRefreshService = new CatalogStockRefreshService(
             _erpStockClientMock.Object,
             _eshopStockClientMock.Object,
+            _eshopProductClientMock.Object,
             _transportSourceMock.Object,
             _purchaseSourceMock.Object,
             _manufactureSourceMock.Object,
@@ -253,6 +256,36 @@ public class CatalogRepositoryCacheOptimizationTests
 
         _purchaseSourceMock.Setup(x => x.GetOrderedQuantitiesAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<string, decimal>());
+    }
+
+    [Fact]
+    public async Task RefreshEshopProductData_ClientReturnsProducts_StoresThemAndSchedulesMerge()
+    {
+        _eshopProductClientMock.Setup(x => x.ListAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<EshopProduct> { new() { Code = "P1" } });
+
+        await _repository.RefreshEshopProductData(CancellationToken.None);
+
+        _cacheStore.GetEshopProductData().Should().ContainSingle().Which.Code.Should().Be("P1");
+        _mergeSchedulerMock.Verify(x => x.ScheduleMerge("CachedEshopProductData"), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(typeof(HttpRequestException))]
+    [InlineData(typeof(TimeoutException))]
+    [InlineData(typeof(InvalidOperationException))]
+    public async Task RefreshEshopProductData_ClientThrows_KeepsPreviousCache(Type exceptionType)
+    {
+        _cacheStore.SetEshopProductData(new List<EshopProduct> { new() { Code = "OLD" } });
+        _mergeSchedulerMock.Invocations.Clear();
+        _eshopProductClientMock.Setup(x => x.ListAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync((Exception)Activator.CreateInstance(exceptionType)!);
+
+        var act = () => _repository.RefreshEshopProductData(CancellationToken.None);
+
+        await act.Should().ThrowAsync<Exception>();
+        _cacheStore.GetEshopProductData().Should().ContainSingle().Which.Code.Should().Be("OLD");
+        _mergeSchedulerMock.Verify(x => x.ScheduleMerge(It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
