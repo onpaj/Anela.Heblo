@@ -353,6 +353,35 @@ describe("CatalogDetail", () => {
     expect(screen.getByText("40")).toBeInTheDocument(); // erp stock (40.001 -> 40)
   });
 
+  it("should show the refetched detail item instead of the stale item prop", () => {
+    // Arrange - the modal was opened from a list row; the detail query has since refetched with new data
+    const staleItem = { ...mockCatalogItem, productName: "Stale Name" };
+    const freshItem = { ...mockCatalogItem, productName: "Fresh Name" };
+
+    mockUseCatalogDetail.mockReturnValue({
+      data: {
+        item: freshItem,
+        historicalData: {
+          salesHistory: [],
+          purchaseHistory: [],
+          consumedHistory: [],
+          manufactureHistory: [],
+        },
+      },
+      isLoading: false,
+      error: null,
+    } as any);
+
+    // Act
+    renderWithQueryClient(
+      <CatalogDetail item={staleItem} isOpen={true} onClose={() => {}} />,
+    );
+
+    // Assert
+    expect(screen.getByText("Fresh Name")).toBeInTheDocument();
+    expect(screen.queryByText("Stale Name")).not.toBeInTheDocument();
+  });
+
   it("should not render when modal is closed", () => {
     mockUseCatalogDetail.mockReturnValue({
       data: {

@@ -90,8 +90,9 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({
     refetch: refetchCatalogDetail,
   } = useCatalogDetail(effectiveProductCode, monthsBack);
 
-  // Use item from prop if provided, otherwise use item from API detail data
-  const effectiveItem = item || detailData?.item;
+  // Prefer the fetched detail (refetched after edits such as the Top product toggle); the item prop
+  // is only the list row the modal was opened from, so it is the fallback while detail loads
+  const effectiveItem = detailData?.item || item;
 
   // Fetch journal entries for the product
   const { data: journalData } =
