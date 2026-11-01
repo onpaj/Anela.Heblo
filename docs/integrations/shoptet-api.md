@@ -600,14 +600,17 @@ Response shape assumed to follow Shoptet conventions:
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/products` | List products (paginated, default 20, max 50) |
+| `GET` | `/api/products` | List products (paginated, default 20, **max `itemsPerPage` 1000** — verified 2026-11-01, see §4.1) |
 | `GET` | `/api/products/{guid}` | Get single product detail |
+| `GET` | `/api/products/code/{code}` | Get single product detail by variant code (verified 2026-11-01, see §4.2.1) |
+| `GET` | `/api/products/flags` | Flag catalogue (see §4.5) |
+| `GET` | `/api/products/snapshot` | Blocked: 403 `required-webhook-registration` (see §4.3) |
 
 **`include` sections:** Only `images` is supported on the list endpoint. **`variants` and `productVariants` are NOT valid include values and return 400.**
 
 ### 4.1 GET /api/products (list)
 
-Returns paginated product list — **does not include variants**. Max `itemsPerPage` is 50.
+Returns paginated product list — **does not include variants**. `itemsPerPage` works up to **1000** (verified live 2026-11-01 on production and the test store; an earlier note of "max 50" was wrong for products). Production anela.cz has **206 products** (136 visible, 70 hidden) and the list includes hidden ones, so a single page covers the whole catalogue; still paginate (`page`) defensively. The `flag={code}` filter is documented in §4.5.
 
 ### 4.2 GET /api/products/{guid} (detail)
 
@@ -635,14 +638,22 @@ Read-only GETs against the **test store (780175)** (181 products, 444 variants, 
 - **Image object fields:** `name` (original file name, e.g. `66-7.jpg`), `seoName`, `cdnName` (signed CDN name incl. size query), `signedCdnNames[]` (`{type, name}`), `priority` (1 = first), `isMainImage`, `description` (alt text), `gallery` (`"shop"`), `changeTime`. `signedCdnNames` types: `big` (1024px), `detail` (423px), `detail_small`, `category`, `related`, `admin_detail`, `detail_alt_1`.
 - **Public URL:** `https://780175.myshoptet.com/user/shop/{orig|big}/{seoName}` returns 200 `image/jpeg` without auth. `cdn.myshoptet.com/usr/780175.myshoptet.com/...` answers 301 to an HTML page for the same file, so do not use it directly.
 - **Admin numeric id is not in the API.** The `id` in `/admin/produkty-detail/?id=66` appears only as the image file-name prefix (`66-7.jpg`); product responses carry `guid` only.
-- **No lookup by code on the list.** `code` and `query` are rejected with 400 `Unsupported query parameters found`. Finding a product by variant code (example: `SER002*` → Bezstarostná teenka) needs one detail call per product, matching `variants[].code`. Avoid this unless §4.3 cannot answer the question — the stock CSV gives codes but not guids or images.
+- **Lookup by code: use the detail endpoint, not the list.** On the list, `code` and `query` are rejected with 400 `Unsupported query parameters found`. But `GET /api/products/code/{code}` exists (verified 2026-11-01, spec + live test store) and returns the same product detail as `/api/products/{guid}` for any of its variant codes — no N+1 matching over `variants[].code` needed.
+- **Detail fields per variant (verified 2026-11-01, test store):** `code`, `name`, `image` (the variant's own image; the CSV `image` column is the product main image, so the API is more precise), `weight` (**kg, decimal string with a dot**, e.g. `"0.035"`; `"0.000"` occurs, e.g. `OCH001001B`), `width`, `height`, `depth`, `atypicalShipping`, `ean`, `perStockAmounts[].location`.
+- **Detail `include` values:** `include=images` adds `images[]` (each with `name` + `seoName`); `include=flags` adds `flags[] {code, title, dateFrom, dateTo}`. Flags in the detail are what is *configured* (including expired validity) — see §4.5 for the "in effect now" semantics of the list filter.
+- **Production data quality (CSV, 2026-11-01):** all dimensions are `0`, `atypicalShipping` is `0` for every row, and 34 rows have no weight. Treat `0` weight as "unknown".
 - **Bulk reads must be sequential.** The full export (list + 181 detail calls) hit 429 with 6 parallel workers; one call at a time with a back-off retry on 429 completed, consistent with the guidance in §3.14.
 
 ### 4.3 Getting all variant codes efficiently
 
-**Do NOT use N+1 product detail calls.** Use the stock CSV export instead — it lists all variant codes in a single request and is already parsed by `IEshopStockClient.ListAsync()`. The `EshopStock.Code` field is the variant-level SKU accepted by `POST /api/orders`.
+Two ways, depending on what is needed (revised 2026-11-01; the earlier "never use N+1, use the CSV" guidance is superseded):
 
-The snapshot endpoint (`GET /api/products/snapshot`) exists but requires a registered webhook for `job:finished` — not usable without webhook infrastructure.
+- **Codes + stock + location only:** one call to `GET /api/stocks/1/supplies?itemsPerPage=1000` (§4.6) lists every variant code.
+- **Codes + guid, images, weight, flags:** the list (`itemsPerPage=1000`, one call) plus one detail call per product (≈206 on production) run **strictly sequentially at ≤4 req/s** (§3.14). A full sweep takes ≈ 60–70 s. Parallel sweeps hit 429. The stock CSV (pattern 46, §4.4) is the legacy source and has the problems listed there.
+
+The `EshopStock.Code` field is the variant-level SKU accepted by `POST /api/orders`.
+
+**Snapshot (verified 2026-11-01, test store):** `GET /api/products/snapshot` returns **403 `required-webhook-registration`** — it needs a registered `job:finished` webhook, so it is not usable without webhook infrastructure. Not used. (`GET /api/products/changes` incremental sync would be a possible later optimisation.)
 
 ### 4.4 Stock CSV export — resilience characteristics
 
@@ -668,6 +679,45 @@ The stock CSV export URL is configured via `StockClient:Url` and **is not** on `
 Worst-case wall clock with defaults: ≈ 8 + 1 + 8 + 2 + 8 + 4 + 8 ≈ 39 s — but `CatalogDataRefreshService` invocations are wrapped by `CatalogResilienceService` whose 30 s pipeline timeout will surface first. Tune `TimeoutSeconds` down if the outer pipeline still aborts retries; raise it for ad-hoc callers that do not use the outer pipeline.
 
 **Caller-side wrapping:** Both `CatalogDataRefreshService.RefreshEshopStockData` and `ProductPairingDqtComparer.CompareAsync` wrap `ListAsync` with `ICatalogResilienceService` for circuit-breaker + outer-timeout semantics. New callers must follow the same pattern.
+
+#### 4.4.1 Pattern 46 column layout and known defects (verified 2026-11-01, production + test store)
+
+The catalog e-shop data comes from CSV **pattern 46** (`StockClient:Url`), read every 5 minutes and mapped by **fixed column index** (`StockDataMap`).
+
+- **Variant parameter columns:** columns 11–24 are `variant:*` parameter columns (e.g. index 15 is `variant:Obsah` — a variant parameter, *not* a "name suffix"). `stock` is index 25 and every column after it follows.
+- **Shift risk:** adding a new variant parameter in the Shoptet admin inserts a column in that block and silently shifts `stock` and everything after it. Index-based mapping then reads the wrong fields with no error.
+- **Weight bug (decimal comma):** the CSV writes weight in kg with a **decimal comma** (`0,035`). CsvHelper 32.0.2 with `InvariantCulture` reads the comma as a thousands separator: `0,035` → `35`, `0,1` → `1`, `0,25` → `25`, `0,99` → `99`. On production **181 of 446** rows with a weight are wrong by ×10 or ×100. Consumers treat `GrossWeight` as grams (`CatalogPackingProductSourceAdapter.WeightGrams`; `GetWarehouseStatisticsHandler` divides by 1000), so the corrupted values reach packing and statistics. The API returns weight with a dot (§4.2.1), which avoids this.
+- **Stock parity with the API:** CSV `stock` equals API supplies `amount`, and CSV `stockLocation` equals API `location`, for 457/457 codes (production) and 444/444 (test store) — see §4.6.
+- **`image` column** is the product main image, not the variant's own image (§4.2.1).
+- **`pairCode`** is a CSV-only column and has no API equivalent — see §4.8.
+- **Pattern 90** (full export incl. all flag columns, `…FlagActive=1`) is downloaded nightly into blob `shoptetexport` by `ProductExportDownloadJob` (10/10 `Success` in 10 days to 2026-11-01); nothing reads the archive. See "Product Export Download" below.
+
+### 4.5 Product flags — `GET /api/products/flags` and `?flag=` (verified 2026-11-01, production + test store)
+
+- **Catalogue:** `GET /api/products/flags` returns `data.flags[] {code, title, system, color, showInDetail, showInCategory}`. Production has **12** flags (matching the 12 flag columns in the admin screen): `--darek` (+ TAJNÝ DÁREK), `action` (AKCE, `system: true`), `bestseller`, `custom1` (VÝPRODEJ), `custom3` (NOVÉ SLOŽENÍ), `darkove-baleni-zdarma`, `doprava-zdarma`, `chlazena-doprava_`, `new` (NOVINKA), `tip` (DÁREK K NÁKUPU), `v-sade-vyhodneji`, `vyhodna-cena`.
+- **Filter:** `GET /api/products?flag={code}&itemsPerPage=1000` returns the products for which the flag is **in effect now** (honours `dateFrom`/`dateTo`).
+- **Semantics differ from CSV pattern 90.** `FlagActive=1` in the CSV means the flag is *configured*, including expired ones. Example (production): for `new` the CSV lists 4 products, 3 of them expired on 2019-10-31, while the API filter returns only the 1 still valid. `bestseller` 12 = 12 and `custom1` 1 = 1 match. Use the API filter when the question is "is the product flagged right now".
+- **Level:** flags are **product-level** (the CSV repeats them on every variant row). Detail `include=flags` returns the configured flags with their validity dates (§4.2.1), i.e. the CSV-like semantics, not the "in effect now" one.
+- The filtered list items are plain product-list items (`guid`, `name`, `visibility`, `url`, …); there is one list call per flag (12 calls), sequential per §3.14.
+
+### 4.6 Bulk supplies as the stock source (verified 2026-11-01, production + test store)
+
+`GET /api/stocks/1/supplies?itemsPerPage=1000` (field semantics in §8.6) returns `code`, `productGuid`, `amount`, `claim`, `location` for **every variant in one call**. Compared with the stock CSV (pattern 46) on the same day: the code sets are identical, **CSV `stock` == API `amount` and CSV `stockLocation` == API `location` for 457/457 codes (production) and 444/444 (test store)**. So the CSV is not needed for stock or location. `location` may be `null`; `amount` is a decimal string. Paginate with `page` if a store ever exceeds 1000 variants.
+
+### 4.7 Image URL base via image cuts (verified 2026-11-01, test store)
+
+`GET /api/eshop?include=imageCuts` returns the image cut definitions; the cut `orig` carries `urlPath` = `https://<shop-host>/user/shop/orig/`. Public image URL = `urlPath` + the image `seoName` (from `include=images` on the detail, or the variant `image` name) — serves `200 image/jpeg` without auth. This confirms the pattern in §4.2.1 and removes the need to hard-code the shop host.
+
+### 4.8 `pairCode` is not in the API (verified 2026-11-01)
+
+- `pairCode` does **not exist** in the OpenAPI spec or in any live product response.
+- In production, all 335 non-empty CSV `pairCode` values are **numeric Shoptet group ids** (`8`, `21`, …; e.g. `75` for `DOP028001`), not ERP codes.
+- `ProductPairingDqtComparer` treats `PairCode` as an ERP code. Confirmed against stored results: the production `ProductPairing` DQT run on 2026-11-01 reported **388 mismatches, 335 of them `MissingInErp|PairCodeUnresolved`** — i.e. every CSV row that has a `pairCode`, because the numeric id is resolved as if it were an ERP code. The check is therefore already broken for these rows and carries no signal.
+- Decision for the CSV replacement: `PairCode` is dropped (no API source).
+
+### 4.9 Rate limiting for product sweeps
+
+Sequential ≈4 req/s is safe; parallel ≥4 connections hits 429. The token is shared with packing/expedition. A full products sweep (1 list + ~206 details, or + 12 flag calls + 1 supplies call) at ≤4 req/s takes ≈ 60–70 s. Details in §3.14.
 
 ---
 
