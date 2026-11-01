@@ -16,7 +16,7 @@ namespace Anela.Heblo.Tests.Features.Catalog.Infrastructure;
 /// merged catalog through a catalog-wide merge that runs after a debounce, so without a direct
 /// cache patch the UI refetch that follows a toggle reads the old value.
 /// </summary>
-public class CatalogCacheStoreTopProductTests
+public class CatalogCacheStoreNdTests
 {
     private const string ProductCode = "PROD001";
     private const string OtherProductCode = "PROD002";
@@ -44,16 +44,16 @@ public class CatalogCacheStoreTopProductTests
     private static ErpStock ErpStockFor(string productCode, int id) =>
         new() { ProductCode = productCode, ProductName = productCode, ProductId = id, Stock = 1 };
 
-    private static CatalogAttributes AttributesFor(string productCode, int id, bool isTopProduct) =>
-        new() { ProductCode = productCode, ProductId = id, IsTopProduct = isTopProduct };
+    private static CatalogAttributes AttributesFor(string productCode, int id, bool isNd) =>
+        new() { ProductCode = productCode, ProductId = id, IsNd = isNd };
 
-    private async Task<(CatalogCacheStore store, CatalogMergeService merge)> CreateMergedCatalog(bool isTopProduct)
+    private async Task<(CatalogCacheStore store, CatalogMergeService merge)> CreateMergedCatalog(bool isNd)
     {
         var (store, merge) = Create();
         store.SetErpStockData(new List<ErpStock> { ErpStockFor(ProductCode, 1), ErpStockFor(OtherProductCode, 2) });
         store.SetCatalogAttributesData(new List<CatalogAttributes>
         {
-            AttributesFor(ProductCode, 1, isTopProduct),
+            AttributesFor(ProductCode, 1, isNd),
             AttributesFor(OtherProductCode, 2, false),
         });
         await merge.ExecutePriorityMergeAsync();
@@ -63,100 +63,100 @@ public class CatalogCacheStoreTopProductTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task ApplyTopProduct_UpdatesTheMergedCatalogImmediately(bool isTopProduct)
+    public async Task ApplyNd_UpdatesTheMergedCatalogImmediately(bool isNd)
     {
         // Arrange
-        var (store, _) = await CreateMergedCatalog(isTopProduct: !isTopProduct);
+        var (store, _) = await CreateMergedCatalog(isNd: !isNd);
 
         // Act
-        await store.ApplyTopProductAsync(ProductCode, isTopProduct);
+        await store.ApplyNdAsync(ProductCode, isNd);
 
         // Assert
         store.GetCatalogData().Single(p => p.ProductCode == ProductCode)
-            .Properties.IsTopProduct.Should().Be(isTopProduct);
+            .Properties.IsNd.Should().Be(isNd);
     }
 
     [Fact]
-    public async Task ApplyTopProduct_LeavesOtherProductsUntouched()
+    public async Task ApplyNd_LeavesOtherProductsUntouched()
     {
         // Arrange
-        var (store, _) = await CreateMergedCatalog(isTopProduct: false);
+        var (store, _) = await CreateMergedCatalog(isNd: false);
 
         // Act
-        await store.ApplyTopProductAsync(ProductCode, true);
+        await store.ApplyNdAsync(ProductCode, true);
 
         // Assert
         store.GetCatalogData().Single(p => p.ProductCode == OtherProductCode)
-            .Properties.IsTopProduct.Should().BeFalse();
+            .Properties.IsNd.Should().BeFalse();
     }
 
     [Fact]
-    public async Task ApplyTopProduct_DoesNotMutateAggregatesHeldByConcurrentReaders()
+    public async Task ApplyNd_DoesNotMutateAggregatesHeldByConcurrentReaders()
     {
         // Arrange
-        var (store, _) = await CreateMergedCatalog(isTopProduct: false);
+        var (store, _) = await CreateMergedCatalog(isNd: false);
         var snapshotHeldByReader = store.GetCatalogData();
         var aggregateHeldByReader = snapshotHeldByReader.Single(p => p.ProductCode == ProductCode);
 
         // Act
-        await store.ApplyTopProductAsync(ProductCode, true);
+        await store.ApplyNdAsync(ProductCode, true);
 
         // Assert
-        aggregateHeldByReader.Properties.IsTopProduct.Should().BeFalse();
-        snapshotHeldByReader.Single(p => p.ProductCode == ProductCode).Properties.IsTopProduct.Should().BeFalse();
+        aggregateHeldByReader.Properties.IsNd.Should().BeFalse();
+        snapshotHeldByReader.Single(p => p.ProductCode == ProductCode).Properties.IsNd.Should().BeFalse();
     }
 
     [Fact]
-    public async Task ApplyTopProduct_NewFlagSurvivesTheNextMerge()
+    public async Task ApplyNd_NewFlagSurvivesTheNextMerge()
     {
         // Arrange - the attributes source cache still holds the pre-toggle value, and every merge
         // rebuilds the aggregates from the source caches
-        var (store, merge) = await CreateMergedCatalog(isTopProduct: false);
+        var (store, merge) = await CreateMergedCatalog(isNd: false);
 
         // Act
-        await store.ApplyTopProductAsync(ProductCode, true);
+        await store.ApplyNdAsync(ProductCode, true);
         await merge.ExecutePriorityMergeAsync();
 
         // Assert
         store.GetCatalogData().Single(p => p.ProductCode == ProductCode)
-            .Properties.IsTopProduct.Should().BeTrue();
+            .Properties.IsNd.Should().BeTrue();
     }
 
     [Fact]
-    public async Task ApplyTopProduct_PatchesOnlyTheProductsAttributesInTheSourceCache()
+    public async Task ApplyNd_PatchesOnlyTheProductsAttributesInTheSourceCache()
     {
         // Arrange
-        var (store, _) = await CreateMergedCatalog(isTopProduct: false);
+        var (store, _) = await CreateMergedCatalog(isNd: false);
         var previousList = store.GetCatalogAttributesData();
         var previousEntry = previousList.Single(a => a.ProductCode == ProductCode);
 
         // Act
-        await store.ApplyTopProductAsync(ProductCode, true);
+        await store.ApplyNdAsync(ProductCode, true);
 
         // Assert
         var attributes = store.GetCatalogAttributesData();
-        attributes.Single(a => a.ProductCode == ProductCode).IsTopProduct.Should().BeTrue();
-        attributes.Single(a => a.ProductCode == OtherProductCode).IsTopProduct.Should().BeFalse();
-        previousEntry.IsTopProduct.Should().BeFalse();
-        previousList.Single(a => a.ProductCode == ProductCode).IsTopProduct.Should().BeFalse();
+        attributes.Single(a => a.ProductCode == ProductCode).IsNd.Should().BeTrue();
+        attributes.Single(a => a.ProductCode == OtherProductCode).IsNd.Should().BeFalse();
+        previousEntry.IsNd.Should().BeFalse();
+        previousList.Single(a => a.ProductCode == ProductCode).IsNd.Should().BeFalse();
     }
 
     [Fact]
-    public async Task ApplyTopProduct_SchedulesAMergeSoARacingMergeConverges()
+    public async Task ApplyNd_SchedulesAMergeSoARacingMergeConverges()
     {
         // Arrange - a merge already in flight may install a list built from the old flag; a debounced merge converges
-        var (store, _) = await CreateMergedCatalog(isTopProduct: false);
+        var (store, _) = await CreateMergedCatalog(isNd: false);
         _schedulerMock.Invocations.Clear();
 
         // Act
-        await store.ApplyTopProductAsync(ProductCode, true);
+        await store.ApplyNdAsync(ProductCode, true);
 
         // Assert
-        _schedulerMock.Verify(s => s.ScheduleMerge("TopProductWriteBack"), Times.Once);
+        _schedulerMock.Verify(s => s.ScheduleMerge("NdWriteBack"), Times.Once);
     }
 
     [Fact]
-    public async Task ApplyTopProduct_ProductWithoutAttributesEntry_StillSurvivesTheNextMerge()
+    public async Task ApplyNd_ProductWithoutAttributesEntry_StillSurvivesTheNextMerge()
     {
         // Arrange - a product whose only attribute row is the Top flag is absent from the attributes
         // query, so MergeAttributes skips it and the merge keeps the previous aggregate's value
@@ -166,36 +166,36 @@ public class CatalogCacheStoreTopProductTests
         await merge.ExecutePriorityMergeAsync();
 
         // Act
-        await store.ApplyTopProductAsync(ProductCode, true);
+        await store.ApplyNdAsync(ProductCode, true);
         await merge.ExecutePriorityMergeAsync();
 
         // Assert
         store.GetCatalogData().Single(p => p.ProductCode == ProductCode)
-            .Properties.IsTopProduct.Should().BeTrue();
+            .Properties.IsNd.Should().BeTrue();
     }
 
     [Fact]
-    public async Task ApplyTopProduct_UnknownProduct_ChangesNothing()
+    public async Task ApplyNd_UnknownProduct_ChangesNothing()
     {
         // Arrange
-        var (store, _) = await CreateMergedCatalog(isTopProduct: false);
+        var (store, _) = await CreateMergedCatalog(isNd: false);
 
         // Act
-        await store.ApplyTopProductAsync("MISSING", true);
+        await store.ApplyNdAsync("MISSING", true);
 
         // Assert
-        store.GetCatalogData().Should().OnlyContain(p => !p.Properties.IsTopProduct);
-        store.GetCatalogAttributesData().Should().OnlyContain(a => !a.IsTopProduct);
+        store.GetCatalogData().Should().OnlyContain(p => !p.Properties.IsNd);
+        store.GetCatalogAttributesData().Should().OnlyContain(a => !a.IsNd);
     }
 
     [Fact]
-    public async Task ApplyTopProduct_BlankProductCode_Throws()
+    public async Task ApplyNd_BlankProductCode_Throws()
     {
         // Arrange
         var (store, _) = Create();
 
         // Act
-        var act = () => store.ApplyTopProductAsync(" ", true);
+        var act = () => store.ApplyNdAsync(" ", true);
 
         // Assert
         await act.Should().ThrowAsync<ArgumentException>();

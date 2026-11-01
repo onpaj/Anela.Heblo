@@ -17,5 +17,5 @@ public record CatalogProperties
 
     public Cooling Cooling { get; set; } = Cooling.None;
 
-    public bool IsTopProduct { get; set; } = false;
+    public bool IsNd { get; set; } = false;
 }

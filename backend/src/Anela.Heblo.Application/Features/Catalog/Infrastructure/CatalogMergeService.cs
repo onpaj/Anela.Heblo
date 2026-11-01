@@ -185,7 +185,7 @@ public sealed class CatalogMergeService
             product.MinimalManufactureQuantity = attributes.MinimalManufactureQuantity;
             product.Properties.AllowedResiduePercentage = attributes.AllowedResiduePercentage;
             product.Properties.Cooling = attributes.Cooling;
-            product.Properties.IsTopProduct = attributes.IsTopProduct;
+            product.Properties.IsNd = attributes.IsNd;
         }
     }
 

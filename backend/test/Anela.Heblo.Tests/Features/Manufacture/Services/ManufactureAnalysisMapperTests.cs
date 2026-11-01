@@ -107,20 +107,20 @@ public class ManufactureAnalysisMapperTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void MapToDto_CarriesIsTopProductFromCatalogProperties(bool isTopProduct)
+    public void MapToDto_CarriesIsNdFromCatalogProperties(bool isNd)
     {
         // Arrange
         var catalogItem = new ProductCatalogSnapshot
         {
             ProductCode = "TOP001",
-            Properties = new ProductPropertiesSnapshot { IsTopProduct = isTopProduct }
+            Properties = new ProductPropertiesSnapshot { IsNd = isNd }
         };
 
         // Act
         var result = _mapper.MapToDto(catalogItem, ManufacturingStockSeverity.Adequate, 1, 1, 1, 1, false);
 
         // Assert
-        result.IsTopProduct.Should().Be(isTopProduct);
+        result.IsNd.Should().Be(isNd);
     }
 
     [Fact]

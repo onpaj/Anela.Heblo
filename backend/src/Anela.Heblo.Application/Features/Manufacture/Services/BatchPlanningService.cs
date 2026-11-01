@@ -246,7 +246,7 @@ public class BatchPlanningService : IBatchPlanningService
             UserFixedQuantity = constraint?.FixedQuantity,
             WasOptimized = false,
             OptimizationNote = "",
-            IsTopProduct = product.Properties.IsTopProduct
+            IsNd = product.Properties.IsNd
         };
     }
 

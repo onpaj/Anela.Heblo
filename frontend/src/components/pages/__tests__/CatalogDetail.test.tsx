@@ -21,7 +21,7 @@ jest.mock("../../../api/hooks/useJournal", () => ({
   useCreateJournalTag: jest.fn(),
 }));
 
-// The top-product toggle reads the user's permissions; a plain function survives CRA's resetMocks
+// The ND toggle reads the user's permissions; a plain function survives CRA's resetMocks
 jest.mock("../../../auth/PermissionsContext", () => ({
   usePermissionsContext: () => ({ hasPermission: () => true }),
 }));

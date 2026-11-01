@@ -602,17 +602,17 @@ public sealed class CatalogCacheStore
 
     #endregion
 
-    #region Top Product Write-Back
+    #region ND Write-Back
 
     /// <summary>
-    /// Applies a Top product flag that the ERP has just accepted to the merged catalog cache AND to
+    /// Applies an ND flag that the ERP has just accepted to the merged catalog cache AND to
     /// the attributes source cache, for a single product and without scheduling a merge.
     ///
     /// The flag only reaches the merged catalog through a catalog-wide merge that runs after a
     /// debounce, so without this the UI refetch right after a toggle reads the old value. Patching
     /// the source cache as well keeps the next merge from reverting it.
     /// </summary>
-    public async Task ApplyTopProductAsync(string productCode, bool isTopProduct)
+    public async Task ApplyNdAsync(string productCode, bool isNd)
     {
         if (string.IsNullOrWhiteSpace(productCode))
         {
@@ -621,27 +621,27 @@ public sealed class CatalogCacheStore
 
         lock (_sourceCacheLock)
         {
-            ApplyTopProductToAttributesSource(productCode, isTopProduct);
+            ApplyNdToAttributesSource(productCode, isNd);
         }
 
         // Same guard the merge uses, so a merge completing mid-patch is not reverted either.
         await _cacheReplacementSemaphore.WaitAsync();
         try
         {
-            ApplyTopProductToMergedCache(CurrentCatalogCacheKey, productCode, isTopProduct);
-            ApplyTopProductToMergedCache(StaleCatalogCacheKey, productCode, isTopProduct);
+            ApplyNdToMergedCache(CurrentCatalogCacheKey, productCode, isNd);
+            ApplyNdToMergedCache(StaleCatalogCacheKey, productCode, isNd);
         }
         finally
         {
             _cacheReplacementSemaphore.Release();
         }
 
-        _mergeScheduler.ScheduleMerge("TopProductWriteBack");
+        _mergeScheduler.ScheduleMerge("NdWriteBack");
 
-        _logger.LogInformation("Applied Top product flag to catalog caches for {ProductCode}: {IsTopProduct}", productCode, isTopProduct);
+        _logger.LogInformation("Applied ND flag to catalog caches for {ProductCode}: {IsNd}", productCode, isNd);
     }
 
-    private void ApplyTopProductToAttributesSource(string productCode, bool isTopProduct)
+    private void ApplyNdToAttributesSource(string productCode, bool isNd)
     {
         var current = _cache.Get<List<CatalogAttributes>>(CachedCatalogAttributesDataKey);
         var index = current?.FindIndex(a => a.ProductCode == productCode) ?? -1;
@@ -654,7 +654,7 @@ public sealed class CatalogCacheStore
         }
 
         var replacement = current[index].Clone();
-        replacement.IsTopProduct = isTopProduct;
+        replacement.IsNd = isNd;
 
         var updated = new List<CatalogAttributes>(current) { [index] = replacement };
 
@@ -663,7 +663,7 @@ public sealed class CatalogCacheStore
         _cache.Set(CachedCatalogAttributesDataKey, updated);
     }
 
-    private void ApplyTopProductToMergedCache(string cacheKey, string productCode, bool isTopProduct)
+    private void ApplyNdToMergedCache(string cacheKey, string productCode, bool isNd)
     {
         var products = _cache.Get<List<CatalogAggregate>>(cacheKey);
         var index = products?.FindIndex(p => p.ProductCode == productCode) ?? -1;
@@ -675,7 +675,7 @@ public sealed class CatalogCacheStore
         // Never mutate an aggregate that is live in the cache - see ApplyStockTakingToMergedCache.
         // Clone() copies Properties, so writing to the clone cannot reach the cached instance.
         var patched = products[index].Clone();
-        patched.Properties.IsTopProduct = isTopProduct;
+        patched.Properties.IsNd = isNd;
 
         var updated = new List<CatalogAggregate>(products) { [index] = patched };
 

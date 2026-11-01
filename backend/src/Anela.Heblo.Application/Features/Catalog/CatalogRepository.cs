@@ -180,8 +180,8 @@ public sealed class CatalogRepository : ICatalogRepository
         }
     }
 
-    public Task ApplyTopProductFlagAsync(string productCode, bool isTopProduct) =>
-        _cacheStore.ApplyTopProductAsync(productCode, isTopProduct);
+    public Task ApplyNdFlagAsync(string productCode, bool isNd) =>
+        _cacheStore.ApplyNdAsync(productCode, isNd);
 
     // --- Load date properties ---
 

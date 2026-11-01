@@ -44,7 +44,7 @@ internal static class CatalogAggregateSnapshotMapper
                 BatchSize = source.Properties.BatchSize,
                 ExpirationMonths = source.Properties.ExpirationMonths,
                 AllowedResiduePercentage = source.Properties.AllowedResiduePercentage,
-                IsTopProduct = source.Properties.IsTopProduct,
+                IsNd = source.Properties.IsNd,
             },
             SalesHistory = source.SalesHistory
                 .Select(s => new ProductSalesRecordSnapshot { Date = s.Date, AmountB2B = s.AmountB2B, AmountB2C = s.AmountB2C })

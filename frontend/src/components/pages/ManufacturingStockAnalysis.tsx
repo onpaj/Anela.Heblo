@@ -15,7 +15,7 @@ import {
   Plus,
   Check,
 } from "lucide-react";
-import TopProductStar from "../common/TopProductStar";
+import NdStar from "../common/NdStar";
 import {
   useManufacturingStockAnalysisQuery,
   GetManufacturingStockAnalysisRequest,
@@ -286,7 +286,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1 text-xs text-gray-900 dark:text-graphite-text font-medium">
                 <span className="truncate">{item.name}</span>
-                <TopProductStar isTopProduct={item.isTopProduct} />
+                <NdStar isNd={item.isNd} />
               </div>
               <div className="text-xs text-gray-500 dark:text-graphite-muted">{item.code}</div>
               {item.productFamily && <div className="text-xs text-gray-400 dark:text-graphite-faint">{item.productFamily}</div>}
@@ -686,7 +686,7 @@ const ManufacturingStockAnalysis: React.FC = () => {
                 <div className="flex-1 min-w-0 pl-6">
                   <div className="flex items-center gap-1 text-xs text-gray-700 dark:text-graphite-muted font-medium">
                     <span className="truncate">{subItem.name}</span>
-                    <TopProductStar isTopProduct={subItem.isTopProduct} />
+                    <NdStar isNd={subItem.isNd} />
                   </div>
                   <div className="text-xs text-gray-400 dark:text-graphite-faint">{subItem.code}</div>
                 </div>

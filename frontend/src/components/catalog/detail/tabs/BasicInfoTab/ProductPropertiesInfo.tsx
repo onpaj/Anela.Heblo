@@ -2,7 +2,7 @@ import React from "react";
 import { Layers, Settings } from "lucide-react";
 import { CatalogItemDto } from "../../../../../api/hooks/useCatalog";
 import { Cooling } from "../../../../../api/generated/api-client";
-import TopProductToggle from "./TopProductToggle";
+import NdToggle from "./NdToggle";
 
 interface ProductPropertiesInfoProps {
   item: CatalogItemDto;
@@ -96,9 +96,9 @@ const ProductPropertiesInfo: React.FC<ProductPropertiesInfoProps> = ({
             </span>
           </div>
 
-          <TopProductToggle
+          <NdToggle
             productCode={item.productCode ?? ""}
-            isTopProduct={item.properties?.isTopProduct ?? false}
+            isNd={item.properties?.isNd ?? false}
           />
         </div>
       </div>

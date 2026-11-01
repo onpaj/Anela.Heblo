@@ -2445,8 +2445,8 @@ export class ApiClient {
         return Promise.resolve<RecalculateProductWeightResponse>(null as any);
     }
 
-    catalog_SetTopProduct(productCode: string, request: SetTopProductRequest): Promise<SetTopProductResponse> {
-        let url_ = this.baseUrl + "/api/Catalog/{productCode}/top-product";
+    catalog_SetNd(productCode: string, request: SetNdRequest): Promise<SetNdResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/{productCode}/nd";
         if (productCode === undefined || productCode === null)
             throw new Error("The parameter 'productCode' must be defined.");
         url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
@@ -2464,18 +2464,18 @@ export class ApiClient {
         };
 
         return this.http.fetch(url_, options_).then((_response: Response) => {
-            return this.processCatalog_SetTopProduct(_response);
+            return this.processCatalog_SetNd(_response);
         });
     }
 
-    protected processCatalog_SetTopProduct(response: Response): Promise<SetTopProductResponse> {
+    protected processCatalog_SetNd(response: Response): Promise<SetNdResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = SetTopProductResponse.fromJS(resultData200);
+            result200 = SetNdResponse.fromJS(resultData200);
             return result200;
             });
         } else if (status !== 200 && status !== 204) {
@@ -2483,7 +2483,7 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<SetTopProductResponse>(null as any);
+        return Promise.resolve<SetNdResponse>(null as any);
     }
 
     catalog_RecalculateProductWeight2(productCode: string): Promise<RecalculateProductWeightResponse> {
@@ -16131,7 +16131,7 @@ export enum ErrorCodes {
     AbraIntegrationFailed = "AbraIntegrationFailed",
     ShoptetSyncFailed = "ShoptetSyncFailed",
     StockTakingFailed = "StockTakingFailed",
-    TopProductWriteFailed = "TopProductWriteFailed",
+    NdWriteFailed = "NdWriteFailed",
     TransportBoxNotFound = "TransportBoxNotFound",
     TransportBoxStateChangeError = "TransportBoxStateChangeError",
     TransportBoxCreationError = "TransportBoxCreationError",
@@ -20384,7 +20384,7 @@ export class PropertiesDto implements IPropertiesDto {
     batchSize?: number;
     seasonMonths?: number[];
     cooling?: Cooling;
-    isTopProduct?: boolean;
+    isNd?: boolean;
 
     constructor(data?: IPropertiesDto) {
         if (data) {
@@ -20406,7 +20406,7 @@ export class PropertiesDto implements IPropertiesDto {
                     this.seasonMonths!.push(item);
             }
             this.cooling = _data["cooling"];
-            this.isTopProduct = _data["isTopProduct"];
+            this.isNd = _data["isNd"];
         }
     }
 
@@ -20428,7 +20428,7 @@ export class PropertiesDto implements IPropertiesDto {
                 data["seasonMonths"].push(item);
         }
         data["cooling"] = this.cooling;
-        data["isTopProduct"] = this.isTopProduct;
+        data["isNd"] = this.isNd;
         return data;
     }
 }
@@ -20439,7 +20439,7 @@ export interface IPropertiesDto {
     batchSize?: number;
     seasonMonths?: number[];
     cooling?: Cooling;
-    isTopProduct?: boolean;
+    isNd?: boolean;
 }
 
 export class LotDto implements ILotDto {
@@ -22147,11 +22147,11 @@ export interface IRecalculateProductWeightRequest {
     productCode?: string | undefined;
 }
 
-export class SetTopProductResponse extends BaseResponse implements ISetTopProductResponse {
+export class SetNdResponse extends BaseResponse implements ISetNdResponse {
     productCode?: string;
-    isTopProduct?: boolean;
+    isNd?: boolean;
 
-    constructor(data?: ISetTopProductResponse) {
+    constructor(data?: ISetNdResponse) {
         super(data);
     }
 
@@ -22159,13 +22159,13 @@ export class SetTopProductResponse extends BaseResponse implements ISetTopProduc
         super.init(_data);
         if (_data) {
             this.productCode = _data["productCode"];
-            this.isTopProduct = _data["isTopProduct"];
+            this.isNd = _data["isNd"];
         }
     }
 
-    static override fromJS(data: any): SetTopProductResponse {
+    static override fromJS(data: any): SetNdResponse {
         data = typeof data === 'object' ? data : {};
-        let result = new SetTopProductResponse();
+        let result = new SetNdResponse();
         result.init(data);
         return result;
     }
@@ -22173,22 +22173,22 @@ export class SetTopProductResponse extends BaseResponse implements ISetTopProduc
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["productCode"] = this.productCode;
-        data["isTopProduct"] = this.isTopProduct;
+        data["isNd"] = this.isNd;
         super.toJSON(data);
         return data;
     }
 }
 
-export interface ISetTopProductResponse extends IBaseResponse {
+export interface ISetNdResponse extends IBaseResponse {
     productCode?: string;
-    isTopProduct?: boolean;
+    isNd?: boolean;
 }
 
-export class SetTopProductRequest implements ISetTopProductRequest {
+export class SetNdRequest implements ISetNdRequest {
     productCode?: string;
-    isTopProduct?: boolean;
+    isNd?: boolean;
 
-    constructor(data?: ISetTopProductRequest) {
+    constructor(data?: ISetNdRequest) {
         if (data) {
             for (var property in data) {
                 if (data.hasOwnProperty(property))
@@ -22200,13 +22200,13 @@ export class SetTopProductRequest implements ISetTopProductRequest {
     init(_data?: any) {
         if (_data) {
             this.productCode = _data["productCode"];
-            this.isTopProduct = _data["isTopProduct"];
+            this.isNd = _data["isNd"];
         }
     }
 
-    static fromJS(data: any): SetTopProductRequest {
+    static fromJS(data: any): SetNdRequest {
         data = typeof data === 'object' ? data : {};
-        let result = new SetTopProductRequest();
+        let result = new SetNdRequest();
         result.init(data);
         return result;
     }
@@ -22214,14 +22214,14 @@ export class SetTopProductRequest implements ISetTopProductRequest {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["productCode"] = this.productCode;
-        data["isTopProduct"] = this.isTopProduct;
+        data["isNd"] = this.isNd;
         return data;
     }
 }
 
-export interface ISetTopProductRequest {
+export interface ISetNdRequest {
     productCode?: string;
-    isTopProduct?: boolean;
+    isNd?: boolean;
 }
 
 export class ListCatalogDocumentsResponse extends BaseResponse implements IListCatalogDocumentsResponse {
@@ -30711,7 +30711,7 @@ export class BatchPlanItemDto implements IBatchPlanItemDto {
     wasOptimized?: boolean;
     optimizationNote?: string;
     enabled?: boolean;
-    isTopProduct?: boolean;
+    isNd?: boolean;
 
     constructor(data?: IBatchPlanItemDto) {
         if (data) {
@@ -30741,7 +30741,7 @@ export class BatchPlanItemDto implements IBatchPlanItemDto {
             this.wasOptimized = _data["wasOptimized"];
             this.optimizationNote = _data["optimizationNote"];
             this.enabled = _data["enabled"];
-            this.isTopProduct = _data["isTopProduct"];
+            this.isNd = _data["isNd"];
         }
     }
 
@@ -30771,7 +30771,7 @@ export class BatchPlanItemDto implements IBatchPlanItemDto {
         data["wasOptimized"] = this.wasOptimized;
         data["optimizationNote"] = this.optimizationNote;
         data["enabled"] = this.enabled;
-        data["isTopProduct"] = this.isTopProduct;
+        data["isNd"] = this.isNd;
         return data;
     }
 }
@@ -30794,7 +30794,7 @@ export interface IBatchPlanItemDto {
     wasOptimized?: boolean;
     optimizationNote?: string;
     enabled?: boolean;
-    isTopProduct?: boolean;
+    isNd?: boolean;
 }
 
 export class BatchPlanSummaryDto implements IBatchPlanSummaryDto {
@@ -33663,6 +33663,7 @@ export class ProductContribution implements IProductContribution {
     quantity?: number;
     difficulty?: number;
     weightedValue?: number;
+    isNd?: boolean;
 
     constructor(data?: IProductContribution) {
         if (data) {
@@ -33680,6 +33681,7 @@ export class ProductContribution implements IProductContribution {
             this.quantity = _data["quantity"];
             this.difficulty = _data["difficulty"];
             this.weightedValue = _data["weightedValue"];
+            this.isNd = _data["isNd"];
         }
     }
 
@@ -33697,6 +33699,7 @@ export class ProductContribution implements IProductContribution {
         data["quantity"] = this.quantity;
         data["difficulty"] = this.difficulty;
         data["weightedValue"] = this.weightedValue;
+        data["isNd"] = this.isNd;
         return data;
     }
 }
@@ -33707,6 +33710,7 @@ export interface IProductContribution {
     quantity?: number;
     difficulty?: number;
     weightedValue?: number;
+    isNd?: boolean;
 }
 
 export class ProductionDetail implements IProductionDetail {
@@ -34177,7 +34181,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
     productFamily?: string | undefined;
     severity?: ManufacturingStockSeverity;
     isConfigured?: boolean;
-    isTopProduct?: boolean;
+    isNd?: boolean;
 
     constructor(data?: IManufacturingStockItemDto) {
         if (data) {
@@ -34212,7 +34216,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
             this.productFamily = _data["productFamily"];
             this.severity = _data["severity"];
             this.isConfigured = _data["isConfigured"];
-            this.isTopProduct = _data["isTopProduct"];
+            this.isNd = _data["isNd"];
         }
     }
 
@@ -34247,7 +34251,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
         data["productFamily"] = this.productFamily;
         data["severity"] = this.severity;
         data["isConfigured"] = this.isConfigured;
-        data["isTopProduct"] = this.isTopProduct;
+        data["isNd"] = this.isNd;
         return data;
     }
 }
@@ -34275,7 +34279,7 @@ export interface IManufacturingStockItemDto {
     productFamily?: string | undefined;
     severity?: ManufacturingStockSeverity;
     isConfigured?: boolean;
-    isTopProduct?: boolean;
+    isNd?: boolean;
 }
 
 export enum ManufacturingStockSeverity {
