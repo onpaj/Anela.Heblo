@@ -93,11 +93,13 @@ public sealed class CatalogStockRefreshServiceTests
         return new CatalogStockRefreshService(
             erpStockClient ?? new Mock<IErpStockClient>().Object,
             eshopStockClient ?? new Mock<IEshopStockClient>().Object,
+            new Mock<Anela.Heblo.Domain.Features.Catalog.Eshop.IEshopProductClient>().Object,
             transportSource ?? new Mock<ICatalogTransportSource>().Object,
             purchaseSource ?? new Mock<ICatalogPurchaseSource>().Object,
             manufactureSource ?? new Mock<ICatalogManufactureSource>().Object,
             resilienceService ?? new Mock<ICatalogResilienceService>().Object,
             _cacheStore,
+            TimeProvider.System,
             _serviceLoggerMock.Object);
     }
 }

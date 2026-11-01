@@ -106,7 +106,7 @@ additionalFields) is used by the expedition list module.
   Warning) — affects shipment weight, not the packing view shown to staff.
 - Delivery address on the packing view falls back to the billing address when the order has none.
 - The order/shipment/customer Shoptet HTTP clients have no retry or resilience handler; only the
-  stock CSV client does.
+  stock supplies client does.
 - Remark appends are read-modify-write without concurrency control; a parallel staff edit in
   Shoptet admin can be overwritten.
 - `ShoptetOrdersSettings` state lists are config arrays with the binder merge/append trap

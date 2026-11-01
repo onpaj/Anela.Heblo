@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Catalog.Eshop;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
 using Anela.Heblo.Domain.Features.Catalog.Lots;
 using Anela.Heblo.Domain.Features.Catalog.Price;
@@ -213,6 +214,8 @@ public class CatalogAggregate : Entity<string>
     public double? Width { get; set; }
     public double? Depth { get; set; }
     public bool AtypicalShipping { get; set; }
+    /// <summary>Shoptet flags in effect now (empty when the product is not in the product sweep).</summary>
+    public IReadOnlyList<EshopProductFlag> EshopFlags { get; set; } = Array.Empty<EshopProductFlag>();
 
     public double GetConsumed(DateTime dateFrom, DateTime dateTo) => ConsumedHistory
         .Where(w => w.Date >= dateFrom && w.Date <= dateTo)

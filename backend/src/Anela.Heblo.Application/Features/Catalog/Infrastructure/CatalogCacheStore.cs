@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Catalog.Eshop;
 using System.Collections.Concurrent;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
@@ -35,6 +36,7 @@ public sealed class CatalogCacheStore
     private const string CachedPlannedDataKey = "CachedPlannedData";
     private const string CachedErpStockDataKey = "CachedErpStockData";
     private const string CachedEshopStockDataKey = "CachedEshopStockData";
+    private const string CachedEshopProductDataKey = "CachedEshopProductData";
     private const string CachedPurchaseHistoryDataKey = "CachedPurchaseHistoryData";
     private const string CachedManufactureHistoryDataKey = "CachedManufactureHistoryData";
     private const string CachedConsumedDataKey = "CachedConsumedData";
@@ -344,6 +346,16 @@ public sealed class CatalogCacheStore
         _cache.Set(CachedEshopStockDataKey, value);
         InvalidateSourceData(CachedEshopStockDataKey);
         SetLoadDateInCache(CachedEshopStockDataKey);
+    }
+
+    public IList<EshopProduct> GetEshopProductData() =>
+        _cache.Get<List<EshopProduct>>(CachedEshopProductDataKey) ?? new List<EshopProduct>();
+
+    public void SetEshopProductData(IList<EshopProduct> value)
+    {
+        _cache.Set(CachedEshopProductDataKey, value);
+        InvalidateSourceData(CachedEshopProductDataKey);
+        SetLoadDateInCache(CachedEshopProductDataKey);
     }
 
     public IList<CatalogPurchaseRecord> GetPurchaseHistoryData() =>

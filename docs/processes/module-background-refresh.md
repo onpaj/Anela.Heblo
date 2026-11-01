@@ -50,6 +50,7 @@ these tasks have no cron, no database row and no history across restarts.
 | `ICatalogRepository.RefreshOrderedData` | 5 min | 0 | 1 | Catalog | Ordered (purchase) stock |
 | `ICatalogRepository.RefreshPlannedData` | 5 min | 0 | 1 | Catalog | Planned production quantities |
 | `ICatalogRepository.RefreshEshopStockData` | 5 min | 0 | 1 | Catalog | Shoptet e-shop stock |
+| `ICatalogRepository.RefreshEshopProductData` | 1 h | 0 | 3 | Catalog | Shoptet product images, weight, flags (~70 s sweep) |
 | `ICatalogRepository.RefreshStockTakingData` | 5 min | 0 | 1 | Catalog | Stock-taking records |
 | `ICatalogRepository.RefreshErpStockData` | 10 min | 0 | 1 | Catalog | Flexi (ERP) stock levels |
 | `ICatalogRepository.RefreshEshopPricesData` | 30 min | 0 | 1 | Catalog | Shoptet prices |

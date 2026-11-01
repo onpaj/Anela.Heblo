@@ -1,12 +1,10 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json;
+using Anela.Heblo.Adapters.ShoptetApi.Products.Model;
 using Anela.Heblo.Adapters.ShoptetApi.Stock.Model;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
-using CsvHelper;
-using CsvHelper.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -18,6 +16,8 @@ public class ShoptetStockClient : IEshopStockClient
     private readonly IOptions<Orders.ShoptetApiSettings> _settings;
     private readonly IOptions<ShoptetStockClientOptions> _stockClientOptions;
     private readonly ILogger<ShoptetStockClient> _logger;
+
+    private const int SuppliesItemsPerPage = 1000;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -40,21 +40,30 @@ public class ShoptetStockClient : IEshopStockClient
     {
         const string OperationName = "ShoptetStockClient.ListAsync";
 
-        var url = _stockClientOptions.Value.Url;
-        var redactedUrl = RedactToken(url);
-        var client = _http;
+        var stockId = _settings.Value.StockId;
         var stopwatch = Stopwatch.StartNew();
 
         try
         {
-            using HttpResponseMessage response = await client.GetAsync(url, cancellationToken);
-            response.EnsureSuccessStatusCode();
+            var result = new List<EshopStock>();
+            var pageCount = 1;
+            for (var page = 1; page <= pageCount; page++)
+            {
+                var response = await _http.GetFromJsonAsync<GetSuppliesResponse>(
+                    $"/api/stocks/{stockId}/supplies?itemsPerPage={SuppliesItemsPerPage}&page={page}",
+                    JsonOptions,
+                    cancellationToken);
 
-            using Stream csvStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            using StreamReader reader = new StreamReader(csvStream, Encoding.GetEncoding("windows-1250"));
-            using CsvReader csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture) { Delimiter = ";" });
-            csv.Context.RegisterClassMap<StockDataMap>();
-            return csv.GetRecords<EshopStock>().ToList();
+                if (response?.Data is null)
+                {
+                    throw new InvalidOperationException($"Shoptet supplies page {page} has no data.");
+                }
+
+                result.AddRange(response.Data.Supplies.Select(MapSupply));
+                pageCount = Math.Max(pageCount, response.Data.Paginator?.PageCount ?? 1);
+            }
+
+            return result;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -63,9 +72,9 @@ public class ShoptetStockClient : IEshopStockClient
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex,
-                "Operation {Operation} failed. Url={Url} ExceptionType={ExceptionType} Message={Message} InnerExceptionType={InnerExceptionType} InnerMessage={InnerMessage} StatusCode={StatusCode} ElapsedMs={ElapsedMs}",
+                "Operation {Operation} failed. StockId={StockId} ExceptionType={ExceptionType} Message={Message} InnerExceptionType={InnerExceptionType} InnerMessage={InnerMessage} StatusCode={StatusCode} ElapsedMs={ElapsedMs}",
                 OperationName,
-                redactedUrl,
+                stockId,
                 ex.GetType().FullName,
                 ex.Message,
                 ex.InnerException?.GetType().FullName,
@@ -77,9 +86,9 @@ public class ShoptetStockClient : IEshopStockClient
         catch (Exception ex)
         {
             _logger.LogError(ex,
-                "Operation {Operation} failed. Url={Url} ExceptionType={ExceptionType} Message={Message} InnerExceptionType={InnerExceptionType} InnerMessage={InnerMessage} ElapsedMs={ElapsedMs}",
+                "Operation {Operation} failed. StockId={StockId} ExceptionType={ExceptionType} Message={Message} InnerExceptionType={InnerExceptionType} InnerMessage={InnerMessage} ElapsedMs={ElapsedMs}",
                 OperationName,
-                redactedUrl,
+                stockId,
                 ex.GetType().FullName,
                 ex.Message,
                 ex.InnerException?.GetType().FullName,
@@ -88,6 +97,13 @@ public class ShoptetStockClient : IEshopStockClient
             throw;
         }
     }
+
+    private static EshopStock MapSupply(SupplyItem item) => new()
+    {
+        Code = item.Code,
+        Stock = decimal.TryParse(item.Amount, NumberStyles.Any, CultureInfo.InvariantCulture, out var amount) ? amount : 0m,
+        Location = item.Location ?? string.Empty,
+    };
 
     public async Task UpdateStockAsync(string productCode, double amountChange, CancellationToken ct = default)
     {
@@ -175,60 +191,6 @@ public class ShoptetStockClient : IEshopStockClient
             var error = result.Errors[0];
             throw new HttpRequestException(
                 $"Shoptet stock set failed for {productCode}: [{error.ErrorCode}] {error.Message}");
-        }
-    }
-
-    internal static string RedactToken(string url)
-    {
-        if (string.IsNullOrEmpty(url))
-        {
-            return url;
-        }
-
-        var queryIndex = url.IndexOf('?');
-        if (queryIndex < 0)
-        {
-            return url;
-        }
-
-        var prefix = url.Substring(0, queryIndex + 1);
-        var query = url.Substring(queryIndex + 1);
-        var pairs = query.Split('&', StringSplitOptions.RemoveEmptyEntries);
-
-        for (var i = 0; i < pairs.Length; i++)
-        {
-            var equalsIndex = pairs[i].IndexOf('=');
-            var key = equalsIndex < 0 ? pairs[i] : pairs[i].Substring(0, equalsIndex);
-            if (key.Equals("token", StringComparison.OrdinalIgnoreCase) ||
-                key.Equals("hash", StringComparison.OrdinalIgnoreCase) ||
-                key.Equals("key", StringComparison.OrdinalIgnoreCase) ||
-                key.Equals("apiToken", StringComparison.OrdinalIgnoreCase) ||
-                key.Equals("access_token", StringComparison.OrdinalIgnoreCase))
-            {
-                pairs[i] = key + "=***";
-            }
-        }
-
-        return prefix + string.Join('&', pairs);
-    }
-
-    private class StockDataMap : ClassMap<EshopStock>
-    {
-        public StockDataMap()
-        {
-            Map(m => m.Code).Index(0);
-            Map(m => m.PairCode).Index(1);
-            Map(m => m.Name).Index(2);
-            Map(m => m.Stock).Index(25).TypeConverterOption.NullValues(string.Empty).Default(0m);
-            Map(m => m.NameSuffix).Index(15);
-            Map(m => m.Location).Index(26);
-            Map(m => m.DefaultImage).Index(3);
-            Map(m => m.Image).Index(4);
-            Map(m => m.Weight).Index(27);
-            Map(m => m.Height).Index(28);
-            Map(m => m.Depth).Index(29);
-            Map(m => m.Width).Index(30);
-            Map(m => m.AtypicalShipping).Index(31);
         }
     }
 }

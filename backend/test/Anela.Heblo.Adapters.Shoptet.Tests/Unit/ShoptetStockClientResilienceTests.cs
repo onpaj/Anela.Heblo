@@ -13,17 +13,14 @@ namespace Anela.Heblo.Adapters.Shoptet.Tests.Unit;
 
 public class ShoptetStockClientResilienceTests
 {
-    private const string CsvSample =
-        "CODE;PAIR;NAME;IMG;IMG2;X;X;X;X;X;X;X;X;X;X;NS;X;X;X;X;X;X;X;X;X;STOCK;LOC;W;H;D;WD;AT\n" +
-        "P001;;Product 1;;;;;;;;;;;;;;;;;;;;;;;5;A1;100;10;10;10;0\n";
+    private const string SuppliesSample =
+        "{\"data\":{\"supplies\":[{\"code\":\"P001\",\"amount\":\"5.000\",\"location\":\"A1\"}],\"paginator\":{\"pageCount\":1}},\"errors\":null}";
 
     private static IServiceProvider BuildProvider(
         Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> handler,
         Action<ShoptetStockClientOptions>? configureOptions = null,
         CapturingLoggerProvider? logCapture = null)
     {
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
         var services = new ServiceCollection();
         if (logCapture is not null)
         {
@@ -40,7 +37,6 @@ public class ShoptetStockClientResilienceTests
             ["ShoptetApi:BaseUrl"] = "https://api.myshoptet.com/",
             ["ShoptetApi:ApiToken"] = "test-token",
             ["ShoptetApi:StockId"] = "1",
-            ["StockClient:Url"] = "https://csv.example.com/export?token=secret-token-123",
             ["StockClient:TimeoutSeconds"] = "1",
             ["StockClient:MaxRetryAttempts"] = "3",
             ["StockClient:RetryBaseDelaySeconds"] = "0"
@@ -59,9 +55,9 @@ public class ShoptetStockClientResilienceTests
         return services.BuildServiceProvider();
     }
 
-    private static HttpResponseMessage CsvOk() => new(HttpStatusCode.OK)
+    private static HttpResponseMessage SuppliesOk() => new(HttpStatusCode.OK)
     {
-        Content = new StringContent(CsvSample, Encoding.GetEncoding("windows-1250"))
+        Content = new StringContent(SuppliesSample, Encoding.UTF8, "application/json")
     };
 
     private static HttpResponseMessage TransientFailure() => new(HttpStatusCode.ServiceUnavailable)
@@ -77,7 +73,7 @@ public class ShoptetStockClientResilienceTests
         var provider = BuildProvider((req, ct) =>
         {
             calls++;
-            return Task.FromResult(calls < 3 ? TransientFailure() : CsvOk());
+            return Task.FromResult(calls < 3 ? TransientFailure() : SuppliesOk());
         });
         var client = provider.GetRequiredService<IEshopStockClient>();
 
@@ -122,7 +118,7 @@ public class ShoptetStockClientResilienceTests
             calls++;
             cts.Cancel(); // simulate the caller cancelling between transport attempts
             await Task.Delay(20, ct); // throws OperationCanceledException
-            return CsvOk();
+            return SuppliesOk();
         });
         var client = provider.GetRequiredService<IEshopStockClient>();
 
@@ -143,7 +139,7 @@ public class ShoptetStockClientResilienceTests
         {
             calls++;
             await Task.Delay(TimeSpan.FromSeconds(5), ct);
-            return CsvOk();
+            return SuppliesOk();
         });
         var client = provider.GetRequiredService<IEshopStockClient>();
 
@@ -212,7 +208,7 @@ public class ShoptetStockClientResilienceTests
     }
 
     [Fact]
-    public async Task ListAsync_OnTerminalFailure_LogsRedactedUrl_AndStructuredFields()
+    public async Task ListAsync_OnTerminalFailure_LogsStructuredFields_WithoutApiToken()
     {
         // Arrange
         var capture = new CapturingLoggerProvider();
@@ -225,13 +221,9 @@ public class ShoptetStockClientResilienceTests
         try { await client.ListAsync(CancellationToken.None); } catch (HttpRequestException) { /* expected */ }
 
         // Assert
-        // Verify: token redaction works in logs
-        var redactedLogs = capture.Lines.Where(l => l.Contains("token=***")).ToList();
-        redactedLogs.Should().NotBeEmpty("should have at least one log with redacted token");
-
-        // Critically: no log line should contain the raw secret token
-        capture.Lines.Should().NotContain(l => l.Contains("secret-token-123"),
-            "raw secret token must never appear in any log line");
+        capture.Lines.Should().Contain(l => l.Contains("ShoptetStockClient.ListAsync") && l.Contains("StockId=1"));
+        capture.Lines.Should().NotContain(l => l.Contains("test-token"),
+            "the API token must never appear in any log line");
     }
 
     private sealed class DelegatingStubHandler : HttpMessageHandler
@@ -240,24 +232,5 @@ public class ShoptetStockClientResilienceTests
         public DelegatingStubHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> handler) => _handler = handler;
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
             => _handler(request, cancellationToken);
-    }
-
-    public class RedactTokenTests
-    {
-        [Theory]
-        [InlineData("https://csv.example.com/export?token=abc", "https://csv.example.com/export?token=***")]
-        [InlineData("https://csv.example.com/export?other=1&token=abc&x=y", "https://csv.example.com/export?other=1&token=***&x=y")]
-        [InlineData("https://csv.example.com/export?hash=zzz", "https://csv.example.com/export?hash=***")]
-        [InlineData("https://csv.example.com/export?TOKEN=upper", "https://csv.example.com/export?TOKEN=***")]
-        [InlineData("https://csv.example.com/export", "https://csv.example.com/export")]
-        [InlineData("", "")]
-        public void RedactToken_ReplacesSensitiveQueryValues(string input, string expected)
-        {
-            var actual = typeof(ShoptetStockClient)
-                .GetMethod("RedactToken", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!
-                .Invoke(null, new object[] { input }) as string;
-
-            actual.Should().Be(expected);
-        }
     }
 }

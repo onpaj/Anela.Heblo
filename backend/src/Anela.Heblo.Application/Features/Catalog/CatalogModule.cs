@@ -224,6 +224,11 @@ public static class CatalogModule
         );
 
         services.RegisterRefreshTask<ICatalogRepository>(
+            nameof(ICatalogRepository.RefreshEshopProductData),
+            (r, ct) => r.RefreshEshopProductData(ct)
+        );
+
+        services.RegisterRefreshTask<ICatalogRepository>(
             nameof(ICatalogRepository.RefreshPurchaseHistoryData),
             (r, ct) => r.RefreshPurchaseHistoryData(ct)
         );
