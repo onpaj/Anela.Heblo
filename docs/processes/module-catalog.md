@@ -84,7 +84,7 @@ container discard, read-only lists and statistics.
 | System | Read | Write |
 |---|---|---|
 | Flexi (ERP) | stock-to-date (warehouses 4/5/20), user queries 19, 21, 37, 38, 41, stock-movement lines, lots, BoM (kusovník) and set parts | ceník weight (`feed-product-weight`), BoM line order/phase (`flow-product-composition-order`); ERP stock taking via the Manufacture module |
-| Shoptet | product CSV export (stock), `GET /api/pricelists/{id}`, `GET /api/stocks/{id}/supplies` | `PATCH /api/stocks/{id}/movements` — deltas (`feed-stock-up`), absolute real stock (`flow-stock-taking`) |
+| Shoptet | `GET /api/products*` (product sweep, flags), `GET /api/pricelists/{id}`, `GET /api/stocks/{id}/supplies` | `PATCH /api/stocks/{id}/movements` — deltas (`feed-stock-up`), absolute real stock (`flow-stock-taking`) |
 | anela.cz Heureka XML feed | product URLs | — |
 | CUPS → Zebra ZD411 | — | raw ZPL labels |
 | Azure Blob Storage | — | product export snapshots |

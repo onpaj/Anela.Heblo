@@ -52,7 +52,7 @@ The real side effect is switched **off by default**: until feature flag
 0. If `ShoptetOrders:DoubleShotSwapHoldStatusId` is set: `GET /api/orders?statusId={hold}`, all
    pages (code, status, creation time). These held orders are processed first, regardless of
    lookback. A failed listing is logged as an Error and counted as a failed listing.
-1. Download the stock CSV (`IEshopStockClient.ListAsync`) and keep distinct codes matching the V
+1. Fetch stock supplies (`IEshopStockClient.ListAsync`) and keep distinct codes matching the V
    rule (`DoubleShotCodeRule`, `^SA\d+V$`; S code = same code with trailing `V` -> `S`).
 2. For each V code: `GET /api/orders?productCode={V}&creationTimeFrom={now - lookback}`, all
    pages. Lookback = `ShoptetOrders:DoubleShotSwapLookbackDays` (14, clamped to at least 1).
@@ -153,7 +153,7 @@ runtime in the admin UI (table `FeatureFlagOverrides`).
 - One sweep at a time (static lock, 2-minute wait); a second caller logs a warning and skips.
   Hangfire runs a single worker, so the job and a scheduled print never overlap; contention is
   only possible with the synchronous "Spustit tisk oprav" / "Tisknout zakazku" endpoints.
-- With the flag on, each picking-list print runs a sweep first (extra Shoptet calls: one stock-CSV
+- With the flag on, each picking-list print runs a sweep first (extra Shoptet calls: one stock-supplies
   download, one list call per V code, one detail call per eligible candidate order), capped at
   60 s. A print that hits the cap can still show V lines that the sweep did not reach.
 - A listing call that fails (429/5xx; the order client has no retry) hides that V code's orders

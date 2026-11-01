@@ -12,9 +12,9 @@ const EshopFlagChips: React.FC<EshopFlagChipsProps> = ({ flags }) => {
 
   return (
     <div className="flex flex-wrap gap-1 mt-1">
-      {flags.map((flag) => (
+      {flags.map((flag, index) => (
         <span
-          key={flag.code}
+          key={flag.code ?? `${flag.title}-${index}`}
           data-testid="eshop-flag-chip"
           className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-graphite-surface-2 dark:text-graphite-muted"
         >
