@@ -86,7 +86,7 @@ public class BatchPlanningServiceTests
     }
 
     [Fact]
-    public async Task CalculateBatchPlan_FlagsOnlyTopProductsInProductSizes()
+    public async Task CalculateBatchPlan_FlagsOnlyNdProductsInProductSizes()
     {
         // Arrange
         var request = new CalculateBatchPlanRequest
@@ -112,7 +112,7 @@ public class BatchPlanningServiceTests
                 NetWeight = first.NetWeight,
                 MinimalManufactureQuantity = first.MinimalManufactureQuantity,
                 SalesHistory = first.SalesHistory,
-                Properties = new ProductPropertiesSnapshot { IsTopProduct = true }
+                Properties = new ProductPropertiesSnapshot { IsNd = true }
             },
             defaultProducts[1]
         };
@@ -124,8 +124,8 @@ public class BatchPlanningServiceTests
 
         // Assert
         Assert.True(result.Success);
-        Assert.True(result.ProductSizes.First(p => p.ProductCode == "PROD001").IsTopProduct);
-        Assert.False(result.ProductSizes.First(p => p.ProductCode == "PROD002").IsTopProduct);
+        Assert.True(result.ProductSizes.First(p => p.ProductCode == "PROD001").IsNd);
+        Assert.False(result.ProductSizes.First(p => p.ProductCode == "PROD002").IsNd);
     }
 
     [Fact]

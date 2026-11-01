@@ -5,7 +5,7 @@ using FluentAssertions;
 
 namespace Anela.Heblo.Adapters.Flexi.Tests.ProductAttributes;
 
-public class FlexiTopProductParserTests
+public class FlexiNdParserTests
 {
     [Theory]
     [InlineData("true")]
@@ -15,9 +15,9 @@ public class FlexiTopProductParserTests
     [InlineData("ano")]
     [InlineData("ANO")]
     [InlineData("yes")]
-    public void ParseIsTopProduct_WithTruthyValues_ReturnsTrue(string input)
+    public void ParseIsNd_WithTruthyValues_ReturnsTrue(string input)
     {
-        FlexiProductAttributesQueryClient.ParseIsTopProduct(input).Should().BeTrue();
+        FlexiProductAttributesQueryClient.ParseIsNd(input).Should().BeTrue();
     }
 
     [Theory]
@@ -28,8 +28,8 @@ public class FlexiTopProductParserTests
     [InlineData("0")]
     [InlineData("ne")]
     [InlineData("garbage")]
-    public void ParseIsTopProduct_WithFalsyOrMissingValues_ReturnsFalse(string? input)
+    public void ParseIsNd_WithFalsyOrMissingValues_ReturnsFalse(string? input)
     {
-        FlexiProductAttributesQueryClient.ParseIsTopProduct(input).Should().BeFalse();
+        FlexiProductAttributesQueryClient.ParseIsNd(input).Should().BeFalse();
     }
 }

@@ -43,7 +43,7 @@ On demand: `POST /api/manufacture-batch/calculate-batch-plan` (permission
    (`FindByIngredientAsync`, kusovník "where used"); for each one found in the catalog read
    `Stock.Total`, `Stock.Planned`, `NetWeight` (grams per piece) and `SalesHistory`.
 4. **Single-phase**: the product itself.
-   Each size also carries `IsTopProduct` (the Flexi "Top produkt" attribute from catalog
+   Each size also carries `IsNd` (the Flexi "ND" attribute from catalog
    properties) as a display-only flag; it does not affect the distribution.
 5. Optimise → per-size recommended pieces, future stock and coverage, summary.
 

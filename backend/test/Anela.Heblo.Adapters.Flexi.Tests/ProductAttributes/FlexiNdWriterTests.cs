@@ -8,16 +8,16 @@ using Rem.FlexiBeeSDK.Model.Response;
 
 namespace Anela.Heblo.Adapters.Flexi.Tests.ProductAttributes;
 
-public class FlexiTopProductWriterTests
+public class FlexiNdWriterTests
 {
-    private const int TopProductAttributeId = 90;
+    private const int NdAttributeId = 90;
 
     private readonly Mock<IProductAttributeClient> _client = new();
-    private readonly FlexiTopProductWriter _writer;
+    private readonly FlexiNdWriter _writer;
 
-    public FlexiTopProductWriterTests()
+    public FlexiNdWriterTests()
     {
-        _writer = new FlexiTopProductWriter(_client.Object);
+        _writer = new FlexiNdWriter(_client.Object);
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public class FlexiTopProductWriterTests
         // Assert
         _client.Verify(c => c.SetAsync(
             It.Is<ProductReference>(p => p.Code == "ABC123"),
-            TopProductAttributeId,
+            NdAttributeId,
             It.Is<ProductAttributeValue>(v => v.Kind == ProductAttributeValueKind.Boolean && v.ToString() == "True"),
             It.IsAny<CancellationToken>()), Times.Once);
         _client.Verify(c => c.ClearAsync(It.IsAny<ProductReference>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -54,7 +54,7 @@ public class FlexiTopProductWriterTests
         // Assert
         _client.Verify(c => c.ClearAsync(
             It.Is<ProductReference>(p => p.Code == "ABC123"),
-            TopProductAttributeId,
+            NdAttributeId,
             It.IsAny<CancellationToken>()), Times.Once);
         _client.Verify(c => c.SetAsync(It.IsAny<ProductReference>(), It.IsAny<int>(), It.IsAny<ProductAttributeValue>(), It.IsAny<CancellationToken>()), Times.Never);
     }

@@ -1,12 +1,12 @@
 using FluentValidation;
 
-namespace Anela.Heblo.Application.Features.Catalog.UseCases.SetTopProduct;
+namespace Anela.Heblo.Application.Features.Catalog.UseCases.SetNd;
 
-public class SetTopProductRequestValidator : AbstractValidator<SetTopProductRequest>
+public class SetNdRequestValidator : AbstractValidator<SetNdRequest>
 {
     private const int MaxProductCodeLength = 50;
 
-    public SetTopProductRequestValidator()
+    public SetNdRequestValidator()
     {
         RuleFor(x => x.ProductCode)
             .NotEmpty()

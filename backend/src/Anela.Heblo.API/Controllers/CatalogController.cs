@@ -9,7 +9,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductStatistics;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetWarehouseStatistics;
 using Anela.Heblo.Application.Features.Catalog.UseCases.RecalculateProductWeight;
-using Anela.Heblo.Application.Features.Catalog.UseCases.SetTopProduct;
+using Anela.Heblo.Application.Features.Catalog.UseCases.SetNd;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductCompositionOrder;
 using Microsoft.AspNetCore.Mvc;
@@ -190,11 +190,11 @@ public class CatalogController : BaseApiController
         return HandleResponse(response);
     }
 
-    [HttpPut("{productCode}/top-product")]
+    [HttpPut("{productCode}/nd")]
     [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
-    public async Task<ActionResult<SetTopProductResponse>> SetTopProduct(
+    public async Task<ActionResult<SetNdResponse>> SetNd(
         string productCode,
-        [FromBody] SetTopProductRequest request)
+        [FromBody] SetNdRequest request)
     {
         // The route is the source of truth for which product is changed
         request.ProductCode = productCode;

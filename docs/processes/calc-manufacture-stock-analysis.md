@@ -43,7 +43,7 @@ StockDaysAvailable), `sortDescending`, `salesMultiplier` (default 1.0), `isExpor
 1. Catalog cache (`IManufactureCatalogSource.GetAllAsync`, returning Manufacture-owned `ProductCatalogSnapshot` mapped from `CatalogAggregate` on the Catalog side) → items with `Type == Product`.
 2. Per item: sales history, stock, properties (`OptimalStockDaysSetup`, `StockMinSetup`,
    `BatchSize`), product family, manufacture history — all already merged by the catalog module
-   from Flexi, Shoptet and Heblo tables. `IsTopProduct` (Flexi "Top produkt" attribute) is
+   from Flexi, Shoptet and Heblo tables. `IsNd` (Flexi "ND" attribute) is
    passed through to each item as a display-only flag; it does not affect severity or ranking.
 3. Compute metrics → filter → sort → page; summary counts are over **all** analysed items.
 
