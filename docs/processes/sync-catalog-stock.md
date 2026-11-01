@@ -102,6 +102,8 @@ ERP stock and lots directly in the caches (see `flow-stock-taking`).
 - **`Available` is not "can be picked now"**: it includes transport and sklad výroby. Anything
   that deducts warehouse stock must use `WarehouseStock`. The API `StockDto` exposes no
   `manufactured` field, so the list's total cannot be reconciled from its own columns.
+- **CSV weight is cs-CZ kilograms, stored as grams.** Column 27 holds kg with a decimal comma (`0,035`); it is
+  parsed with cs-CZ and multiplied by 1000 (blank → null). The old invariant parser read `0,1` as 1.
 - **Ordered includes received orders without an invoice.** The `!InvoiceAcquired` branch keeps a
   Received/Completed order's lines in Ordered until the invoice is ticked, while the goods may
   already be in ERP stock — `EffectiveStock` can then count them twice. (Read from code.)

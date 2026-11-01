@@ -318,4 +318,41 @@ public class ShoptetStockClientTests
         item.GetProperty("amountChange").GetDouble().Should().Be(-15);
         item.TryGetProperty("realStock", out _).Should().BeFalse();
     }
+
+    [Fact]
+    public async Task ListAsync_WeightWithDecimalComma_ParsesKilogramsToGrams()
+    {
+        // Arrange
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        var weights = new[] { "0,035", "0,1", "0,25", "" };
+        var lines = new List<string> { string.Join(";", Enumerable.Range(0, 32).Select(i => $"h{i}")) };
+        for (var row = 0; row < weights.Length; row++)
+        {
+            var cols = Enumerable.Range(0, 32).Select(_ => "").ToArray();
+            cols[0] = $"CODE{row}";
+            cols[25] = "1";
+            cols[27] = weights[row];
+            cols[28] = "0";
+            cols[29] = "0";
+            cols[30] = "0";
+            cols[31] = "false";
+            lines.Add(string.Join(";", cols));
+        }
+        var body = Encoding.GetEncoding("windows-1250").GetBytes(string.Join("\r\n", lines) + "\r\n");
+        var http = new HttpClient(new FakeDelegatingHandler(_ => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent(body),
+        }));
+        var client = new ShoptetStockClient(
+            http,
+            Options.Create(new ShoptetApiSettings { StockId = 1 }),
+            Options.Create(new ShoptetStockClientOptions { Url = "https://fake.shoptet.cz/export/products.csv" }),
+            NullLogger<ShoptetStockClient>.Instance);
+
+        // Act
+        var result = await client.ListAsync(CancellationToken.None);
+
+        // Assert
+        result.Select(r => r.Weight).Should().Equal(35d, 100d, 250d, null);
+    }
 }

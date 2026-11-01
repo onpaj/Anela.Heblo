@@ -7,6 +7,7 @@ using Anela.Heblo.Adapters.ShoptetApi.Stock.Model;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using CsvHelper;
 using CsvHelper.Configuration;
+using CsvHelper.TypeConversion;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -224,11 +225,27 @@ public class ShoptetStockClient : IEshopStockClient
             Map(m => m.Location).Index(26);
             Map(m => m.DefaultImage).Index(3);
             Map(m => m.Image).Index(4);
-            Map(m => m.Weight).Index(27);
+            Map(m => m.Weight).Index(27).TypeConverter<KilogramsToGramsConverter>();
             Map(m => m.Height).Index(28);
             Map(m => m.Depth).Index(29);
             Map(m => m.Width).Index(30);
             Map(m => m.AtypicalShipping).Index(31);
+        }
+    }
+
+    /// <summary>Parses a cs-CZ decimal-comma kilogram value (e.g. "0,035") into grams; blank becomes null.</summary>
+    private class KilogramsToGramsConverter : DefaultTypeConverter
+    {
+        private static readonly CultureInfo CzechCulture = CultureInfo.GetCultureInfo("cs-CZ");
+
+        public override object? ConvertFromString(string? text, IReaderRow row, MemberMapData memberMapData)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return null;
+            }
+
+            return double.Parse(text, NumberStyles.Float, CzechCulture) * 1000;
         }
     }
 }
