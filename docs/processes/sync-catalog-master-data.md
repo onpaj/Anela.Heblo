@@ -68,7 +68,7 @@ Ticking or unticking "Top produkt" in the catalog detail (`PUT /api/Catalog/{pro
    | 86 | `ExpirationMonths` | int, else 0 |
    | 87 | `AllowedResiduePercentage` | double, else 0 |
    | 89 | `Cooling` | enum `Cooling` by name, else None |
-   | 90 (`TOPPRODUKT`) | `IsTopProduct` | true for `true`/`1`/`ano`/`yes` (case-insensitive), else false |
+   | 90 (`ND`, formerly `TOPPRODUKT`; matched by ID) | `IsTopProduct` | true for `true`/`1`/`ano`/`yes` (case-insensitive), else false |
 
 2. **Lots** — Flexi SDK lots client (all lots): id, product code, amount, expiration (date),
    lot code → `CatalogLot`. Flexi's "Entity LotsItem not found" is treated as no lots.

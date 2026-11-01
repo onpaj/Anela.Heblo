@@ -8,8 +8,8 @@ describe("TopProductStar", () => {
 
     const star = screen.getByTestId("top-product-star");
     expect(star).toBeInTheDocument();
-    expect(star).toHaveAttribute("title", "Top produkt");
-    expect(screen.getByLabelText("Top produkt")).toBeInTheDocument();
+    expect(star).toHaveAttribute("title", "ND – Nesmí dojít");
+    expect(screen.getByLabelText("ND – Nesmí dojít")).toBeInTheDocument();
   });
 
   it.each([false, null, undefined])(

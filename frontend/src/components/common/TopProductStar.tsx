@@ -1,7 +1,7 @@
 import React from "react";
 import { Star } from "lucide-react";
 
-const TOP_PRODUCT_LABEL = "Top produkt";
+const TOP_PRODUCT_LABEL = "ND – Nesmí dojít";
 
 interface TopProductStarProps {
   isTopProduct?: boolean | null;

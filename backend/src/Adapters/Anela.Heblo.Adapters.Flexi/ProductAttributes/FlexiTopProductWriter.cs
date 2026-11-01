@@ -6,7 +6,7 @@ namespace Anela.Heblo.Adapters.Flexi.ProductAttributes;
 
 /// <summary>
 /// Stores the "top product" flag as Flexi product attribute <see cref="FlexiProductAttributesQueryClient.TopProductAttributeId"/>
-/// (TOPPRODUKT, boolean). Setting writes true; unsetting deletes the attribute row.
+/// (ND, boolean; formerly TOPPRODUKT, matched by ID not name). Setting writes true; unsetting deletes the attribute row.
 /// </summary>
 public class FlexiTopProductWriter : ICatalogTopProductWriter
 {

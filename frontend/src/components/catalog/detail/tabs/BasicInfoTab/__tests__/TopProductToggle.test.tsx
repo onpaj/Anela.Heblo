@@ -42,19 +42,27 @@ describe("TopProductToggle", () => {
     mutate.mockReset();
   });
 
+  it("explains the ND abbreviation in a help tooltip", () => {
+    arrange();
+
+    render(<TopProductToggle productCode="ABC" isTopProduct={false} />);
+
+    expect(screen.getByTestId("nd-help")).toHaveAttribute("title", "ND = Nesmí dojít");
+  });
+
   it("shows the current state of the flag", () => {
     arrange();
 
     render(<TopProductToggle productCode="ABC" isTopProduct={true} />);
 
-    expect(screen.getByRole("checkbox", { name: "Top produkt" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "ND" })).toBeChecked();
   });
 
   it("saves the opposite value when the checkbox is clicked", () => {
     arrange();
     render(<TopProductToggle productCode="ABC" isTopProduct={false} />);
 
-    fireEvent.click(screen.getByRole("checkbox", { name: "Top produkt" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "ND" }));
 
     expect(mutate).toHaveBeenCalledWith({ productCode: "ABC", isTopProduct: true });
   });
@@ -63,7 +71,7 @@ describe("TopProductToggle", () => {
     arrange({ canWrite: false });
     render(<TopProductToggle productCode="ABC" isTopProduct={true} />);
 
-    const checkbox = screen.getByRole("checkbox", { name: "Top produkt" });
+    const checkbox = screen.getByRole("checkbox", { name: "ND" });
     expect(checkbox).toBeChecked();
     expect(checkbox).toBeDisabled();
   });
@@ -75,7 +83,7 @@ describe("TopProductToggle", () => {
 
     render(<TopProductToggle productCode="ABC" isTopProduct={false} />);
 
-    const checkbox = screen.getByRole("checkbox", { name: "Top produkt" });
+    const checkbox = screen.getByRole("checkbox", { name: "ND" });
     expect(checkbox).toBeChecked();
     expect(checkbox).toBeDisabled();
   });
