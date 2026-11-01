@@ -12,6 +12,9 @@ namespace Anela.Heblo.Application.Features.Catalog.Infrastructure;
 public sealed class CatalogStockRefreshService
 {
     private readonly IErpStockClient _erpStockClient;
+    // One sweep at a time process-wide: two parallel sweeps would double the Shoptet request rate.
+    private static readonly SemaphoreSlim EshopProductRefreshGate = new(1, 1);
+
     private readonly IEshopStockClient _eshopStockClient;
     private readonly IEshopProductClient _eshopProductClient;
     private readonly ICatalogTransportSource _transportSource;
@@ -65,8 +68,21 @@ public sealed class CatalogStockRefreshService
     /// </summary>
     public async Task RefreshEshopProductData(CancellationToken ct)
     {
-        var products = await _eshopProductClient.ListAsync(ct);
-        _cacheStore.SetEshopProductData(products.ToList());
+        if (!await EshopProductRefreshGate.WaitAsync(0, ct))
+        {
+            _logger.LogInformation("Shoptet product refresh already running; skipping");
+            return;
+        }
+
+        try
+        {
+            var products = await _eshopProductClient.ListAsync(ct);
+            _cacheStore.SetEshopProductData(products.ToList());
+        }
+        finally
+        {
+            EshopProductRefreshGate.Release();
+        }
     }
 
     public async Task RefreshTransportData(CancellationToken ct)

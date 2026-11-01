@@ -270,6 +270,32 @@ public class CatalogRepositoryCacheOptimizationTests
         _mergeSchedulerMock.Verify(x => x.ScheduleMerge("CachedEshopProductData"), Times.Once);
     }
 
+    [Fact]
+    public async Task RefreshEshopProductData_AlreadyRunning_SkipsSecondCall()
+    {
+        var started = new TaskCompletionSource();
+        var release = new TaskCompletionSource();
+        var calls = 0;
+        _eshopProductClientMock.Setup(x => x.ListAsync(It.IsAny<CancellationToken>()))
+            .Returns(async () =>
+            {
+                Interlocked.Increment(ref calls);
+                started.SetResult();
+                await release.Task;
+                return (IReadOnlyList<EshopProduct>)new List<EshopProduct> { new() { Code = "P1" } };
+            });
+
+        var first = _repository.RefreshEshopProductData(CancellationToken.None);
+        await started.Task;
+        await _repository.RefreshEshopProductData(CancellationToken.None);
+        calls.Should().Be(1);
+        release.SetResult();
+        await first;
+
+        calls.Should().Be(1);
+        _cacheStore.GetEshopProductData().Should().ContainSingle();
+    }
+
     [Theory]
     [InlineData(typeof(HttpRequestException))]
     [InlineData(typeof(TimeoutException))]

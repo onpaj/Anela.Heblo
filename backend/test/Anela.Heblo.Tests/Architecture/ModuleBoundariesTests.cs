@@ -223,6 +223,10 @@ public class ModuleBoundariesTests
             "Anela.Heblo.Adapters.ShoptetApi.Stock.ShoptetStockClient -> Anela.Heblo.Domain.Features.Catalog.Stock.EshopStock",
             "Anela.Heblo.Adapters.ShoptetApi.Stock.ShoptetStockClient -> Anela.Heblo.Domain.Features.Catalog.Stock.EshopStockSupply",
 
+            // ShoptetProductClient implements IEshopProductClient and returns Catalog.Eshop types directly.
+            "Anela.Heblo.Adapters.ShoptetApi.Products.ShoptetProductClient -> Anela.Heblo.Domain.Features.Catalog.Eshop.EshopProduct",
+            "Anela.Heblo.Adapters.ShoptetApi.Products.ShoptetProductClient -> Anela.Heblo.Domain.Features.Catalog.Eshop.EshopProductFlag",
+
             // HeurekaProductFeedClient implements IProductEshopUrlSource and returns ProductEshopUrl.
             // The adapter is the mapping boundary; out of scope for this PR.
             "Anela.Heblo.Adapters.ShoptetApi.EshopUrl.HeurekaProductFeedClient -> Anela.Heblo.Domain.Features.Catalog.EshopUrl.ProductEshopUrl",

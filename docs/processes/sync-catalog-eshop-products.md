@@ -61,12 +61,17 @@ None yet (first production run pending deploy).
 ## Known quirks
 - A sweep is ~220 sequential calls, about 70 s, and shares the Shoptet token (and rate limit) with
   packing/expedition; never parallelise.
-- Not wrapped in `ICatalogResilienceService`: its 30 s timeout would abort every sweep and its retry
-  would restart it.
+- Deliberately not wrapped in `ICatalogResilienceService`: its 30 s per-operation timeout would abort
+  every ~70 s sweep, and its retry would restart the whole sweep (multiplying Shoptet load). The
+  client retries individual calls (429/5xx) itself and throws, leaving the previous cache.
 - Until the first sweep completes after a restart, products have no flags and take image/weight from
   the legacy CSV fields.
-- No overlap protection (see `job-background-refresh-hydration`): a force refresh during a scheduled
-  sweep runs a second sweep at the same time and doubles the request rate.
+- Overlap is skipped: `RefreshEshopProductData` holds a process-wide non-blocking gate
+  (`SemaphoreSlim(1,1)`); a force refresh or startup double-run during a sweep logs "Shoptet product
+  refresh already running; skipping" and returns (history shows it as Completed).
+  The background-refresh mechanism itself has no per-task overlap protection.
+- Why tier 3: `ReadinessTier` is 2 in Production and 1 in Staging; tiers above it load after
+  `/health/ready` is Healthy, so the ~70 s sweep never delays readiness.
 
 ## Code entry points
 - `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Products/ShoptetProductClient.cs` — the sweep
