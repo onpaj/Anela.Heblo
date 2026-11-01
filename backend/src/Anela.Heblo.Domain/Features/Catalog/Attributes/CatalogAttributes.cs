@@ -22,7 +22,7 @@ public class CatalogAttributes
 
     public Cooling Cooling { get; set; } = Cooling.None;
 
-    public bool IsTopProduct { get; set; } = false;
+    public bool IsNd { get; set; } = false;
 
     public CatalogAttributes Clone() => (CatalogAttributes)MemberwiseClone();
 }

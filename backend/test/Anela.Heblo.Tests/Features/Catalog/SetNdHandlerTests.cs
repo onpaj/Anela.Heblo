@@ -1,5 +1,5 @@
 using System.Linq.Expressions;
-using Anela.Heblo.Application.Features.Catalog.UseCases.SetTopProduct;
+using Anela.Heblo.Application.Features.Catalog.UseCases.SetNd;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
@@ -10,18 +10,18 @@ using Xunit;
 
 namespace Anela.Heblo.Tests.Features.Catalog;
 
-public class SetTopProductHandlerTests
+public class SetNdHandlerTests
 {
     private const string ProductCode = "PROD001";
 
     private readonly Mock<ICatalogRepository> _catalogRepositoryMock = new();
-    private readonly Mock<ICatalogTopProductWriter> _writerMock = new();
-    private readonly Mock<ILogger<SetTopProductHandler>> _loggerMock = new();
-    private readonly SetTopProductHandler _handler;
+    private readonly Mock<ICatalogNdWriter> _writerMock = new();
+    private readonly Mock<ILogger<SetNdHandler>> _loggerMock = new();
+    private readonly SetNdHandler _handler;
 
-    public SetTopProductHandlerTests()
+    public SetNdHandlerTests()
     {
-        _handler = new SetTopProductHandler(_catalogRepositoryMock.Object, _writerMock.Object, _loggerMock.Object);
+        _handler = new SetNdHandler(_catalogRepositoryMock.Object, _writerMock.Object, _loggerMock.Object);
     }
 
     private void SetupProductExists(bool exists)
@@ -34,29 +34,29 @@ public class SetTopProductHandlerTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task Handle_ExistingProduct_WritesFlagThenPatchesCatalogCache(bool isTopProduct)
+    public async Task Handle_ExistingProduct_WritesFlagThenPatchesCatalogCache(bool isNd)
     {
         // Arrange
         SetupProductExists(true);
         var callOrder = new List<string>();
         _writerMock
-            .Setup(w => w.SetAsync(ProductCode, isTopProduct, It.IsAny<CancellationToken>()))
+            .Setup(w => w.SetAsync(ProductCode, isNd, It.IsAny<CancellationToken>()))
             .Callback(() => callOrder.Add("write"))
             .Returns(Task.CompletedTask);
         _catalogRepositoryMock
-            .Setup(r => r.ApplyTopProductFlagAsync(ProductCode, isTopProduct))
+            .Setup(r => r.ApplyNdFlagAsync(ProductCode, isNd))
             .Callback(() => callOrder.Add("cache"))
             .Returns(Task.CompletedTask);
 
         // Act
         var response = await _handler.Handle(
-            new SetTopProductRequest { ProductCode = ProductCode, IsTopProduct = isTopProduct },
+            new SetNdRequest { ProductCode = ProductCode, IsNd = isNd },
             CancellationToken.None);
 
         // Assert
         response.Success.Should().BeTrue();
         response.ProductCode.Should().Be(ProductCode);
-        response.IsTopProduct.Should().Be(isTopProduct);
+        response.IsNd.Should().Be(isNd);
         callOrder.Should().Equal("write", "cache");
     }
 
@@ -68,7 +68,7 @@ public class SetTopProductHandlerTests
 
         // Act
         var response = await _handler.Handle(
-            new SetTopProductRequest { ProductCode = ProductCode, IsTopProduct = true },
+            new SetNdRequest { ProductCode = ProductCode, IsNd = true },
             CancellationToken.None);
 
         // Assert
@@ -76,11 +76,11 @@ public class SetTopProductHandlerTests
         response.ErrorCode.Should().Be(ErrorCodes.ProductNotFound);
         response.Params.Should().Contain("productCode", ProductCode);
         _writerMock.VerifyNoOtherCalls();
-        _catalogRepositoryMock.Verify(r => r.ApplyTopProductFlagAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+        _catalogRepositoryMock.Verify(r => r.ApplyNdFlagAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
     }
 
     [Fact]
-    public async Task Handle_WhenErpWriteFails_ReturnsTopProductWriteFailedAndSkipsCachePatch()
+    public async Task Handle_WhenErpWriteFails_ReturnsNdWriteFailedAndSkipsCachePatch()
     {
         // Arrange
         SetupProductExists(true);
@@ -90,14 +90,14 @@ public class SetTopProductHandlerTests
 
         // Act
         var response = await _handler.Handle(
-            new SetTopProductRequest { ProductCode = ProductCode, IsTopProduct = true },
+            new SetNdRequest { ProductCode = ProductCode, IsNd = true },
             CancellationToken.None);
 
         // Assert
         response.Success.Should().BeFalse();
-        response.ErrorCode.Should().Be(ErrorCodes.TopProductWriteFailed);
+        response.ErrorCode.Should().Be(ErrorCodes.NdWriteFailed);
         response.Params.Should().Contain("productCode", ProductCode);
-        _catalogRepositoryMock.Verify(r => r.ApplyTopProductFlagAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+        _catalogRepositoryMock.Verify(r => r.ApplyNdFlagAsync(It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
     }
 
     [Fact]
@@ -109,17 +109,17 @@ public class SetTopProductHandlerTests
             .Setup(w => w.SetAsync(It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .Returns(Task.CompletedTask);
         _catalogRepositoryMock
-            .Setup(r => r.ApplyTopProductFlagAsync(It.IsAny<string>(), It.IsAny<bool>()))
+            .Setup(r => r.ApplyNdFlagAsync(It.IsAny<string>(), It.IsAny<bool>()))
             .ThrowsAsync(new InvalidOperationException("cache unavailable"));
 
         // Act
         var response = await _handler.Handle(
-            new SetTopProductRequest { ProductCode = ProductCode, IsTopProduct = true },
+            new SetNdRequest { ProductCode = ProductCode, IsNd = true },
             CancellationToken.None);
 
         // Assert
         response.Success.Should().BeTrue();
-        response.IsTopProduct.Should().BeTrue();
+        response.IsNd.Should().BeTrue();
     }
 
     [Fact]
@@ -135,7 +135,7 @@ public class SetTopProductHandlerTests
 
         // Act
         var act = () => _handler.Handle(
-            new SetTopProductRequest { ProductCode = ProductCode, IsTopProduct = true },
+            new SetNdRequest { ProductCode = ProductCode, IsNd = true },
             cts.Token);
 
         // Assert

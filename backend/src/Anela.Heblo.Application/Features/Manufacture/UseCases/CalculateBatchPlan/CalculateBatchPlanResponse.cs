@@ -57,7 +57,7 @@ public class BatchPlanItemDto
 
     public bool Enabled { get; set; } = true;
 
-    public bool IsTopProduct { get; set; }
+    public bool IsNd { get; set; }
 }
 
 public class BatchPlanSummaryDto

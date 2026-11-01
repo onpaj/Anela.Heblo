@@ -61,7 +61,7 @@ public class ManufacturingStockItemDto
 
     public bool IsConfigured { get; set; }
 
-    public bool IsTopProduct { get; set; }
+    public bool IsNd { get; set; }
 }
 
 public class ManufacturingStockSummaryDto

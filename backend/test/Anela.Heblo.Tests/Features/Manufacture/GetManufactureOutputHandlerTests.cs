@@ -99,6 +99,35 @@ public class GetManufactureOutputHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ProductFlaggedAsTop_MarksOnlyThatProductAsTop()
+    {
+        // Arrange
+        var request = new GetManufactureOutputRequest { MonthsBack = 3 };
+        var catalogItems = CreateTestCatalogItems();
+        catalogItems[0] = new ProductCatalogSnapshot
+        {
+            ProductCode = catalogItems[0].ProductCode,
+            ProductName = catalogItems[0].ProductName,
+            Type = ProductKind.Product,
+            ManufactureDifficulty = 3,
+            Properties = new ProductPropertiesSnapshot { IsNd = true }
+        };
+
+        _manufactureHistoryClientMock.Setup(x => x.GetHistoryAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTestManufactureHistory());
+        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(catalogItems);
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        var products = response.Months.SelectMany(m => m.Products).ToList();
+        products.Should().Contain(p => p.ProductCode == "PRD001" && p.IsNd);
+        products.Where(p => p.ProductCode == "PRD002").Should().OnlyContain(p => !p.IsNd);
+    }
+
+    [Fact]
     public async Task Handle_NullHistoryFromClient_ReturnsSuccessfulResponseWithEmptyData()
     {
         // Arrange

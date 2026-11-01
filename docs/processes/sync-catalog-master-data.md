@@ -2,7 +2,7 @@
 process: sync-catalog-master-data
 kind: sync
 module: catalog
-summary: Loads product planning attributes (Flexi query 38), Flexi lots with expirations, Heblo stock-taking records and Heblo manufacture-difficulty settings into the catalog cache; also writes the manual top-product flag back to Flexi.
+summary: Loads product planning attributes (Flexi query 38), Flexi lots with expirations, Heblo stock-taking records and Heblo manufacture-difficulty settings into the catalog cache; also writes the manual ND flag back to Flexi.
 owns:
   - backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogReferenceRefreshService.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/ProductAttributes/**
@@ -14,7 +14,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Catalog/ManufactureDifficultyConfiguration.cs
   - backend/src/Anela.Heblo.Domain/Features/Catalog/IManufactureDifficultyRepository.cs
   - backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/*ManufactureDifficulty*/**
-  - backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/SetTopProduct/**
+  - backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/SetNd/**
   - backend/src/Anela.Heblo.Persistence/Catalog/ManufactureDifficulty/**
 verified_at: "6b5578b47"
 related: [calc-catalog-merge, calc-margins, flow-stock-taking]
@@ -51,7 +51,7 @@ On demand: creating, editing or deleting a difficulty setting (catalog detail, `
 clone of the product into the live cache. An ERP stock taking reloads one product's Flexi lots
 (`flow-stock-taking`).
 
-Ticking or unticking "Top produkt" in the catalog detail (`PUT /api/Catalog/{productCode}/top-product`,
+Ticking or unticking "Top produkt" in the catalog detail (`PUT /api/Catalog/{productCode}/nd`,
 `products.catalog.write`) writes the flag to Flexi and then patches that one product in the catalog caches (no full refresh).
 
 ## Data flow
@@ -68,7 +68,7 @@ Ticking or unticking "Top produkt" in the catalog detail (`PUT /api/Catalog/{pro
    | 86 | `ExpirationMonths` | int, else 0 |
    | 87 | `AllowedResiduePercentage` | double, else 0 |
    | 89 | `Cooling` | enum `Cooling` by name, else None |
-   | 90 (`ND`, formerly `TOPPRODUKT`; matched by ID) | `IsTopProduct` | true for `true`/`1`/`ano`/`yes` (case-insensitive), else false |
+   | 90 (`ND`, formerly `TOPPRODUKT`; matched by ID) | `IsNd` | true for `true`/`1`/`ano`/`yes` (case-insensitive), else false |
 
 2. **Lots** — Flexi SDK lots client (all lots): id, product code, amount, expiration (date),
    lot code → `CatalogLot`. Flexi's "Entity LotsItem not found" is treated as no lots.
@@ -80,12 +80,12 @@ Ticking or unticking "Top produkt" in the catalog detail (`PUT /api/Catalog/{pro
 5. Each list replaces its cache and schedules a merge; the merge copies attributes into
    `Properties`, lots into `Stock.Lots`, stock takings into `StockTakingHistory` (newest first)
    and difficulty into `ManufactureDifficultySettings`.
-6. **Top product write (Heblo → Flexi)** — `SetTopProductHandler` checks the product exists in
-   the catalog, then `FlexiTopProductWriter` calls the SDK `IProductAttributeClient` for attribute
+6. **Top product write (Heblo → Flexi)** — `SetNdHandler` checks the product exists in
+   the catalog, then `FlexiNdWriter` calls the SDK `IProductAttributeClient` for attribute
    **90**: ticking upserts boolean `true`, unticking **deletes** the attribute row (so "not set"
-   and "false" both read back as not top). A Flexi failure returns `TopProductWriteFailed` (1317,
-   503) and the caches are left alone. After a successful write `ICatalogRepository.ApplyTopProductFlagAsync`
-   (`CatalogCacheStore.ApplyTopProductAsync`) swaps a patched clone of the product into the merged
+   and "false" both read back as not top). A Flexi failure returns `NdWriteFailed` (1317,
+   503) and the caches are left alone. After a successful write `ICatalogRepository.ApplyNdFlagAsync`
+   (`CatalogCacheStore.ApplyNdAsync`) swaps a patched clone of the product into the merged
    catalog (current and stale) **and** into the attributes source cache, and schedules a debounced merge so a racing in-flight merge converges.
    Both are needed: the merged catalog only gets the flag through a catalog-wide merge that runs after
    a 5 s debounce, so the UI refetch right after a toggle would read the old value, and a merge reads
@@ -126,9 +126,9 @@ Ticking or unticking "Top produkt" in the catalog detail (`PUT /api/Catalog/{pro
 - **`IsInSeason` reads inverted** (true outside the listed months) and is unused; check the
   meaning of attribute 84 before building on it.
 - Lots and stock takings have no resilience wrapper; a failed load keeps the previous list.
-- **The top-product write is not idempotent against duplicate attribute rows**: if Flexi already
+- **The ND write is not idempotent against duplicate attribute rows**: if Flexi already
   holds several rows for product × attribute 90 the SDK answers 409 and the save fails with
-  `TopProductWriteFailed`; fix the duplicate in Flexi.
+  `NdWriteFailed`; fix the duplicate in Flexi.
 - **Query 38 must return boolean attributes in `hodnota`.** The SDK stores attribute 90 (type
   `typAtribut.boolean`) in the row's `valBoolean` column and leaves `hodnota` empty, while the other
   attributes are string-typed and use `hodnota`. The query's SQL lives only in Flexi (read it with
@@ -139,9 +139,9 @@ Ticking or unticking "Top produkt" in the catalog detail (`PUT /api/Catalog/{pro
 
 ## Code entry points
 - `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/ProductAttributes/FlexiProductAttributesQueryClient.cs` — query 38 and the attribute-id map
-- `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/ProductAttributes/FlexiTopProductWriter.cs` — set/clear attribute 90 through the SDK
-- `backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/SetTopProduct/SetTopProductHandler.cs` — validation, write, single-product cache patch
-- `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogCacheStore.cs` — `ApplyTopProductAsync`, the cache patch
+- `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/ProductAttributes/FlexiNdWriter.cs` — set/clear attribute 90 through the SDK
+- `backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/SetNd/SetNdHandler.cs` — validation, write, single-product cache patch
+- `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogCacheStore.cs` — `ApplyNdAsync`, the cache patch
 - `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Lots/FlexiLotsClient.cs` — Flexi lots
 - `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogReferenceRefreshService.cs` — stock takings, difficulty (all / single product)
 - `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogMetaRefreshService.cs` — `RefreshAttributesData`, `RefreshLotsData`

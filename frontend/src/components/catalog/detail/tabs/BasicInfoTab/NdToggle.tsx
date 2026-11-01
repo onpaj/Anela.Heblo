@@ -1,27 +1,27 @@
 import React from "react";
 import { HelpCircle } from "lucide-react";
 import { usePermissionsContext } from "../../../../../auth/PermissionsContext";
-import { useSetTopProduct } from "../../../../../api/hooks/useTopProduct";
+import { useSetNd } from "../../../../../api/hooks/useNd";
 
 const CATALOG_WRITE_PERMISSION = "products.catalog.write";
 const ND_LABEL = "ND";
 const ND_MEANING = "ND = Nesmí dojít";
 
-interface TopProductToggleProps {
+interface NdToggleProps {
   productCode: string;
-  isTopProduct: boolean;
+  isNd: boolean;
 }
 
 /** Checkbox that marks a product as a top product; the flag is stored in ABRA Flexi. */
-function TopProductToggle({ productCode, isTopProduct }: TopProductToggleProps) {
+function NdToggle({ productCode, isNd }: NdToggleProps) {
   const { hasPermission } = usePermissionsContext();
-  const setTopProduct = useSetTopProduct();
+  const setNd = useSetNd();
 
   const canEdit = hasPermission(CATALOG_WRITE_PERMISSION);
   // While saving, show the value being saved so the checkbox does not flip back until the refetch lands
-  const isChecked = setTopProduct.isPending
-    ? (setTopProduct.variables?.isTopProduct ?? isTopProduct)
-    : isTopProduct;
+  const isChecked = setNd.isPending
+    ? (setNd.variables?.isNd ?? isNd)
+    : isNd;
 
   return (
     <div className="text-center">
@@ -29,9 +29,9 @@ function TopProductToggle({ productCode, isTopProduct }: TopProductToggleProps) 
         <input
           type="checkbox"
           checked={isChecked}
-          disabled={!canEdit || setTopProduct.isPending}
+          disabled={!canEdit || setNd.isPending}
           onChange={() =>
-            setTopProduct.mutate({ productCode, isTopProduct: !isChecked })
+            setNd.mutate({ productCode, isNd: !isChecked })
           }
           className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed"
         />
@@ -46,7 +46,7 @@ function TopProductToggle({ productCode, isTopProduct }: TopProductToggleProps) 
       >
         <HelpCircle aria-hidden="true" className="h-4 w-4" />
       </span>
-      {setTopProduct.isError && (
+      {setNd.isError && (
         <p role="alert" className="mt-1 text-xs text-red-600 dark:text-red-400">
           Příznak se nepodařilo uložit. Zkuste to prosím znovu.
         </p>
@@ -55,4 +55,4 @@ function TopProductToggle({ productCode, isTopProduct }: TopProductToggleProps) 
   );
 }
 
-export default TopProductToggle;
+export default NdToggle;

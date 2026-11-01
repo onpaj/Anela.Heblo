@@ -1,29 +1,29 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import TopProductStar from "../TopProductStar";
+import NdStar from "../NdStar";
 
-describe("TopProductStar", () => {
+describe("NdStar", () => {
   it("renders an accessible star when the product is a top product", () => {
-    render(<TopProductStar isTopProduct={true} />);
+    render(<NdStar isNd={true} />);
 
-    const star = screen.getByTestId("top-product-star");
+    const star = screen.getByTestId("nd-star");
     expect(star).toBeInTheDocument();
     expect(star).toHaveAttribute("title", "ND – Nesmí dojít");
     expect(screen.getByLabelText("ND – Nesmí dojít")).toBeInTheDocument();
   });
 
   it.each([false, null, undefined])(
-    "renders nothing when isTopProduct is %s",
+    "renders nothing when isNd is %s",
     (value) => {
-      const { container } = render(<TopProductStar isTopProduct={value} />);
+      const { container } = render(<NdStar isNd={value} />);
 
       expect(container).toBeEmptyDOMElement();
     },
   );
 
   it("appends a custom className to the star", () => {
-    render(<TopProductStar isTopProduct={true} className="ml-2" />);
+    render(<NdStar isNd={true} className="ml-2" />);
 
-    expect(screen.getByTestId("top-product-star").getAttribute("class")).toContain("ml-2");
+    expect(screen.getByTestId("nd-star").getAttribute("class")).toContain("ml-2");
   });
 });

@@ -1,14 +1,14 @@
 import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import TopProductToggle from "../TopProductToggle";
+import NdToggle from "../NdToggle";
 import { usePermissionsContext } from "../../../../../../auth/PermissionsContext";
-import { useSetTopProduct } from "../../../../../../api/hooks/useTopProduct";
+import { useSetNd } from "../../../../../../api/hooks/useNd";
 
 jest.mock("../../../../../../auth/PermissionsContext", () => ({
   usePermissionsContext: jest.fn(),
 }));
-jest.mock("../../../../../../api/hooks/useTopProduct", () => ({
-  useSetTopProduct: jest.fn(),
+jest.mock("../../../../../../api/hooks/useNd", () => ({
+  useSetNd: jest.fn(),
 }));
 
 const CATALOG_WRITE = "products.catalog.write";
@@ -16,7 +16,7 @@ const CATALOG_WRITE = "products.catalog.write";
 interface MutationState {
   isPending?: boolean;
   isError?: boolean;
-  variables?: { productCode: string; isTopProduct: boolean };
+  variables?: { productCode: string; isNd: boolean };
 }
 
 const mutate = jest.fn();
@@ -28,7 +28,7 @@ function arrange({
   (usePermissionsContext as jest.Mock).mockReturnValue({
     hasPermission: (perm: string) => canWrite && perm === CATALOG_WRITE,
   });
-  (useSetTopProduct as jest.Mock).mockReturnValue({
+  (useSetNd as jest.Mock).mockReturnValue({
     mutate,
     isPending: false,
     isError: false,
@@ -37,7 +37,7 @@ function arrange({
   });
 }
 
-describe("TopProductToggle", () => {
+describe("NdToggle", () => {
   beforeEach(() => {
     mutate.mockReset();
   });
@@ -45,7 +45,7 @@ describe("TopProductToggle", () => {
   it("explains the ND abbreviation in a help tooltip", () => {
     arrange();
 
-    render(<TopProductToggle productCode="ABC" isTopProduct={false} />);
+    render(<NdToggle productCode="ABC" isNd={false} />);
 
     expect(screen.getByTestId("nd-help")).toHaveAttribute("title", "ND = Nesmí dojít");
   });
@@ -53,23 +53,23 @@ describe("TopProductToggle", () => {
   it("shows the current state of the flag", () => {
     arrange();
 
-    render(<TopProductToggle productCode="ABC" isTopProduct={true} />);
+    render(<NdToggle productCode="ABC" isNd={true} />);
 
     expect(screen.getByRole("checkbox", { name: "ND" })).toBeChecked();
   });
 
   it("saves the opposite value when the checkbox is clicked", () => {
     arrange();
-    render(<TopProductToggle productCode="ABC" isTopProduct={false} />);
+    render(<NdToggle productCode="ABC" isNd={false} />);
 
     fireEvent.click(screen.getByRole("checkbox", { name: "ND" }));
 
-    expect(mutate).toHaveBeenCalledWith({ productCode: "ABC", isTopProduct: true });
+    expect(mutate).toHaveBeenCalledWith({ productCode: "ABC", isNd: true });
   });
 
   it("is read-only without catalog write permission", () => {
     arrange({ canWrite: false });
-    render(<TopProductToggle productCode="ABC" isTopProduct={true} />);
+    render(<NdToggle productCode="ABC" isNd={true} />);
 
     const checkbox = screen.getByRole("checkbox", { name: "ND" });
     expect(checkbox).toBeChecked();
@@ -78,10 +78,10 @@ describe("TopProductToggle", () => {
 
   it("shows the pending value and blocks further clicks while saving", () => {
     arrange({
-      mutation: { isPending: true, variables: { productCode: "ABC", isTopProduct: true } },
+      mutation: { isPending: true, variables: { productCode: "ABC", isNd: true } },
     });
 
-    render(<TopProductToggle productCode="ABC" isTopProduct={false} />);
+    render(<NdToggle productCode="ABC" isNd={false} />);
 
     const checkbox = screen.getByRole("checkbox", { name: "ND" });
     expect(checkbox).toBeChecked();
@@ -91,7 +91,7 @@ describe("TopProductToggle", () => {
   it("shows an error message when saving fails", () => {
     arrange({ mutation: { isError: true } });
 
-    render(<TopProductToggle productCode="ABC" isTopProduct={false} />);
+    render(<NdToggle productCode="ABC" isNd={false} />);
 
     expect(screen.getByRole("alert")).toHaveTextContent("nepodařilo uložit");
   });
@@ -99,7 +99,7 @@ describe("TopProductToggle", () => {
   it("shows no error message by default", () => {
     arrange();
 
-    render(<TopProductToggle productCode="ABC" isTopProduct={false} />);
+    render(<NdToggle productCode="ABC" isNd={false} />);
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
