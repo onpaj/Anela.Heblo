@@ -151,6 +151,7 @@ public class CatalogRepositoryTests
             _manufactureSourceMock.Object,
             _resilienceServiceMock.Object,
             _cacheStore,
+            TimeProvider.System,
             new Mock<ILogger<CatalogStockRefreshService>>().Object);
 
         _metaRefreshService = new CatalogMetaRefreshService(

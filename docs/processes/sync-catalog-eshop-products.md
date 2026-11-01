@@ -26,11 +26,11 @@ from the end of one run), `HydrationTier` 3, `InitialDelay` 0. Force-refresh fro
 `ShoptetProductClient.ListAsync` (strictly sequential, >= 250 ms between request starts):
 1. `GET /api/eshop?include=imageCuts` -> image base URL (`orig` cut `urlPath`).
 2. `GET /api/products/flags` -> flag catalogue (code, title).
-3. `GET /api/products?itemsPerPage=1000&page=N` -> all products (visible and hidden).
-4. Per product `GET /api/products/{guid}?include=images` -> variants: code, name, image, weight (kg),
-   dimensions, `atypicalShipping`.
-5. Per flag `GET /api/products?flag={code}&itemsPerPage=1000` -> products where the flag is in
+3. Per flag `GET /api/products?flag={code}&itemsPerPage=1000` -> products where the flag is in
    effect now; flags are attached to every variant of those products.
+4. `GET /api/products?itemsPerPage=1000&page=N` -> all products (visible and hidden).
+5. Per product `GET /api/products/{guid}?include=images` -> variants: code, name, image, weight (kg),
+   dimensions, `atypicalShipping`.
 
 Result (one `EshopProduct` per variant) -> `CatalogCacheStore.SetEshopProductData`
 (key `CachedEshopProductData`) -> merge scheduled -> `CatalogMergeService.MergeEshopData`.
@@ -40,21 +40,27 @@ Result (one `EshopProduct` per variant) -> `CatalogCacheStore.SetEshopProductDat
   `sync-catalog-stock`); this cache only supplies image/weight/dimensions/shipping/flags.
 - Merge: `Image = ImageUrl`, `DefaultImage = DefaultImageUrl`, `GrossWeight = WeightGrams`,
   `Height/Width/Depth`, `AtypicalShipping`, `EshopFlags = Flags` when the code is in the product cache.
-- Code in stock but not in the product cache (new product between the two refreshes, or the first
-  hour after boot): stock is kept and every info field is set empty (null / false / no flags),
+- Code in stock but not in the product cache (new product between the two refreshes, or until the first
+  successful product sweep after boot): stock is kept and every info field is set empty (null / false / no flags),
   including values merged earlier. There is no fallback source.
 - Duplicate codes in the sweep: the first wins, no exception.
 - Weight: API kilograms x 1000 = grams; `0` -> null (packing then falls back to `NetWeight`).
 - Flags mean "in effect now" (API `flag=` filter), not "configured": an expired Novinka is absent.
 - All-or-nothing: any failed call (after the client's 429/5xx retries) throws, and the previous
   cache stays; the cache is never partially overwritten.
+- Empty-cache retry: if the sweep fails while the product cache has never loaded (e.g. 429 or an
+  outage at boot), `RefreshEshopProductData` retries up to 2 more times, 5 minutes apart, inside the
+  overlap gate; each failed attempt logs a Warning and, after the last, the exception is rethrown
+  (task history shows the failure) with the cache untouched. Once the cache is loaded there is no
+  retry; the next hourly run is the retry.
 
 ## Configuration
 | Key | Repo default | Meaning |
 |---|---|---|
 | `BackgroundRefresh:ICatalogRepository:RefreshEshopProductData:RefreshInterval` | 01:00:00 | Sweep period |
 | `BackgroundRefresh:ICatalogRepository:RefreshEshopProductData:HydrationTier` | 3 | Above the Production/Staging `ReadinessTier` (2/1), so `/health/ready` never waits for the ~70 s sweep |
-| `ShoptetProductClientOptions` | see class | Base URL / token / throttle of the sweep client |
+| `ShoptetProductClient` (`MinRequestIntervalMs`, `MaxRetryAttempts`, `RetryBaseDelaySeconds`, `TimeoutSeconds`) | 250 / 4 / 2 / 15 | Throttle, per-call retry and timeout of the sweep client |
+| `Shoptet` (`ShoptetApiSettings`: `BaseUrl`, `ApiToken`) | - | Base URL and token, shared with the other Shoptet API clients |
 
 ## Runtime facts
 None yet (first production run pending deploy).
@@ -65,7 +71,7 @@ None yet (first production run pending deploy).
 - Deliberately not wrapped in `ICatalogResilienceService`: its 30 s per-operation timeout would abort
   every ~70 s sweep, and its retry would restart the whole sweep (multiplying Shoptet load). The
   client retries individual calls (429/5xx) itself and throws, leaving the previous cache.
-- Until the first sweep completes after a restart, products have no image, weight, dimensions or
+- Until the first successful product sweep after boot, products have no image, weight, dimensions or
   flags (stock and location are already present from the supplies API).
 - The sweep's product names also feed the product-pairing DQT (`calc-dqt-product-pairing`); before
   the first sweep those names are blank.

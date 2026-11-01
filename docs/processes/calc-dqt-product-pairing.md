@@ -43,7 +43,7 @@ dashboard tile for it.
 2. **Shoptet**: `ShoptetStockClient.ListAsync` — the live Shoptet supplies list
    (`GET /api/stocks/{id}/supplies`), codes only. Names (display-only, shown as the Shoptet value)
    are joined by code from the catalog's hourly product cache (`sync-catalog-eshop-products`,
-   name + variant name); while that cache is empty (first hour after a restart) names are blank
+   name + variant name); while that cache is empty (until the first successful product sweep after boot) names are blank
    but all codes are still checked.
 3. **Flexi**: `FlexiStockClient.ListAsync` — Flexi stock-to-date (`stav-skladu-k-datu`) for
    today, warehouses 5 (materials), 20 (semi-products) and 4 (products + goods); items whose

@@ -20,6 +20,7 @@ using FluentAssertions;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Moq;
 using Xunit;
 
@@ -31,6 +32,7 @@ public class CatalogRepositoryCacheOptimizationTests
     private readonly Mock<ICatalogAttributesClient> _attributesClientMock;
     private readonly Mock<IEshopStockClient> _eshopStockClientMock;
     private readonly Mock<IEshopProductClient> _eshopProductClientMock = new();
+    private readonly FakeTimeProvider _fakeTime = new();
     private readonly Mock<IConsumedMaterialsClient> _consumedMaterialClientMock;
     private readonly Mock<IPurchaseHistoryClient> _purchaseHistoryClientMock;
     private readonly Mock<IErpStockClient> _erpStockClientMock;
@@ -173,6 +175,7 @@ public class CatalogRepositoryCacheOptimizationTests
             _manufactureSourceMock.Object,
             _resilienceServiceMock.Object,
             _cacheStore,
+            _fakeTime,
             new Mock<ILogger<CatalogStockRefreshService>>().Object);
 
         _metaRefreshService = new CatalogMetaRefreshService(
@@ -314,6 +317,95 @@ public class CatalogRepositoryCacheOptimizationTests
         await act.Should().ThrowAsync<Exception>();
         _cacheStore.GetEshopProductData().Should().ContainSingle().Which.Code.Should().Be("OLD");
         _mergeSchedulerMock.Verify(x => x.ScheduleMerge(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RefreshEshopProductData_EmptyCacheAndFailure_RetriesThenStores()
+    {
+        var calls = 0;
+        _eshopProductClientMock.Setup(x => x.ListAsync(It.IsAny<CancellationToken>()))
+            .Returns(() => ++calls == 1
+                ? throw new HttpRequestException("429")
+                : Task.FromResult((IReadOnlyList<EshopProduct>)new List<EshopProduct> { new() { Code = "P1" } }));
+
+        var refresh = _repository.RefreshEshopProductData(CancellationToken.None);
+        await AdvanceRetryDelaysAsync(refresh);
+        await refresh;
+
+        calls.Should().Be(2);
+        _cacheStore.GetEshopProductData().Should().ContainSingle().Which.Code.Should().Be("P1");
+    }
+
+    [Fact]
+    public async Task RefreshEshopProductData_EmptyCacheAndAllAttemptsFail_ThrowsAndKeepsCacheEmpty()
+    {
+        var calls = 0;
+        _eshopProductClientMock.Setup(x => x.ListAsync(It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                calls++;
+                throw new HttpRequestException("outage");
+            });
+
+        var refresh = _repository.RefreshEshopProductData(CancellationToken.None);
+        await AdvanceRetryDelaysAsync(refresh);
+
+        await refresh.Invoking(t => t).Should().ThrowAsync<HttpRequestException>();
+        calls.Should().Be(3);
+        _cacheStore.GetEshopProductData().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task RefreshEshopProductData_CacheLoadedAndFailure_DoesNotRetry()
+    {
+        _cacheStore.SetEshopProductData(new List<EshopProduct> { new() { Code = "OLD" } });
+        var calls = 0;
+        _eshopProductClientMock.Setup(x => x.ListAsync(It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                calls++;
+                throw new HttpRequestException("429");
+            });
+
+        var act = () => _repository.RefreshEshopProductData(CancellationToken.None);
+
+        await act.Should().ThrowAsync<HttpRequestException>();
+        calls.Should().Be(1);
+        _cacheStore.GetEshopProductData().Should().ContainSingle().Which.Code.Should().Be("OLD");
+    }
+
+    [Fact]
+    public async Task RefreshEshopProductData_CancelledDuringRetryWait_Propagates()
+    {
+        var calls = 0;
+        _eshopProductClientMock.Setup(x => x.ListAsync(It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                calls++;
+                throw new HttpRequestException("429");
+            });
+        using var cts = new CancellationTokenSource();
+
+        var refresh = _repository.RefreshEshopProductData(cts.Token);
+        while (calls < 1)
+        {
+            await Task.Delay(10);
+        }
+
+        await Task.Delay(50);
+        cts.Cancel();
+
+        await refresh.Invoking(t => t).Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    // Advances the fake clock by one retry delay at a time until the refresh finishes.
+    private async Task AdvanceRetryDelaysAsync(Task refresh)
+    {
+        for (var i = 0; i < 20 && !refresh.IsCompleted; i++)
+        {
+            await Task.Delay(20);
+            _fakeTime.Advance(TimeSpan.FromMinutes(5));
+        }
     }
 
     [Fact]

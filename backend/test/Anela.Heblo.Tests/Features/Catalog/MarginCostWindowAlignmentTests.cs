@@ -244,6 +244,7 @@ public class MarginCostWindowAlignmentTests
             Mock.Of<ICatalogManufactureSource>(),
             Mock.Of<ICatalogResilienceService>(),
             cacheStore,
+            TimeProvider.System,
             Mock.Of<ILogger<CatalogStockRefreshService>>());
 
         var metaRefreshService = new CatalogMetaRefreshService(

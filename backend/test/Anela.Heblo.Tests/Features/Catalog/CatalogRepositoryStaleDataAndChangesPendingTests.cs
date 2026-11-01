@@ -128,6 +128,7 @@ public class CatalogRepositoryStaleDataAndChangesPendingTests
             _manufactureSourceMock.Object,
             _resilienceServiceMock.Object,
             cacheStore,
+            TimeProvider.System,
             new Mock<ILogger<CatalogStockRefreshService>>().Object);
 
         var metaRefreshService = new CatalogMetaRefreshService(

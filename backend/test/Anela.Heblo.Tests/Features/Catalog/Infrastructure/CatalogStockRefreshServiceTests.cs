@@ -99,6 +99,7 @@ public sealed class CatalogStockRefreshServiceTests
             manufactureSource ?? new Mock<ICatalogManufactureSource>().Object,
             resilienceService ?? new Mock<ICatalogResilienceService>().Object,
             _cacheStore,
+            TimeProvider.System,
             _serviceLoggerMock.Object);
     }
 }
