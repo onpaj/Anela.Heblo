@@ -11,10 +11,10 @@ namespace Anela.Heblo.Application.Features.Catalog.Infrastructure;
 /// </summary>
 public sealed class CatalogStockRefreshService
 {
-    private readonly IErpStockClient _erpStockClient;
     // One sweep at a time process-wide: two parallel sweeps would double the Shoptet request rate.
     private static readonly SemaphoreSlim EshopProductRefreshGate = new(1, 1);
 
+    private readonly IErpStockClient _erpStockClient;
     private readonly IEshopStockClient _eshopStockClient;
     private readonly IEshopProductClient _eshopProductClient;
     private readonly ICatalogTransportSource _transportSource;

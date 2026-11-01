@@ -273,6 +273,8 @@ public class CatalogRepositoryCacheOptimizationTests
     [Fact]
     public async Task RefreshEshopProductData_AlreadyRunning_SkipsSecondCall()
     {
+        // Relies on the process-wide static gate: while this test holds it, other test classes
+        // calling RefreshEshopProductData in parallel would be skipped.
         var started = new TaskCompletionSource();
         var release = new TaskCompletionSource();
         var calls = 0;

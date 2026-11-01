@@ -232,6 +232,8 @@ public sealed class CatalogMergeService
         else if (eshopStock != null)
         {
             // Legacy CSV fallback, removed together with the CSV fields.
+            // Merges start from a clone of the previous aggregate, so stale flags must be cleared.
+            product.EshopFlags = Array.Empty<EshopProductFlag>();
             product.Image = eshopStock.Image;
             product.DefaultImage = eshopStock.DefaultImage;
             product.GrossWeight = eshopStock.Weight;

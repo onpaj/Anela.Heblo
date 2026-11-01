@@ -100,6 +100,28 @@ public class CatalogMergeServiceTests
     }
 
     [Fact]
+    public async Task Merge_ProductLeavesProductCache_ClearsPreviouslyMergedFlags()
+    {
+        var (store, service) = Create();
+        store.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "P1", ProductName = "Product 1", ProductId = 1, Stock = 5 },
+        });
+        store.SetEshopStockData(new List<EshopStock> { new() { Code = "P1", Stock = 7 } });
+        store.SetEshopProductData(new List<EshopProduct>
+        {
+            new() { Code = "P1", Flags = new[] { new EshopProductFlag { Code = "new", Title = "NOVINKA" } } },
+        });
+        var first = await service.ExecutePriorityMergeAsync();
+        first.Single().EshopFlags.Should().HaveCount(1);
+
+        store.SetEshopProductData(new List<EshopProduct>());
+        var second = await service.ExecutePriorityMergeAsync();
+
+        second.Single(p => p.ProductCode == "P1").EshopFlags.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Merge_DuplicateProductCodes_UsesFirstAndDoesNotThrow()
     {
         var (store, service) = Create();
