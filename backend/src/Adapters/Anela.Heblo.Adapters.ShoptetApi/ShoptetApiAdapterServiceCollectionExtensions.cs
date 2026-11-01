@@ -63,11 +63,11 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
             client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
             client.Timeout = Timeout.InfiniteTimeSpan;
         })
-        .AddResilienceHandler("shoptet-stock-csv", (builder, context) =>
+        .AddResilienceHandler("shoptet-stock", (builder, context) =>
         {
             var opts = context.ServiceProvider.GetRequiredService<IOptions<ShoptetStockClientOptions>>().Value;
             var logger = context.ServiceProvider.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("ShoptetStockCsvResilience");
+                .CreateLogger("ShoptetStockResilience");
 
             builder
                 .AddRetry(new HttpRetryStrategyOptions

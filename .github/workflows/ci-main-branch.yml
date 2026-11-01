@@ -137,7 +137,6 @@ jobs:
         env:
           ASPNETCORE_ENVIRONMENT: Automation
           # Shoptet integration test configuration
-          StockClient__Url: ${{ secrets.SHOPTET_STOCK_URL }}
           ProductPriceOptions__ProductExportUrl: ${{ secrets.SHOPTET_PRODUCT_EXPORT_URL }}
           # FlexiBee integration test configuration
           FlexiBeeSettings__Server: ${{ secrets.FLEXIBEE_SERVER_URL }}

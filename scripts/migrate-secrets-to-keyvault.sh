@@ -89,7 +89,6 @@ APP_SETTING_KEYS=(
     "FlexiBeeSettings__Login"
     "FlexiBeeSettings__Password"
     "FlexiBeeSettings__Company"
-    "StockClient__Url"
     "ProductPriceOptions__ProductExportUrl"
     "ExpeditionList__BlobConnectionString"
 )

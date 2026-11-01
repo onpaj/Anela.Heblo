@@ -218,30 +218,17 @@ public sealed class CatalogMergeService
             product.Location = eshopStock.Location;
         }
 
-        if (eshopProductMap.TryGetValue(product.ProductCode, out var eshopProduct))
-        {
-            product.Image = eshopProduct.ImageUrl;
-            product.DefaultImage = eshopProduct.DefaultImageUrl;
-            product.GrossWeight = eshopProduct.WeightGrams;
-            product.Height = eshopProduct.Height;
-            product.Width = eshopProduct.Width;
-            product.Depth = eshopProduct.Depth;
-            product.AtypicalShipping = eshopProduct.AtypicalShipping;
-            product.EshopFlags = eshopProduct.Flags;
-        }
-        else if (eshopStock != null)
-        {
-            // Legacy CSV fallback, removed together with the CSV fields.
-            // Merges start from a clone of the previous aggregate, so stale flags must be cleared.
-            product.EshopFlags = Array.Empty<EshopProductFlag>();
-            product.Image = eshopStock.Image;
-            product.DefaultImage = eshopStock.DefaultImage;
-            product.GrossWeight = eshopStock.Weight;
-            product.Height = eshopStock.Height;
-            product.Width = eshopStock.Width;
-            product.Depth = eshopStock.Depth;
-            product.AtypicalShipping = eshopStock.AtypicalShipping;
-        }
+        // Merges start from a clone of the previous aggregate, so every info field is assigned
+        // explicitly: a code missing from the product sweep ends up empty rather than stale.
+        eshopProductMap.TryGetValue(product.ProductCode, out var eshopProduct);
+        product.Image = eshopProduct?.ImageUrl;
+        product.DefaultImage = eshopProduct?.DefaultImageUrl;
+        product.GrossWeight = eshopProduct?.WeightGrams;
+        product.Height = eshopProduct?.Height;
+        product.Width = eshopProduct?.Width;
+        product.Depth = eshopProduct?.Depth;
+        product.AtypicalShipping = eshopProduct?.AtypicalShipping ?? false;
+        product.EshopFlags = eshopProduct?.Flags ?? Array.Empty<EshopProductFlag>();
     }
 
     private static void MergeHistoryData(

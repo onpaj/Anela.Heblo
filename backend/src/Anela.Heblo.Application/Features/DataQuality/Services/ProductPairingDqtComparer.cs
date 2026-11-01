@@ -68,46 +68,32 @@ public class ProductPairingDqtComparer : IDriftDqtComparer
             .Select(p => p.ProductCode)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-        // All Shoptet identifiers (Code + PairCode) used when checking ERP → Shoptet direction
-        var shoptetIdentifiers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var p in eshopProducts)
-        {
-            shoptetIdentifiers.Add(p.Code);
-            if (!string.IsNullOrWhiteSpace(p.PairCode))
-                shoptetIdentifiers.Add(p.PairCode);
-        }
+        var shoptetCodes = eshopProducts
+            .Select(p => p.Code)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var mismatches = new List<DriftMismatch>();
 
-        // Check A: each Shoptet product must resolve to an ERP code
+        // Check A: each Shoptet product must exist in ERP (matched by code)
         foreach (var eshopProduct in eshopProducts)
         {
-            var hasPairCode = !string.IsNullOrWhiteSpace(eshopProduct.PairCode);
-            var resolvedCode = hasPairCode ? eshopProduct.PairCode : eshopProduct.Code;
-
-            if (erpCodeSet.Contains(resolvedCode))
+            if (erpCodeSet.Contains(eshopProduct.Code))
                 continue;
-
-            var mismatch = ProductPairingMismatch.MissingInErp;
-            if (hasPairCode)
-                mismatch |= ProductPairingMismatch.PairCodeUnresolved;
 
             mismatches.Add(new DriftMismatch
             {
                 EntityKey = eshopProduct.Code,
-                MismatchCode = (int)mismatch,
+                MismatchCode = (int)ProductPairingMismatch.MissingInErp,
                 ShoptetValue = eshopProduct.Name,
                 HebloValue = null,
-                Details = hasPairCode
-                    ? $"Shoptet product '{eshopProduct.Code}' PairCode '{eshopProduct.PairCode}' not found in ERP"
-                    : $"Shoptet product '{eshopProduct.Code}' not found in ERP"
+                Details = $"Shoptet product '{eshopProduct.Code}' not found in ERP"
             });
         }
 
         // Check B: each sellable ERP product must appear in Shoptet
         foreach (var erpProduct in sellableErpProducts)
         {
-            if (shoptetIdentifiers.Contains(erpProduct.ProductCode))
+            if (shoptetCodes.Contains(erpProduct.ProductCode))
                 continue;
 
             mismatches.Add(new DriftMismatch
@@ -120,7 +106,7 @@ public class ProductPairingDqtComparer : IDriftDqtComparer
             });
         }
 
-        var totalChecked = shoptetIdentifiers
+        var totalChecked = shoptetCodes
             .Union(erpCodeSet, StringComparer.OrdinalIgnoreCase)
             .Count();
 

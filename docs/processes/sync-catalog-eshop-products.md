@@ -7,7 +7,7 @@ owns:
   - backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Products/**
   - backend/src/Anela.Heblo.Domain/Features/Catalog/Eshop/**
   - backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogStockRefreshService.cs
-verified_at: "682feb107"
+verified_at: "0b7b902c9"
 related: [calc-catalog-merge, sync-catalog-stock, job-background-refresh-hydration]
 ---
 
@@ -36,12 +36,13 @@ Result (one `EshopProduct` per variant) -> `CatalogCacheStore.SetEshopProductDat
 (key `CachedEshopProductData`) -> merge scheduled -> `CatalogMergeService.MergeEshopData`.
 
 ## Logic & formulas
-- Stock, `Location`, `PrimaryStockSource` still come from `CachedEshopStockData`
-  (`sync-catalog-stock`); this cache only supplies image/weight/dimensions/shipping/flags.
+- Stock, `Location`, `PrimaryStockSource` come from `CachedEshopStockData` (supplies API,
+  `sync-catalog-stock`); this cache only supplies image/weight/dimensions/shipping/flags.
 - Merge: `Image = ImageUrl`, `DefaultImage = DefaultImageUrl`, `GrossWeight = WeightGrams`,
   `Height/Width/Depth`, `AtypicalShipping`, `EshopFlags = Flags` when the code is in the product cache.
-- Code in stock but not in the product cache (new product between the two refreshes): stock is kept,
-  info comes from the legacy CSV fields of the stock row (removed later); `EshopFlags` stays empty.
+- Code in stock but not in the product cache (new product between the two refreshes, or the first
+  hour after boot): stock is kept and every info field is set empty (null / false / no flags),
+  including values merged earlier. There is no fallback source.
 - Duplicate codes in the sweep: the first wins, no exception.
 - Weight: API kilograms x 1000 = grams; `0` -> null (packing then falls back to `NetWeight`).
 - Flags mean "in effect now" (API `flag=` filter), not "configured": an expired Novinka is absent.
@@ -64,8 +65,10 @@ None yet (first production run pending deploy).
 - Deliberately not wrapped in `ICatalogResilienceService`: its 30 s per-operation timeout would abort
   every ~70 s sweep, and its retry would restart the whole sweep (multiplying Shoptet load). The
   client retries individual calls (429/5xx) itself and throws, leaving the previous cache.
-- Until the first sweep completes after a restart, products have no flags and take image/weight from
-  the legacy CSV fields.
+- Until the first sweep completes after a restart, products have no image, weight, dimensions or
+  flags (stock and location are already present from the supplies API).
+- The sweep's product names also feed the product-pairing DQT (`calc-dqt-product-pairing`); before
+  the first sweep those names are blank.
 - Overlap is skipped: `RefreshEshopProductData` holds a process-wide non-blocking gate
   (`SemaphoreSlim(1,1)`); a force refresh or startup double-run during a sweep logs "Shoptet product
   refresh already running; skipping" and returns (history shows it as Completed).

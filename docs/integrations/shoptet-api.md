@@ -655,9 +655,11 @@ The `EshopStock.Code` field is the variant-level SKU accepted by `POST /api/orde
 
 **Snapshot (verified 2026-11-01, test store):** `GET /api/products/snapshot` returns **403 `required-webhook-registration`** — it needs a registered `job:finished` webhook, so it is not usable without webhook infrastructure. Not used. (`GET /api/products/changes` incremental sync would be a possible later optimisation.)
 
-### 4.4 Stock CSV export — resilience characteristics
+### 4.4 Stock listing — resilience characteristics
 
-The stock CSV export URL is configured via `StockClient:Url` and **is not** on `api.myshoptet.com` — it is the per-store CSV export host (e.g. `https://<store>.myshoptet.com/action/...`). Two consequences:
+> **Update 2026-11-01:** the stock CSV (pattern 46, `StockClient:Url`) is retired. `ShoptetStockClient.ListAsync` now reads `GET /api/stocks/{stockId}/supplies?itemsPerPage=1000&page=N` (all pages) and maps `amount` -> stock and `location` -> location; the resilience policy below (pipeline `shoptet-stock`) is unchanged and now wraps these API calls, which the dependency tracker does record. Parity check against the test store before the switch: CSV vs supplies, 444/444 codes equal in stock and location. The text below describing the CSV host, token redaction, encoding and column layout is historical.
+
+The stock CSV export URL was configured via `StockClient:Url` and **is not** on `api.myshoptet.com` — it is the per-store CSV export host (e.g. `https://<store>.myshoptet.com/action/...`). Two consequences:
 
 - The dependency tracker (which targets `api.myshoptet.com`) does **not** record these calls. Failures must be queried by exception name (`System.Net.Http.HttpRequestException` with `outerMethod contains "ShoptetStockClient.ListAsync"`).
 - The URL contains an access token as a query parameter (e.g. `?token=...` / `?hash=...`). Logging code redacts `token`, `hash`, `key`, `apiToken`, `access_token` keys to `***`.
@@ -666,7 +668,7 @@ The stock CSV export URL is configured via `StockClient:Url` and **is not** on `
 
 **Observed transient failure rate (baseline):** ~1.1 `HttpRequestException` / day across all callers (telemetry window 2026-06-05 → 2026-06-12).
 
-**Resilience policy (HTTP layer, registered against the named HttpClient `"ShoptetStockCsv"`):**
+**Resilience policy (HTTP layer, registered on the `IEshopStockClient` HttpClient, pipeline `shoptet-stock`):**
 
 | Property | Value | Configurable via |
 |---|---|---|

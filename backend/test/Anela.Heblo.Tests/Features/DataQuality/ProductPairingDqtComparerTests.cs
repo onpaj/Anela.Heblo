@@ -49,7 +49,7 @@ public class ProductPairingDqtComparerTests
     public async Task CompareAsync_ReturnsEmpty_WhenAllProductsPaired()
     {
         // Arrange
-        SetupEshop(new DqtEshopStockItem { Code = "P001", PairCode = "", Name = "Product 1" });
+        SetupEshop(new DqtEshopStockItem { Code = "P001", Name = "Product 1" });
         SetupErp(new DqtErpStockItem { ProductCode = "P001", ProductName = "Product 1", IsSellable = true }); // Goods
 
         // Act
@@ -64,7 +64,7 @@ public class ProductPairingDqtComparerTests
     public async Task CompareAsync_ReturnsMissingInErp_WhenShoptetProductNotInErp()
     {
         // Arrange
-        SetupEshop(new DqtEshopStockItem { Code = "ESHOP_ONLY", PairCode = "", Name = "Eshop Only" });
+        SetupEshop(new DqtEshopStockItem { Code = "ESHOP_ONLY", Name = "Eshop Only" });
         SetupErp(); // Empty ERP
 
         // Act
@@ -78,19 +78,18 @@ public class ProductPairingDqtComparerTests
     }
 
     [Fact]
-    public async Task CompareAsync_ReturnsMissingInErpAndPairCodeUnresolved_WhenPairCodeNotInErp()
+    public async Task CompareAsync_ResolvesShoptetProductByCodeOnly_NeverFlagsPairCodeUnresolved()
     {
         // Arrange
-        SetupEshop(new DqtEshopStockItem { Code = "ESHOP001", PairCode = "ERP001", Name = "Pair Code Product" });
-        SetupErp(); // ERP001 not in ERP
+        SetupEshop(new DqtEshopStockItem { Code = "ESHOP001", Name = "Not in ERP" });
+        SetupErp(); // ESHOP001 not in ERP
 
         // Act
         var result = await CreateSut().CompareAsync(Today, Today, CancellationToken.None);
 
         // Assert
         var mismatch = (ProductPairingMismatch)result.Mismatches.Single().MismatchCode;
-        mismatch.Should().HaveFlag(ProductPairingMismatch.MissingInErp);
-        mismatch.Should().HaveFlag(ProductPairingMismatch.PairCodeUnresolved);
+        mismatch.Should().Be(ProductPairingMismatch.MissingInErp);
     }
 
     [Fact]
@@ -117,7 +116,7 @@ public class ProductPairingDqtComparerTests
     public async Task CompareAsync_WrapsBothListCalls_WithResilience()
     {
         // Arrange
-        SetupEshop(new DqtEshopStockItem { Code = "P001", PairCode = "", Name = "Product 1" });
+        SetupEshop(new DqtEshopStockItem { Code = "P001", Name = "Product 1" });
         SetupErp(new DqtErpStockItem { ProductCode = "P001", ProductName = "Product 1", IsSellable = true });
 
         // Act

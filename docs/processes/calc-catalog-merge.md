@@ -17,7 +17,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Catalog/ICatalogRepository.cs
   - backend/src/Anela.Heblo.Domain/Features/Catalog/BundleProductRule.cs
   - backend/src/Anela.Heblo.Domain/Features/Catalog/Stock/StockData.cs
-verified_at: "8161c408c"
+verified_at: "0b7b902c9"
 related: [sync-catalog-stock, sync-catalog-history, sync-catalog-prices, sync-catalog-master-data, calc-bundle-sales-expansion, calc-margins]
 ---
 
@@ -55,7 +55,7 @@ and the MCP tools `GetCatalogList`, `GetCatalogDetail`, `GetProductMargins`, …
    | Cache key | Filled by (task) | Source | Doc |
    |---|---|---|---|
    | `CachedErpStockData` | `RefreshErpStockData` | Flexi stock-to-date, warehouses 5/20/4 | sync-catalog-stock |
-   | `CachedEshopStockData` | `RefreshEshopStockData` | Shoptet product CSV export | sync-catalog-stock |
+   | `CachedEshopStockData` | `RefreshEshopStockData` | Shoptet supplies API (`/api/stocks/{id}/supplies`) | sync-catalog-stock |
    | `CachedEshopProductData` | `RefreshEshopProductData` | Shoptet REST product sweep (image, weight, dimensions, flags) | sync-catalog-eshop-products |
    | `CachedInTransportData`, `CachedInReserveData`, `CachedInQuarantineData` | `RefreshTransportData`, `RefreshReserveData` | Heblo `TransportBoxes` | sync-catalog-stock |
    | `CachedOrderedData` | `RefreshOrderedData` | Heblo purchase orders | sync-catalog-stock |
@@ -96,8 +96,8 @@ Field origin per aggregate (`CatalogMergeService`):
 | `Type` | ERP `ProductTypeId` via `BundleProductRule.Resolve` | ERP Product with code `BAL*`/`SET*` → `Set` (99); else the ERP type |
 | `Stock.Erp` | ERP stock row `Stock` | — |
 | `Stock.StockPrice` | ERP `Price` (Flexi average stock price) | only when ERP stock > 0 and price > 0, else null |
-| `Stock.Eshop`, `Location` | Shoptet CSV row | only when the code is in the CSV; also sets `PrimaryStockSource = Eshop` |
-| `Image`, `DefaultImage`, `GrossWeight` (grams), `Height`, `Width`, `Depth`, `AtypicalShipping`, `EshopFlags` | Shoptet REST product sweep (`CachedEshopProductData`) | when the code is in the sweep; otherwise legacy CSV fields (flags stay empty) |
+| `Stock.Eshop`, `Location` | Shoptet supplies row | only when the code is in the supplies list; also sets `PrimaryStockSource = Eshop` |
+| `Image`, `DefaultImage`, `GrossWeight` (grams), `Height`, `Width`, `Depth`, `AtypicalShipping`, `EshopFlags` | Shoptet REST product sweep (`CachedEshopProductData`) | always assigned: from the sweep when the code is in it, otherwise null / false / no flags (no fallback) |
 | `Stock.Transport`, `Reserve`, `Quarantine`, `Ordered`, `Planned`, `Manufactured` | Heblo | always set, 0 when the code is absent |
 | `SalesHistory` | query 37 + bundle expansion | replaced when present |
 | `PurchaseHistory`, `ConsumedHistory`, `ManufactureHistory` | Flexi | replaced when present |
@@ -109,7 +109,7 @@ Field origin per aggregate (`CatalogMergeService`):
 | `Margins` | `RefreshMarginData` | see `calc-margins` |
 
 Derived stock figures (`StockData`):
-- `WarehouseStock` = `Eshop` if `PrimaryStockSource` is Eshop (the product is in the Shoptet CSV),
+- `WarehouseStock` = `Eshop` if `PrimaryStockSource` is Eshop (the product is in the Shoptet supplies list),
   else `Erp`.
 - `Available` = `WarehouseStock + Transport + Manufactured`. `Total` = `Available + Reserve`
   (quarantine is excluded since 2025-05-12). `EffectiveStock` = `Available + Ordered`.
@@ -157,7 +157,7 @@ cancelled job stops instead of running through its retries.
   `CatalogMergeServiceTests`.
 - **Missing source rows carry forward old values.** Fields marked "when present" keep their
   previous value when the code disappears from that source — e.g. a product removed from the
-  Shoptet CSV keeps its last e-shop stock and `PrimaryStockSource = Eshop`.
+  Shoptet supplies list keeps its last e-shop stock and `PrimaryStockSource = Eshop`.
 - **A product exists only if Flexi lists it in warehouse 4/5/20 with an accepted type.** Flexi's
   product group (`skupZboz`) drives the type; an item with an empty group is dropped with its
   sales, margins and stock (SA016005, fixed in Flexi 2026-10-01) — agent memory

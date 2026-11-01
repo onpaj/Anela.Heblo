@@ -47,7 +47,7 @@ public class CatalogMergeServiceTests
         });
         store.SetEshopStockData(new List<EshopStock>
         {
-            new() { Code = "P1", Stock = 7, Location = "A1", Image = "legacy.jpg", Weight = 35 },
+            new() { Code = "P1", Stock = 7, Location = "A1" },
         });
         store.SetEshopProductData(new List<EshopProduct>
         {
@@ -119,6 +119,42 @@ public class CatalogMergeServiceTests
         var second = await service.ExecutePriorityMergeAsync();
 
         second.Single(p => p.ProductCode == "P1").EshopFlags.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Merge_ProductLeavesProductCache_ClearsPreviouslyMergedInfo()
+    {
+        var (store, service) = Create();
+        store.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "P1", ProductName = "Product 1", ProductId = 1, Stock = 5 },
+        });
+        store.SetEshopStockData(new List<EshopStock> { new() { Code = "P1", Stock = 7, Location = "A1" } });
+        store.SetEshopProductData(new List<EshopProduct>
+        {
+            new()
+            {
+                Code = "P1", ImageUrl = "variant.jpg", DefaultImageUrl = "main.jpg", WeightGrams = 250,
+                Height = 1, Width = 2, Depth = 3, AtypicalShipping = true,
+            },
+        });
+        var first = await service.ExecutePriorityMergeAsync();
+        first.Single().GrossWeight.Should().Be(250);
+
+        store.SetEshopProductData(new List<EshopProduct>());
+        var second = await service.ExecutePriorityMergeAsync();
+
+        var product = second.Single(p => p.ProductCode == "P1");
+        product.Stock.Eshop.Should().Be(7);
+        product.Location.Should().Be("A1");
+        product.Image.Should().BeNull();
+        product.DefaultImage.Should().BeNull();
+        product.GrossWeight.Should().BeNull();
+        product.Height.Should().BeNull();
+        product.Width.Should().BeNull();
+        product.Depth.Should().BeNull();
+        product.AtypicalShipping.Should().BeFalse();
+        product.EshopFlags.Should().BeEmpty();
     }
 
     [Fact]
