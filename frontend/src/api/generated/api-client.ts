@@ -20026,6 +20026,7 @@ export class CatalogItemDto implements ICatalogItemDto {
     minimalExpiration?: Date | undefined;
     hasLots?: boolean;
     lots?: LotDto[];
+    eshopFlags?: EshopFlagDto[];
 
     constructor(data?: ICatalogItemDto) {
         if (data) {
@@ -20061,6 +20062,11 @@ export class CatalogItemDto implements ICatalogItemDto {
                 this.lots = [] as any;
                 for (let item of _data["lots"])
                     this.lots!.push(LotDto.fromJS(item));
+            }
+            if (Array.isArray(_data["eshopFlags"])) {
+                this.eshopFlags = [] as any;
+                for (let item of _data["eshopFlags"])
+                    this.eshopFlags!.push(EshopFlagDto.fromJS(item));
             }
         }
     }
@@ -20098,6 +20104,11 @@ export class CatalogItemDto implements ICatalogItemDto {
             for (let item of this.lots)
                 data["lots"].push(item.toJSON());
         }
+        if (Array.isArray(this.eshopFlags)) {
+            data["eshopFlags"] = [];
+            for (let item of this.eshopFlags)
+                data["eshopFlags"].push(item.toJSON());
+        }
         return data;
     }
 }
@@ -20123,6 +20134,7 @@ export interface ICatalogItemDto {
     minimalExpiration?: Date | undefined;
     hasLots?: boolean;
     lots?: LotDto[];
+    eshopFlags?: EshopFlagDto[];
 }
 
 export enum ProductType {
@@ -20472,6 +20484,46 @@ export interface ILotDto {
     lotCode?: string | undefined;
     amount?: number;
     expiration?: Date | undefined;
+}
+
+export class EshopFlagDto implements IEshopFlagDto {
+    code?: string;
+    title?: string;
+
+    constructor(data?: IEshopFlagDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.title = _data["title"];
+        }
+    }
+
+    static fromJS(data: any): EshopFlagDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new EshopFlagDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["title"] = this.title;
+        return data;
+    }
+}
+
+export interface IEshopFlagDto {
+    code?: string;
+    title?: string;
 }
 
 export class GetCatalogDetailResponse extends BaseResponse implements IGetCatalogDetailResponse {
