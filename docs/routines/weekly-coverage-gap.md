@@ -16,7 +16,7 @@ A remote Claude Code routine that runs every Monday, downloads coverage artifact
 
 ## How it works
 
-1. Downloads `coverage-backend` (latest successful nightly run of `e2e-nightly-regression.yml`) and `coverage-frontend` (latest successful main-branch CI run) artifacts
+1. Downloads `coverage-backend` (latest nightly run of `e2e-nightly-regression.yml` that still has a non-expired `coverage-backend` artifact — the run itself may be red because of E2E failures, so do not filter by run conclusion) and `coverage-frontend` (latest successful main-branch CI run) artifacts
 2. Parses Cobertura XML (backend) and LCOV (frontend) to identify files below 60% line coverage
 3. Reads each low-coverage file and qualifies whether the gap is meaningful
 4. Files GitHub issues only for real gaps — skips boilerplate and trivial code

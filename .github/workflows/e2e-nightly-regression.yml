@@ -54,6 +54,7 @@ jobs:
   # artifact + Codecov upload that ci-main-branch.yml used to, for the weekly coverage-gap routine.
   backend-coverage:
     name: 📊 Backend Coverage
+    if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
