@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4606",
+  "issue_number": 4606,
+  "created_at": "2026-11-02T10:09:56.062442Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-11-02T10:10:54.315216Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-11-02T10:10:54.898774Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-11-02T10:10:55.545345Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-11-02T10:10:56.042468Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-11-02T10:23:36.526082Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-11-02T12:26:00.827436Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-classification-client-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-11-02T10:23:36.750355Z"
+    },
+    {
+      "name": "validate-and-document",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-11-02T11:20:45.458305Z"
+    }
+  ]
+}
