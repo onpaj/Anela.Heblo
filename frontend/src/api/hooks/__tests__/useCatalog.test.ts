@@ -113,6 +113,40 @@ describe("useCatalogQuery", () => {
     };
   };
 
+  describe("ND filter", () => {
+    const fetchedUrl = () =>
+      new URL(mockApiClient.http.fetch.mock.calls[0][0] as string);
+
+    test("sends isNd=true when the ND filter is on", async () => {
+      mockApiClient.http.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => mockApiResponse,
+      });
+
+      const { result } = renderHook(
+        () => useCatalogQuery("", "", "", 1, 20, undefined, false, true),
+        { wrapper: createWrapper() },
+      );
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(fetchedUrl().searchParams.get("isNd")).toBe("true");
+    });
+
+    test("omits isNd when the ND filter is off", async () => {
+      mockApiClient.http.fetch.mockResolvedValue({
+        ok: true,
+        json: async () => mockApiResponse,
+      });
+
+      const { result } = renderHook(() => useCatalogQuery(), {
+        wrapper: createWrapper(),
+      });
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+      expect(fetchedUrl().searchParams.has("isNd")).toBe(false);
+    });
+  });
+
   describe("Basic Functionality", () => {
     test("should fetch catalog data successfully", async () => {
       mockApiClient.http.fetch.mockResolvedValue({
