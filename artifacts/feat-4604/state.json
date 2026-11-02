@@ -21,16 +21,16 @@
       "updated_at": "2026-11-02T13:44:38.561014Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-11-02T20:14:50.771673Z"
     }
   },
   "tasks": [
     {
       "name": "build-test-harness",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-11-02T20:14:51.071012Z"
     },
     {
       "name": "success-path-tests",
