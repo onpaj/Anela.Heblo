@@ -113,7 +113,7 @@ public class BatchPlanningService : IBatchPlanningService
         // Convert flexible products to ProductBatch format for BatchDistributionCalculator
         if (flexibleProducts.Count > 0)
         {
-            var batch = CreateProductBatch(flexibleProducts, semiproduct, availableVolume, remainingVolume);
+            var batch = CreateProductBatch(flexibleProducts, semiproduct, remainingVolume, request.NdCoverageFactor);
 
             // Use BatchDistributionCalculator for optimization
             _batchDistributionCalculator.OptimizeBatch(batch, minimizeResidue: true);
@@ -144,8 +144,10 @@ public class BatchPlanningService : IBatchPlanningService
         };
     }
 
-    private ProductBatch CreateProductBatch(List<BatchPlanItemDto> flexibleProducts, ProductCatalogSnapshot semiproduct, double availableVolume, double remainingVolume)
+    private ProductBatch CreateProductBatch(List<BatchPlanItemDto> flexibleProducts, ProductCatalogSnapshot semiproduct, double remainingVolume, double? ndCoverageFactor)
     {
+        var ndWeight = ndCoverageFactor is > 0 ? ndCoverageFactor.Value : 1.0;
+
         var variants = flexibleProducts.Select(product => new ProductVariant
         {
             ProductCode = product.ProductCode,
@@ -153,6 +155,7 @@ public class BatchPlanningService : IBatchPlanningService
             Weight = product.WeightPerUnit, // Volume per unit is the weight in the batch context
             DailySales = product.DailySalesRate,
             EffectiveStock = product.CurrentStock + product.PlannedQuantity,
+            CoverageWeight = product.IsNd ? ndWeight : 1.0,
             SuggestedAmount = 0 // Will be set by optimizer
         }).ToList();
 

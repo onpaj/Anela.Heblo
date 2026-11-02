@@ -67,6 +67,7 @@ public class CalculateBatchPlanHandler : IRequestHandler<CalculateBatchPlanReque
             ToDate = source.ToDate,
             TimePeriod = source.TimePeriod,
             SalesMultiplier = source.SalesMultiplier,
+            NdCoverageFactor = source.NdCoverageFactor,
             ControlMode = source.ControlMode,
             MmqMultiplier = source.MmqMultiplier,
             TotalWeightToUse = source.TotalWeightToUse,

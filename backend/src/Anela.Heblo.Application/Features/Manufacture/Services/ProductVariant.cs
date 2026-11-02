@@ -12,6 +12,12 @@ public class ProductVariant
     public double EffectiveStock { get; set; }
     public double SuggestedAmount { get; set; }
 
+    /// <summary>
+    /// Relative weight of this variant's target days of coverage. 1.0 = same target as everyone else;
+    /// 1.2 = this variant should end with 20 % more days of stock than the unweighted variants.
+    /// </summary>
+    public double CoverageWeight { get; set; } = 1.0;
+
     public double UpstockSuggested => DailySales > 0 ? SuggestedAmount / DailySales : 0;
     public double UpstockTotal => DailySales > 0 ? (SuggestedAmount + EffectiveStock) / DailySales : 0;
     public double UpstockCurrent => DailySales > 0 ? EffectiveStock / DailySales : 0;

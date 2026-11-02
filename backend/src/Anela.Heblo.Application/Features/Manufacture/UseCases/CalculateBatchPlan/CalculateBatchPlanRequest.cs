@@ -22,6 +22,9 @@ public class CalculateBatchPlanRequest : IRequest<CalculateBatchPlanResponse>
     // Sales calculation settings
     public double? SalesMultiplier { get; set; } = 1.0;
 
+    // Coverage weight for ND-flagged sizes: 1.2 = ND sizes end with 20 % more days of stock. 1.0 = no effect.
+    public double? NdCoverageFactor { get; set; } = 1.0;
+
     // Control Mode - exactly one should be set
     public BatchPlanControlMode ControlMode { get; set; }
     public double? MmqMultiplier { get; set; }        // Mode 1: MMQ Multiplier (1.0 = 1x MMQ)
