@@ -306,6 +306,26 @@ public class DoubleShotOrderSwapServiceTests
     }
 
     [Fact]
+    public async Task Sweep_SwapsCompletedInShopOrder_AndLeavesItInVyrizena()
+    {
+        const int Vyrizena = -3;
+        OrdersContainingWithStatus("SA015030V", ("126000043", Vyrizena));
+        Detail("126000043", Vyrizena, V(1, amount: 2m));
+        AcceptWrites();
+        HeldOrders();
+        var sut = CreateSut(holdStatusId: HoldStatus);
+
+        var summary = await sut.SweepAsync(applyChanges: true);
+
+        summary.Should().Be(new DoubleShotSwapSummary(1, 1, 0, 0, 0));
+        _orders.Verify(o => o.AddOrderItemAsync("126000043", It.Is<NewEshopOrderItem>(i => i.Code == "SA015030S"), It.IsAny<CancellationToken>()), Times.Once);
+        _orders.Verify(o => o.DeleteOrderItemAsync("126000043", 1, It.IsAny<CancellationToken>()), Times.Once);
+        // Strict mock: any status re-read or update would have thrown.
+        _orders.Verify(o => o.UpdateStatusWithoutNotificationsAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
+        _orders.Verify(o => o.GetOrderStatusIdAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Sweep_SkipsOrderThatDisappeared()
     {
         OrdersContaining("SA015030V", "126000043");
