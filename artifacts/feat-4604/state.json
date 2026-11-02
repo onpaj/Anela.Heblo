@@ -40,9 +40,9 @@
     },
     {
       "name": "failure-path-tests",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-11-02T22:46:37.412776Z"
     },
     {
       "name": "final-validation",
