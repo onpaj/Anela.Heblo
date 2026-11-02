@@ -86,6 +86,10 @@ Target: Shoptet order items, `eshopRemark`, and the status of held orders only. 
   because orders rung up directly in the physical shop are created straight in Vyrizena and never
   pass through the earlier states; such an order is swapped but its status is never changed (only
   held orders are ever moved).
+  Caveat: -3 is also the state `CompleteDeliveredOrdersJob` moves delivered orders into, so a V order
+  that was missed earlier and has since shipped and completed would also be rewritten after
+  fulfilment. Shoptet's behaviour for item POST/DELETE on -3 orders is not yet documented in
+  `docs/integrations/shoptet-api.md`; check the dry-run log for -3 candidates before enabling the flag.
 - Only lines with `itemType == product` and a V code are swapped. Each V line is planned alone,
   so two V lines with the same code are swapped separately (the tag carries the V item id).
 - Swap = two calls, POST S then DELETE V; Shoptet has no atomic swap. Order of calls matters:

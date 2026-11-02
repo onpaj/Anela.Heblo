@@ -80,7 +80,7 @@ public class ShoptetOrdersSettings
     /// <summary>
     /// Shoptet order states in which the double-shot swap may rewrite order lines (pre-picking only).
     /// Empty = use DoubleShotOrderSwapService.DefaultEligibleStatusIds
-    /// (-1 Nová, 3 Čeká se na platbu, 32 Zaplaceno, -2 Vyřizuje se, 35 Poznámka, 73 Oprava-robot).
+    /// (-1 Nová, 3 Čeká se na platbu, 32 Zaplaceno, -2 Vyřizuje se, 35 Poznámka, 73 Oprava-robot, -3 Vyřízena).
     /// Kept empty by default on purpose: the config binder merges arrays index-wise, so a non-empty
     /// default would leak into a shorter override.
     /// </summary>
