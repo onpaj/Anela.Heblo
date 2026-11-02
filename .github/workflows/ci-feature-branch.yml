@@ -145,9 +145,11 @@ jobs:
         working-directory: ./frontend
         run: npm install --legacy-peer-deps
 
-      - name: 🧪 Run tests with coverage
+      # No coverage on PRs (Jest/istanbul instrumentation of every file); it runs nightly instead —
+      # see e2e-nightly-regression.yml: frontend-coverage.
+      - name: 🧪 Run tests
         working-directory: ./frontend
-        run: npm test -- --coverage --watchAll=false --reporters=default --reporters=jest-junit
+        run: npm test -- --watchAll=false --reporters=default --reporters=jest-junit
         env:
           REACT_APP_USE_MOCK_AUTH: true
           CI: true
@@ -167,10 +169,6 @@ jobs:
           name: knip-report
           path: frontend/knip-report.txt
           retention-days: 14
-
-      - name: 📊 Upload coverage reports
-        continue-on-error: true
-        run: echo "Coverage upload skipped (codecov-action unavailable from codeload)"
 
       - name: 📋 Frontend Test Report
         if: success() || failure()

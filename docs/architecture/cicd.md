@@ -289,7 +289,7 @@ az webapp config container set \
 
 ### Automated Monitoring
 - **Health Checks**: `/health` endpoint validation during deployment
-- **Coverage Reports**: Uploaded to Codecov for frontend and backend
+- **Coverage Reports**: Collected nightly (not on PR/main runs) and uploaded to Codecov for frontend and backend
 - **Artifact Retention**: 7 days for CI artifacts
 - **Weekly Cleanup**: Automated artifact and image cleanup
 
