@@ -51,6 +51,7 @@ const CatalogList: React.FC = () => {
       ? (typeParam as ProductType)
       : "";
   };
+  const getInitialIsNdFilter = () => searchParams.get("isNd") === "true";
   const getInitialPageNumber = () => {
     const pageParam = searchParams.get("page");
     return pageParam ? parseInt(pageParam, 10) : 1;
@@ -73,6 +74,7 @@ const CatalogList: React.FC = () => {
   );
 
   // Pagination states
+  const [isNdFilter, setIsNdFilter] = useState(getInitialIsNdFilter);
   const [pageNumber, setPageNumber] = useState(getInitialPageNumber);
   const [pageSize, setPageSize] = useState(getInitialPageSize);
 
@@ -100,6 +102,7 @@ const CatalogList: React.FC = () => {
     pageSize,
     sortBy,
     sortDescending,
+    isNdFilter,
   );
 
   const filteredItems = data?.items || [];
@@ -146,6 +149,7 @@ const CatalogList: React.FC = () => {
     setProductNameFilter("");
     setProductCodeFilter("");
     setProductTypeFilter("");
+    setIsNdFilter(false);
     setPageNumber(1); // Reset to first page when clearing filters
 
     // Update URL params immediately to prevent race condition with useEffect
@@ -153,6 +157,7 @@ const CatalogList: React.FC = () => {
     params.delete("productName");
     params.delete("productCode");
     params.delete("productType");
+    params.delete("isNd");
     params.delete("page");
     setSearchParams(params); // Creates history entry for user-initiated filter clear
 
@@ -194,6 +199,7 @@ const CatalogList: React.FC = () => {
     if (productNameFilter) params.set("productName", productNameFilter);
     if (productCodeFilter) params.set("productCode", productCodeFilter);
     if (productTypeFilter) params.set("productType", productTypeFilter);
+    if (isNdFilter) params.set("isNd", "true");
 
     // Add pagination to URL params
     if (pageNumber !== 1) params.set("page", pageNumber.toString());
@@ -205,7 +211,7 @@ const CatalogList: React.FC = () => {
 
     // Update URL without creating new history entry (prevents duplicate entries from automatic sync)
     setSearchParams(params, { replace: true });
-  }, [productNameFilter, productCodeFilter, productTypeFilter, pageNumber, pageSize, sortBy, sortDescending, setSearchParams]);
+  }, [productNameFilter, productCodeFilter, productTypeFilter, isNdFilter, pageNumber, pageSize, sortBy, sortDescending, setSearchParams]);
 
   // Handle browser back/forward navigation by reading URL params
   // This effect runs when searchParams changes (e.g., via browser back/forward)
@@ -213,6 +219,7 @@ const CatalogList: React.FC = () => {
     const newProductName = searchParams.get("productName") || "";
     const newProductCode = searchParams.get("productCode") || "";
     const newProductType = searchParams.get("productType") || "";
+    const newIsNd = searchParams.get("isNd") === "true";
     const newPage = searchParams.get("page") ? parseInt(searchParams.get("page")!, 10) : 1;
     const newPageSize = searchParams.get("pageSize") ? parseInt(searchParams.get("pageSize")!, 10) : 20;
     const newSortBy = searchParams.get("sortBy") || "";
@@ -224,6 +231,7 @@ const CatalogList: React.FC = () => {
       newProductName !== productNameFilter ||
       newProductCode !== productCodeFilter ||
       newProductType !== productTypeFilter ||
+      newIsNd !== isNdFilter ||
       newPage !== pageNumber ||
       newPageSize !== pageSize ||
       newSortBy !== sortBy ||
@@ -235,6 +243,7 @@ const CatalogList: React.FC = () => {
       setProductCodeInput(newProductCode);
       setProductCodeFilter(newProductCode);
       setProductTypeFilter(newProductType as ProductType | "");
+      setIsNdFilter(newIsNd);
       setPageNumber(newPage);
       setPageSize(newPageSize);
       setSortBy(newSortBy);
@@ -398,6 +407,35 @@ const CatalogList: React.FC = () => {
                 ))}
               </select>
             </div>
+
+            <label
+              htmlFor="isNd"
+              title="Nesmí dojít"
+              className="flex items-center gap-2 text-sm text-gray-700 dark:text-graphite-text whitespace-nowrap cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                id="isNd"
+                checked={isNdFilter}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setIsNdFilter(checked);
+                  setPageNumber(1); // Reset to first page when filter changes
+
+                  // Update URL params immediately to prevent race condition with useEffect
+                  const params = new URLSearchParams(searchParams);
+                  if (checked) {
+                    params.set("isNd", "true");
+                  } else {
+                    params.delete("isNd");
+                  }
+                  params.delete("page");
+                  setSearchParams(params);
+                }}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-graphite-border rounded"
+              />
+              Pouze ND
+            </label>
           </div>
 
           <div className="flex items-center gap-2">
@@ -516,7 +554,7 @@ const CatalogList: React.FC = () => {
         totalPages={totalPages}
         onPageChange={handlePageChange}
         onPageSizeChange={handlePageSizeChange}
-        isFiltered={!!(productNameFilter || productCodeFilter)}
+        isFiltered={!!(productNameFilter || productCodeFilter || isNdFilter)}
       />
 
       {/* Modal for Product Detail */}
