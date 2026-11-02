@@ -67,43 +67,64 @@ public class FlexiManufactureTemplateServiceTests
             .Setup(x => x.GetAsync(ManufactureTestData.SemiProducts.SilkBar.Code, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new List<BoMItemFlexiDto> { header, ingredient });
 
-        // Each call to StockToDateAsync returns a task that delays 200ms.
-        // If executed sequentially, total time would be ~600ms (3 × 200ms).
-        // If executed in parallel via Task.WhenAll, total time should be ~200ms.
+        // Each StockToDateAsync call registers as in flight and then waits until all three calls have started.
+        // Run concurrently, all three reach the barrier immediately and maxInFlight is 3. Run sequentially, the
+        // first call can never see the others start, gives up at the barrier timeout and maxInFlight stays 1.
+        // No assertion depends on elapsed wall-clock time, so a loaded runner cannot make this flaky.
+        const int ExpectedConcurrentCalls = 3;
+        var barrierTimeout = TimeSpan.FromSeconds(2);
+        var inFlight = 0;
+        var maxInFlight = 0;
+        var allStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        async Task<IReadOnlyList<ErpStock>> StockCallAsync(IReadOnlyList<ErpStock> result, CancellationToken ct)
+        {
+            var current = Interlocked.Increment(ref inFlight);
+            int observed;
+            while ((observed = Volatile.Read(ref maxInFlight)) < current
+                && Interlocked.CompareExchange(ref maxInFlight, current, observed) != observed)
+            {
+            }
+
+            if (current >= ExpectedConcurrentCalls)
+            {
+                allStarted.TrySetResult();
+            }
+
+            try
+            {
+                await allStarted.Task.WaitAsync(barrierTimeout, ct);
+            }
+            catch (TimeoutException)
+            {
+                // Calls were not concurrent; maxInFlight records that and the assertion below fails.
+            }
+            finally
+            {
+                Interlocked.Decrement(ref inFlight);
+            }
+
+            return result;
+        }
+
         _mockStockClient
             .Setup(x => x.StockToDateAsync(It.IsAny<DateTime>(), FlexiStockClient.MaterialWarehouseId, It.IsAny<CancellationToken>()))
-            .Returns(async (DateTime _, int _, CancellationToken ct) =>
-            {
-                await Task.Delay(200, ct);
-                return (IReadOnlyList<ErpStock>)new List<ErpStock>
-                {
-                    new() { ProductCode = "AKL001", HasLots = true }
-                };
-            });
+            .Returns((DateTime _, int _, CancellationToken ct) =>
+                StockCallAsync(new List<ErpStock> { new() { ProductCode = "AKL001", HasLots = true } }, ct));
 
         _mockStockClient
             .Setup(x => x.StockToDateAsync(It.IsAny<DateTime>(), FlexiStockClient.SemiProductsWarehouseId, It.IsAny<CancellationToken>()))
-            .Returns(async (DateTime _, int _, CancellationToken ct) =>
-            {
-                await Task.Delay(200, ct);
-                return (IReadOnlyList<ErpStock>)new List<ErpStock>();
-            });
+            .Returns((DateTime _, int _, CancellationToken ct) => StockCallAsync(new List<ErpStock>(), ct));
 
         _mockStockClient
             .Setup(x => x.StockToDateAsync(It.IsAny<DateTime>(), FlexiStockClient.ProductsWarehouseId, It.IsAny<CancellationToken>()))
-            .Returns(async (DateTime _, int _, CancellationToken ct) =>
-            {
-                await Task.Delay(200, ct);
-                return (IReadOnlyList<ErpStock>)new List<ErpStock>();
-            });
+            .Returns((DateTime _, int _, CancellationToken ct) => StockCallAsync(new List<ErpStock>(), ct));
 
-        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         var template = await _service.GetManufactureTemplateAsync(ManufactureTestData.SemiProducts.SilkBar.Code, CancellationToken.None);
-        stopwatch.Stop();
 
         template.Should().NotBeNull();
-        stopwatch.ElapsedMilliseconds.Should().BeLessThan(2500,
-            "three 200 ms stock calls must run in parallel, not sequentially");
+        maxInFlight.Should().Be(ExpectedConcurrentCalls,
+            "the three stock calls must be in flight at the same time, not dispatched sequentially");
 
         _mockStockClient.Verify(
             x => x.StockToDateAsync(It.IsAny<DateTime>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
