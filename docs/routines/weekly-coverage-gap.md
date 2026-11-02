@@ -16,7 +16,7 @@ A remote Claude Code routine that runs every Monday, downloads coverage artifact
 
 ## How it works
 
-1. Downloads `coverage-backend` (latest nightly run of `e2e-nightly-regression.yml` that still has a non-expired `coverage-backend` artifact — the run itself may be red because of E2E failures, so do not filter by run conclusion) and `coverage-frontend` (latest successful main-branch CI run) artifacts
+1. Downloads `coverage-backend` (latest nightly run of `e2e-nightly-regression.yml` that still has a non-expired `coverage-backend` artifact — the run itself may be red because of E2E failures, so do not filter by run conclusion) and `coverage-frontend` (same nightly run) artifacts
 2. Parses Cobertura XML (backend) and LCOV (frontend) to identify files below 60% line coverage
 3. Reads each low-coverage file and qualifies whether the gap is meaningful
 4. Files GitHub issues only for real gaps — skips boilerplate and trivial code
@@ -54,9 +54,9 @@ The routine depends on two artifacts:
 | Artifact | Path | Retention | Produced by |
 |---|---|---|---|
 | `coverage-backend` | `coverage/**/*.cobertura.xml` | 7 days | `e2e-nightly-regression.yml` → `backend-coverage` job |
-| `coverage-frontend` | `frontend/coverage/lcov.info` | 7 days | `ci-main-branch.yml` → `frontend-tests` job |
+| `coverage-frontend` | `frontend/coverage/lcov.info` | 7 days | `e2e-nightly-regression.yml` → `frontend-coverage` job |
 
-Backend coverage is nightly-only: the XPlat coverage collector adds ~10 min to the backend test run (it instruments every referenced assembly per test project), so it was removed from the PR and main CI. The Codecov backend upload happens in the same nightly job.
+Coverage is nightly-only. Backend: the XPlat coverage collector added ~10 min to the test run (it instruments every referenced assembly per test project). Frontend: Jest `--coverage` instrumentation. Both were removed from the PR and main CI; the Codecov uploads happen in the same nightly jobs.
 
 ## Managing the routine
 

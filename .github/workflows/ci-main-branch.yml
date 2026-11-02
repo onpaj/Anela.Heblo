@@ -64,12 +64,16 @@ jobs:
       - name: 🔗 Connect to Tailscale (for ReportPortal)
         if: vars.RP_ENABLE == 'true'
         continue-on-error: true
+        # A dead auth key makes the action retry for >2 min; cap the waste (step is non-fatal).
+        timeout-minutes: 1
         uses: tailscale/github-action@v4
         with:
           # Tagged, reusable, ephemeral auth key (carries tag:ci itself, so no tags input).
           authkey: ${{ secrets.TS_AUTHKEY }}
 
-      - name: 🧪 Run tests with coverage
+      # No coverage on main (Jest/istanbul instrumentation of every file); it runs nightly instead —
+      # see e2e-nightly-regression.yml: frontend-coverage.
+      - name: 🧪 Run tests
         working-directory: ./frontend
         run: |
           REPORTERS="--reporters=default --reporters=jest-junit"
@@ -77,7 +81,7 @@ jobs:
             REPORTERS="$REPORTERS --reporters=./test/reportportal-jest.reporter.js"
             echo "📡 ReportPortal reporter enabled for Jest"
           fi
-          npm test -- --coverage --watchAll=false $REPORTERS
+          npm test -- --watchAll=false $REPORTERS
         env:
           REACT_APP_USE_MOCK_AUTH: true
           CI: true
@@ -89,24 +93,6 @@ jobs:
           RP_PROJECT: ${{ vars.RP_PROJECT }}
           RP_API_KEY: ${{ secrets.RP_API_KEY }}
           RP_LAUNCH: heblo-frontend
-
-      - name: 📊 Upload coverage reports
-        uses: codecov/codecov-action@ab904c41d6ece82784817410c45d8b8c02684457 # v3
-        continue-on-error: true
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./frontend/coverage/lcov.info
-          flags: frontend
-          name: frontend-coverage
-          fail_ci_if_error: false
-          verbose: true
-
-      - name: 📦 Persist frontend coverage artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-frontend
-          path: frontend/coverage/lcov.info
-          retention-days: 7
 
       - name: 📋 Frontend Test Report
         uses: dorny/test-reporter@v1
@@ -193,6 +179,8 @@ jobs:
 
       - name: 🔗 Connect to Tailscale (for ReportPortal)
         continue-on-error: true
+        # A dead auth key makes the action retry for >2 min; cap the waste (step is non-fatal).
+        timeout-minutes: 1
         uses: tailscale/github-action@v4
         with:
           # Tagged, reusable, ephemeral auth key (carries tag:ci itself, so no tags input).
