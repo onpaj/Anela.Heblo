@@ -24,6 +24,90 @@ public class PollyExecutionStrategyTests
         harness.Sut.RetriesOnFailure.Should().BeTrue();
     }
 
+    [Fact]
+    public void Execute_SucceedsFirstAttempt_RecordsNoRetryMetrics()
+    {
+        using var harness = CreateSut(maxAttempts: 3);
+        var calls = 0;
+
+        var result = harness.Sut.Execute<int, int>(0, (_, _) => { calls++; return 42; }, null);
+
+        result.Should().Be(42);
+        calls.Should().Be(1);
+        harness.Capture.Measurements.Should().NotContain(m => m.Name == "db.retry.success");
+        harness.Capture.Measurements.Should().NotContain(m => m.Name == "db.retry.failure");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_SucceedsFirstAttempt_RecordsNoRetryMetrics()
+    {
+        using var harness = CreateSut(maxAttempts: 3);
+        var calls = 0;
+
+        var result = await harness.Sut.ExecuteAsync<int, int>(
+            0, (_, _, _) => { calls++; return Task.FromResult(42); }, null, CancellationToken.None);
+
+        result.Should().Be(42);
+        calls.Should().Be(1);
+        harness.Capture.Measurements.Should().NotContain(m => m.Name == "db.retry.success");
+        harness.Capture.Measurements.Should().NotContain(m => m.Name == "db.retry.failure");
+    }
+
+    [Fact]
+    public void Execute_SucceedsOnSecondAttempt_RecordsRetrySuccessWithAttempts2()
+    {
+        using var harness = CreateSut(maxAttempts: 3);
+        var calls = 0;
+
+        var result = harness.Sut.Execute<int, int>(
+            0,
+            (_, _) =>
+            {
+                calls++;
+                if (calls == 1)
+                {
+                    throw new TimeoutException();
+                }
+
+                return 7;
+            },
+            null);
+
+        result.Should().Be(7);
+        var success = harness.Capture.Measurements.Should().ContainSingle(m => m.Name == "db.retry.success").Subject;
+        success.Value.Should().Be(1);
+        success.Tags["total_attempts"].Should().Be(2);
+        harness.Capture.Measurements.Should().NotContain(m => m.Name == "db.retry.failure");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_SucceedsOnSecondAttempt_RecordsRetrySuccessWithAttempts2()
+    {
+        using var harness = CreateSut(maxAttempts: 3);
+        var calls = 0;
+
+        var result = await harness.Sut.ExecuteAsync<int, int>(
+            0,
+            (_, _, _) =>
+            {
+                calls++;
+                if (calls == 1)
+                {
+                    throw new TimeoutException();
+                }
+
+                return Task.FromResult(7);
+            },
+            null,
+            CancellationToken.None);
+
+        result.Should().Be(7);
+        var success = harness.Capture.Measurements.Should().ContainSingle(m => m.Name == "db.retry.success").Subject;
+        success.Value.Should().Be(1);
+        success.Tags["total_attempts"].Should().Be(2);
+        harness.Capture.Measurements.Should().NotContain(m => m.Name == "db.retry.failure");
+    }
+
     private static Harness CreateSut(int maxAttempts)
     {
         var pipeline = new ResiliencePipelineBuilder()
