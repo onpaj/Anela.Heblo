@@ -108,6 +108,77 @@ public class PollyExecutionStrategyTests
         harness.Capture.Measurements.Should().NotContain(m => m.Name == "db.retry.failure");
     }
 
+    [Fact]
+    public void Execute_FailsAfterRetries_SetsDataRecordsFailureLogsAndRethrowsSameInstance()
+    {
+        using var harness = CreateSut(maxAttempts: 3);
+        var thrown = new TimeoutException();
+
+        var act = () => harness.Sut.Execute<int, int>(0, (_, _) => throw thrown, null);
+
+        var ex = act.Should().Throw<TimeoutException>().Which;
+        ex.Should().BeSameAs(thrown);
+        AssertFailure(harness, ex, typeof(TimeoutException).FullName!, 3);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_FailsAfterRetries_SetsDataRecordsFailureLogsAndRethrowsSameInstance()
+    {
+        using var harness = CreateSut(maxAttempts: 3);
+        var thrown = new TimeoutException();
+
+        var act = () => harness.Sut.ExecuteAsync<int, int>(
+            0, (_, _, _) => throw thrown, null, CancellationToken.None);
+
+        var ex = (await act.Should().ThrowAsync<TimeoutException>()).Which;
+        ex.Should().BeSameAs(thrown);
+        AssertFailure(harness, ex, typeof(TimeoutException).FullName!, 3);
+    }
+
+    [Fact]
+    public void Execute_NonRetryableFailureOnFirstAttempt_SetsAttempts1()
+    {
+        using var harness = CreateSut(maxAttempts: 3);
+        var thrown = new InvalidOperationException();
+
+        var act = () => harness.Sut.Execute<int, int>(0, (_, _) => throw thrown, null);
+
+        var ex = act.Should().Throw<InvalidOperationException>().Which;
+        ex.Should().BeSameAs(thrown);
+        AssertFailure(harness, ex, "System.InvalidOperationException", 1);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_NonRetryableFailureOnFirstAttempt_SetsAttempts1()
+    {
+        using var harness = CreateSut(maxAttempts: 3);
+        var thrown = new InvalidOperationException();
+
+        var act = () => harness.Sut.ExecuteAsync<int, int>(
+            0, (_, _, _) => throw thrown, null, CancellationToken.None);
+
+        var ex = (await act.Should().ThrowAsync<InvalidOperationException>()).Which;
+        ex.Should().BeSameAs(thrown);
+        AssertFailure(harness, ex, "System.InvalidOperationException", 1);
+    }
+
+    private static void AssertFailure(Harness harness, Exception ex, string exceptionType, int attempts)
+    {
+        ex.Data["Anela.DbRetryAttempts"].Should().Be(attempts);
+        harness.Capture.Measurements.Should().NotContain(m => m.Name == "db.retry.success");
+        var failure = harness.Capture.Measurements.Should().ContainSingle(m => m.Name == "db.retry.failure").Subject;
+        failure.Tags["exception.type"].Should().Be(exceptionType);
+        failure.Tags["total_attempts"].Should().Be(attempts);
+        harness.Logger.Verify(
+            l => l.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                ex,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
     private static Harness CreateSut(int maxAttempts)
     {
         var pipeline = new ResiliencePipelineBuilder()
