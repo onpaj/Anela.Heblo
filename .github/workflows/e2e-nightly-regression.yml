@@ -48,6 +48,77 @@ permissions:
   contents: read     # Allow reading repository contents
 
 jobs:
+  # Backend unit-test coverage. Lives here (not in the PR / main CI) because the XPlat coverage
+  # collector adds ~10 min to the backend test run. Independent of staging: no `needs`, so it
+  # runs in parallel with deploy-staging and the E2E matrix. Produces the same `coverage-backend`
+  # artifact + Codecov upload that ci-main-branch.yml used to, for the weekly coverage-gap routine.
+  backend-coverage:
+    name: 📊 Backend Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 📦 Restore dependencies
+        run: dotnet restore Anela.Heblo.sln
+
+      - name: 🏗️ Build solution (Release, once)
+        run: dotnet build Anela.Heblo.sln --configuration Release --no-restore
+
+      - name: 🧪 Run tests with coverage (excluding Playwright and Integration tests)
+        run: dotnet test Anela.Heblo.sln --configuration Release --no-build --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --results-directory ./coverage --filter "Category!=Playwright&Category!=Integration" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+        env:
+          ASPNETCORE_ENVIRONMENT: Automation
+          ProductPriceOptions__ProductExportUrl: ${{ secrets.SHOPTET_PRODUCT_EXPORT_URL }}
+          FlexiBeeSettings__Server: ${{ secrets.FLEXIBEE_SERVER_URL }}
+          FlexiBeeSettings__Login: ${{ secrets.FLEXIBEE_USERNAME }}
+          FlexiBeeSettings__Password: ${{ secrets.FLEXIBEE_PASSWORD }}
+          FlexiBeeSettings__Company: ${{ secrets.FLEXIBEE_COMPANY }}
+
+      - name: 🔀 Merge coverage reports
+        run: |
+          dotnet tool update --global dotnet-reportgenerator-globaltool --version 5.4.3
+          export PATH="$HOME/.dotnet/tools:$PATH"
+          reportgenerator \
+            -reports:"coverage/**/*.cobertura.xml" \
+            -targetdir:"coverage/merged" \
+            -reporttypes:Cobertura
+
+      - name: 📊 Process coverage files for CodeCov
+        run: |
+          if [ ! -f coverage/merged/Cobertura.xml ]; then
+            echo "❌ ERROR: Merged coverage file not found!"
+            exit 1
+          fi
+          # Fix paths in merged file for CodeCov
+          sed -i 's|filename="|filename="backend/src/|g' coverage/merged/Cobertura.xml
+
+      - name: 📊 Upload coverage reports
+        uses: codecov/codecov-action@ab904c41d6ece82784817410c45d8b8c02684457 # v3
+        continue-on-error: true
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage/merged/Cobertura.xml
+          flags: backend
+          name: backend-coverage
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: 📦 Persist backend coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-backend
+          path: |
+            coverage/**/*.cobertura.xml
+            coverage/merged/Cobertura.xml
+          retention-days: 7
+
   # Deploy current main to staging so E2E tests run against fresh code, not stale deployments
   deploy-staging:
     name: 🚀 Deploy main to Staging
