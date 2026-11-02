@@ -30881,6 +30881,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
     toDate?: Date | undefined;
     timePeriod?: TimePeriod | undefined;
     salesMultiplier?: number | undefined;
+    ndCoverageFactor?: number | undefined;
     controlMode?: BatchPlanControlMode;
     mmqMultiplier?: number | undefined;
     totalWeightToUse?: number | undefined;
@@ -30905,6 +30906,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
             this.toDate = _data["toDate"] ? new Date(_data["toDate"].toString()) : <any>undefined;
             this.timePeriod = _data["timePeriod"];
             this.salesMultiplier = _data["salesMultiplier"];
+            this.ndCoverageFactor = _data["ndCoverageFactor"];
             this.controlMode = _data["controlMode"];
             this.mmqMultiplier = _data["mmqMultiplier"];
             this.totalWeightToUse = _data["totalWeightToUse"];
@@ -30933,6 +30935,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
         data["toDate"] = this.toDate ? this.toDate.toISOString() : <any>undefined;
         data["timePeriod"] = this.timePeriod;
         data["salesMultiplier"] = this.salesMultiplier;
+        data["ndCoverageFactor"] = this.ndCoverageFactor;
         data["controlMode"] = this.controlMode;
         data["mmqMultiplier"] = this.mmqMultiplier;
         data["totalWeightToUse"] = this.totalWeightToUse;
@@ -30954,6 +30957,7 @@ export interface ICalculateBatchPlanRequest {
     toDate?: Date | undefined;
     timePeriod?: TimePeriod | undefined;
     salesMultiplier?: number | undefined;
+    ndCoverageFactor?: number | undefined;
     controlMode?: BatchPlanControlMode;
     mmqMultiplier?: number | undefined;
     totalWeightToUse?: number | undefined;
