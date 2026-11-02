@@ -1,11 +1,19 @@
 import { useCallback, useState } from "react";
 
-const readStoredNumber = (key: string, fallback: number): number => {
+export interface NumberBounds {
+  min?: number;
+  max?: number;
+}
+
+const isWithinBounds = (value: number, { min = -Infinity, max = Infinity }: NumberBounds): boolean =>
+  Number.isFinite(value) && value >= min && value <= max;
+
+const readStoredNumber = (key: string, fallback: number, bounds: NumberBounds): number => {
   try {
     const raw = window.localStorage.getItem(key);
     if (raw === null) return fallback;
     const parsed = Number(raw);
-    return Number.isFinite(parsed) ? parsed : fallback;
+    return isWithinBounds(parsed, bounds) ? parsed : fallback;
   } catch {
     return fallback;
   }
@@ -14,9 +22,10 @@ const readStoredNumber = (key: string, fallback: number): number => {
 /** useState for a number that is remembered in the browser's localStorage. */
 export const usePersistedNumber = (
   key: string,
-  defaultValue: number
+  defaultValue: number,
+  bounds: NumberBounds = {}
 ): [number, (value: number) => void] => {
-  const [value, setValue] = useState<number>(() => readStoredNumber(key, defaultValue));
+  const [value, setValue] = useState<number>(() => readStoredNumber(key, defaultValue, bounds));
 
   const update = useCallback(
     (next: number) => {

@@ -15,6 +15,12 @@ describe("usePersistedNumber", () => {
     expect(result.current[0]).toBe(1.2);
   });
 
+  it("falls back to the default when the stored value is outside the bounds", () => {
+    window.localStorage.setItem("k", "0");
+    const { result } = renderHook(() => usePersistedNumber("k", 1.3, { min: 0.1, max: 9.9 }));
+    expect(result.current[0]).toBe(1.3);
+  });
+
   it("persists updates", () => {
     const { result } = renderHook(() => usePersistedNumber("k", 1.0));
     act(() => result.current[1](1.5));

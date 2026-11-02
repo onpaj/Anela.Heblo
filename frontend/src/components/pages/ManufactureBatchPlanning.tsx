@@ -55,9 +55,9 @@ const BatchPlanningCalculator: React.FC = () => {
   const [controlMode, setControlMode] = useState<BatchPlanControlMode>(BatchPlanControlMode.MmqMultiplier);
   
   // Sales settings state
-  const [salesMultiplier, setSalesMultiplier] = usePersistedNumber(SALES_MULTIPLIER_STORAGE_KEY, 1.3);
+  const [salesMultiplier, setSalesMultiplier] = usePersistedNumber(SALES_MULTIPLIER_STORAGE_KEY, 1.3, { min: 0.1, max: 9.9 });
   // Weight of ND (star) sizes' target coverage: 1.2 = ND sizes end with 20 % more days of stock.
-  const [ndCoverageFactor, setNdCoverageFactor] = usePersistedNumber(ND_COVERAGE_FACTOR_STORAGE_KEY, 1.0);
+  const [ndCoverageFactor, setNdCoverageFactor] = usePersistedNumber(ND_COVERAGE_FACTOR_STORAGE_KEY, 1.0, { min: 0.1, max: 5 });
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>(TimePeriod.Q9M);
   // Only used when selectedTimePeriod === TimePeriod.CustomPeriod.
   // Seeded from Q9M's primary range so the Custom pickers open with a sensible default.
@@ -575,7 +575,9 @@ const BatchPlanningCalculator: React.FC = () => {
                           max="9.9"
                           value={salesMultiplier.toFixed(1)}
                           onChange={(e) => {
-                            setSalesMultiplier(Number(e.target.value));
+                            const next = Number(e.target.value);
+                            if (!Number.isFinite(next) || next < 0.1 || next > 9.9) return;
+                            setSalesMultiplier(next);
                             setNeedsRecalculation(true);
                           }}
                           className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
@@ -590,10 +592,10 @@ const BatchPlanningCalculator: React.FC = () => {
                           step="0.1"
                           min="0.1"
                           max="5"
-                          value={ndCoverageFactor.toFixed(1)}
+                          value={ndCoverageFactor}
                           onChange={(e) => {
                             const next = Number(e.target.value);
-                            if (!Number.isFinite(next) || next <= 0) return;
+                            if (!Number.isFinite(next) || next < 0.1 || next > 5) return;
                             setNdCoverageFactor(next);
                             setNeedsRecalculation(true);
                           }}
