@@ -134,15 +134,16 @@ jobs:
       - name: 📦 Restore dependencies
         run: dotnet restore Anela.Heblo.sln
 
-      - name: 🏗️ Build all test projects
-        run: |
-          dotnet build backend/test/Anela.Heblo.Tests --configuration Release --no-restore
-          dotnet build backend/test/Anela.Heblo.Adapters.Shoptet.Tests --configuration Release --no-restore
-          dotnet build backend/test/Anela.Heblo.Adapters.Flexi.Tests --configuration Release --no-restore
+      - name: 🏗️ Build solution (Release, once)
+        run: dotnet build Anela.Heblo.sln --configuration Release --no-restore
 
-      - name: 🧪 Run tests with coverage (excluding Playwright integration tests)
+      # No coverage here on purpose: the XPlat coverage collector instruments every referenced
+      # assembly per test project (~100 s each, serially) and turned a ~2 min test run into
+      # ~12 min on the production deploy path. Coverage (Codecov + `coverage-backend` artifact)
+      # is produced nightly instead — see e2e-nightly-regression.yml: backend-coverage.
+      - name: 🧪 Run tests (excluding Playwright integration tests)
         run: |
-          dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --logger "junit;LogFileName={assembly}-junit.xml" --results-directory ./coverage --filter "Category!=Playwright&Category!=Integration" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+          dotnet test Anela.Heblo.sln --configuration Release --no-build --logger trx --logger "console;verbosity=normal" --logger "junit;LogFileName={assembly}-junit.xml" --results-directory ./coverage --filter "Category!=Playwright&Category!=Integration"
         env:
           ASPNETCORE_ENVIRONMENT: Automation
           # Shoptet integration test configuration
@@ -161,51 +162,6 @@ jobs:
           path: coverage/*-junit.xml
           retention-days: 7
 
-      - name: 🔀 Merge coverage reports
-        run: |
-          dotnet tool update --global dotnet-reportgenerator-globaltool --version 5.4.3
-          export PATH="$HOME/.dotnet/tools:$PATH"
-          reportgenerator \
-            -reports:"coverage/**/*.cobertura.xml" \
-            -targetdir:"coverage/merged" \
-            -reporttypes:Cobertura
-
-      - name: 📊 Process coverage files for CodeCov
-        run: |
-          # Verify merged coverage file exists before processing
-          if [ ! -f coverage/merged/Cobertura.xml ]; then
-            echo "❌ ERROR: Merged coverage file not found!"
-            exit 1
-          fi
-
-          # Fix paths in merged file for CodeCov
-          sed -i 's|filename="|filename="backend/src/|g' coverage/merged/Cobertura.xml
-
-      - name: 📊 Prepare coverage file list
-        id: coverage-files
-        run: |
-          echo "files=coverage/merged/Cobertura.xml" >> $GITHUB_OUTPUT
-
-      - name: 📊 Upload coverage reports
-        uses: codecov/codecov-action@ab904c41d6ece82784817410c45d8b8c02684457 # v3
-        continue-on-error: true
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-files.outputs.files }}
-          flags: backend
-          name: backend-coverage
-          fail_ci_if_error: false
-          verbose: true
-
-      - name: 📦 Persist backend coverage artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-backend
-          path: |
-            coverage/**/*.cobertura.xml
-            coverage/merged/Cobertura.xml
-          retention-days: 7
-
       - name: 📋 Backend Test Report
         uses: dorny/test-reporter@v1
         if: success() || failure()
@@ -214,9 +170,6 @@ jobs:
           path: coverage/**/*.trx
           reporter: dotnet-trx
           fail-on-error: false
-
-      - name: 🏗️ Build solution
-        run: dotnet build Anela.Heblo.sln --configuration Release --no-restore
 
   # Report backend test results to ReportPortal — deliberately NOT a dependency of
   # build-and-push/deploy-production. This is the async counterpart to the live
