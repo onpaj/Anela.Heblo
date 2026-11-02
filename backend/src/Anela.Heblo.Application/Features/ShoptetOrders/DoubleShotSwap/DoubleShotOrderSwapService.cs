@@ -16,7 +16,8 @@ namespace Anela.Heblo.Application.Features.ShoptetOrders.DoubleShotSwap;
 /// </summary>
 public sealed class DoubleShotOrderSwapService : IDoubleShotOrderSwapService
 {
-    internal static readonly int[] DefaultEligibleStatusIds = [-1, 3, 32, -2, 35, 73];
+    // -3 = Vyřízena: orders rung up in the physical shop are created straight in this final state.
+    internal static readonly int[] DefaultEligibleStatusIds = [-1, 3, 32, -2, 35, 73, -3];
     private static readonly SemaphoreSlim SweepLock = new(1, 1);
     private static readonly TimeSpan SweepLockWait = TimeSpan.FromMinutes(2);
     private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
