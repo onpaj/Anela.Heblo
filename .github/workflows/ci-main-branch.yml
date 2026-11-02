@@ -59,12 +59,12 @@ jobs:
         run: npm install --legacy-peer-deps
 
       # Join the Tailnet so the RP agent can reach the self-hosted ReportPortal
-      # (nas.*.ts.net). Gated on RP_ENABLE and fail-safe: if the connection can't be
-      # made, reporting just no-ops (it's non-fatal) rather than breaking the job.
+      # (nas.*.ts.net). Gated on RP_ENABLE. If the key is invalid the step fails the job —
+      # rotate TS_AUTHKEY (or disable RP_ENABLE) rather than letting reporting silently no-op.
       - name: 🔗 Connect to Tailscale (for ReportPortal)
         if: vars.RP_ENABLE == 'true'
-        continue-on-error: true
-        # A dead auth key makes the action retry for >2 min; cap the waste (step is non-fatal).
+        # NOT continue-on-error: an expired/revoked TS_AUTHKEY must fail the job loudly instead of
+        # silently dropping ReportPortal reporting. The action retries for >2 min on a dead key, so cap it.
         timeout-minutes: 1
         uses: tailscale/github-action@v4
         with:
@@ -178,8 +178,8 @@ jobs:
           path: ./junit
 
       - name: 🔗 Connect to Tailscale (for ReportPortal)
-        continue-on-error: true
-        # A dead auth key makes the action retry for >2 min; cap the waste (step is non-fatal).
+        # NOT continue-on-error: an expired/revoked TS_AUTHKEY must fail the job loudly instead of
+        # silently dropping ReportPortal reporting. The action retries for >2 min on a dead key, so cap it.
         timeout-minutes: 1
         uses: tailscale/github-action@v4
         with:

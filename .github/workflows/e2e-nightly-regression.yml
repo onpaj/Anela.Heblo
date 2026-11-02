@@ -447,11 +447,11 @@ jobs:
           echo "✅ Azure credentials validated"
 
       # Join the Tailnet so the Playwright RP agent can reach the self-hosted
-      # ReportPortal (nas.*.ts.net). Gated on RP_ENABLE and fail-safe.
+      # ReportPortal (nas.*.ts.net). Gated on RP_ENABLE; an invalid key fails the job.
       - name: 🔗 Connect to Tailscale (for ReportPortal)
         if: vars.RP_ENABLE == 'true'
-        continue-on-error: true
-        # A dead auth key makes the action retry for >2 min; cap the waste (step is non-fatal).
+        # NOT continue-on-error: an expired/revoked TS_AUTHKEY must fail the job loudly instead of
+        # silently dropping ReportPortal reporting. The action retries for >2 min on a dead key, so cap it.
         timeout-minutes: 1
         uses: tailscale/github-action@v4
         with:
