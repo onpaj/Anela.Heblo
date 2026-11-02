@@ -120,11 +120,11 @@ jobs:
             coverage/merged/Cobertura.xml
           retention-days: 7
 
-  # Deploy current main to staging so E2E tests run against fresh code, not stale deployments
   # Frontend coverage. Nightly-only for the same reason as backend-coverage: instrumenting every
   # file made every PR / main run slower. Produces the `coverage-frontend` artifact + Codecov upload.
   frontend-coverage:
     name: 📊 Frontend Coverage
+    if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -167,6 +167,7 @@ jobs:
           path: frontend/coverage/lcov.info
           retention-days: 7
 
+  # Deploy current main to staging so E2E tests run against fresh code, not stale deployments
   deploy-staging:
     name: 🚀 Deploy main to Staging
     runs-on: ubuntu-latest
