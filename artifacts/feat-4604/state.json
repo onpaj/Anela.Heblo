@@ -1,0 +1,58 @@
+{
+  "feature_id": "feat-4604",
+  "issue_number": 4604,
+  "created_at": "2026-11-02T08:11:29.735542Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-11-02T08:12:20.757766Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-11-02T08:12:23.992232Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-11-02T08:12:26.650244Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-11-02T13:44:38.561014Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-11-02T23:14:18.801703Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-11-03T00:18:59.436035Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "build-test-harness",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-11-02T21:10:30.835934Z"
+    },
+    {
+      "name": "success-path-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-11-02T21:35:07.374089Z"
+    },
+    {
+      "name": "failure-path-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-11-02T22:46:37.412776Z"
+    },
+    {
+      "name": "final-validation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-11-02T23:19:15.909153Z"
+    }
+  ]
+}
