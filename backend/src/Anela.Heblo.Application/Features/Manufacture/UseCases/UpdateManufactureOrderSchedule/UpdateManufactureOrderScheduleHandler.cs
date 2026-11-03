@@ -50,6 +50,12 @@ public class UpdateManufactureOrderScheduleHandler : IRequestHandler<UpdateManuf
             {
                 existingOrder.PlannedDate = request.PlannedDate.Value;
                 hasChanges = true;
+
+                // Lot and expiration follow the planned date until the semi-product is confirmed.
+                if (existingOrder.CanRecomputeLotAndExpiration())
+                {
+                    existingOrder.ApplyDefaultLotAndExpiration();
+                }
                 _logger.LogInformation("Updated planned date for order {OrderId} to {NewDate}",
                     request.Id, request.PlannedDate.Value);
             }

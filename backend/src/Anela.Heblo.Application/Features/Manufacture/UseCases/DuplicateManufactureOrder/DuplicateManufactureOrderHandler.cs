@@ -56,9 +56,9 @@ public class DuplicateManufactureOrderHandler : IRequestHandler<DuplicateManufac
         duplicateOrder.InitializeState(ManufactureOrderState.Draft, now.DateTime, currentUser.GetDisplayName());
 
         var expirationDate = sourceOrder.SemiProduct != null
-            ? ManufactureOrderExtensions.GetDefaultExpiration(now.DateTime, sourceOrder.SemiProduct.ExpirationMonths)
+            ? ManufactureOrderExtensions.GetDefaultExpiration(duplicateOrder.PlannedDate, sourceOrder.SemiProduct.ExpirationMonths)
             : (DateOnly?)null;
-        var lotNumber = ManufactureOrderExtensions.GetDefaultLot(now.DateTime);
+        var lotNumber = ManufactureOrderExtensions.GetDefaultLot(duplicateOrder.PlannedDate);
 
         // Duplicate the semi-product with updated lot number and expiration date
         if (sourceOrder.SemiProduct != null)

@@ -35,8 +35,8 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
     {
         var currentUser = _currentUserService.GetCurrentUser();
 
-        // Cache one TimeProvider reading so the year, CreatedDate, StateChangedAt,
-        // expiration date, and lot number on the new row all derive from the same instant.
+        // Cache one TimeProvider reading so the year, CreatedDate and StateChangedAt
+        // on the new row all derive from the same instant.
         var now = _timeProvider.GetUtcNow();
 
         // Generate unique order number using the UTC year — must agree with CreatedDate below.
@@ -60,8 +60,9 @@ public class CreateManufactureOrderHandler : IRequestHandler<CreateManufactureOr
             return new CreateManufactureOrderResponse(ErrorCodes.ProductNotFound);
         }
 
-        var expirationDate = ManufactureOrderExtensions.GetDefaultExpiration(now.DateTime, semiproduct.Properties.ExpirationMonths);
-        var lotNumber = ManufactureOrderExtensions.GetDefaultLot(now.DateTime);
+        // Lot and expiration follow the manufacture (planned) date, not the creation time.
+        var expirationDate = ManufactureOrderExtensions.GetDefaultExpiration(request.PlannedDate, semiproduct.Properties.ExpirationMonths);
+        var lotNumber = ManufactureOrderExtensions.GetDefaultLot(request.PlannedDate);
 
         // Create the semi-product entry
         if (request.ManufactureType == ManufactureType.MultiPhase)

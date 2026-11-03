@@ -62,7 +62,7 @@ User-driven, permission `Manufacture_ManufactureOrders` (read for lists, write f
 | Action (UI) | Endpoint | Effect |
 |---|---|---|
 | Create — from batch calculator / batch planning | `POST /api/ManufactureOrder` | New order in **Draft** |
-| Duplicate (Duplikovat) | `POST /api/ManufactureOrder/{id}/duplicate` | Copy in Draft, planned today, new lot/expiration |
+| Duplicate (Duplikovat) | `POST /api/ManufactureOrder/{id}/duplicate` | Copy in Draft, planned today, lot/expiration from today |
 | Edit quantities, lot, expiration, responsible, note | `PUT /api/ManufactureOrder/{id}` | Fields editable in Draft/Planned in the UI |
 | Move in calendar | `PATCH /api/ManufactureOrder/{id}/schedule` | New `PlannedDate` |
 | Next / previous state arrows, Cancel (Stornovat) | `PATCH /api/ManufactureOrder/{id}/status` | State change + side effects |
@@ -107,9 +107,19 @@ States (`ManufactureOrderState`): Draft(1) → Planned(2) → SemiProductManufac
   (confirm products) → Completed; back arrow one step (Completed → SemiProductManufactured).
   Single-phase Planned → (confirm products) → Completed, back arrow Completed → Planned.
   Cancel (Stornovat) is offered in every state except Completed and Cancelled.
-- **Default lot** = ISO week + 2-digit year of the creation date (`wwyy`, e.g. `4026`).
-- **Default expiration** = last day of the month `ExpirationMonths + 1` months after the creation
-  month (e.g. created 2026-10-02 with 12 months → 2027-11-30).
+- **Default lot** = ISO week + 2-digit year of the **planned** (manufacture) date (`wwyy`, e.g.
+  planned 2026-11-02 → `4526`).
+- **Default expiration** = last day of the month `ExpirationMonths + 1` months after the **planned**
+  month, computed from the 1st of the month so no day is clamped (planned 2026-11-02 + 24 →
+  2028-12-31; planned 2026-10-30 + 30 → 2029-05-31).
+- **Single source of truth is the backend** (`ManufactureOrderExtensions`). Create and duplicate
+  compute lot/expiration from the planned date (duplicate is planned today). Changing the planned
+  date — edit (`PUT`) or calendar drag (`PATCH …/schedule`) — recomputes both on the semi-product
+  and every product row **while the order is Draft or Planned**; from SemiProductManufactured on
+  they are frozen. The UI does no calculation; it re-reads the values after save.
+- **Manual override**: a `PUT` that sends a lot/expiration with the planned date unchanged stores
+  it as-is and copies it to the product rows. If the same `PUT` also changes the planned date, the
+  recompute wins and the sent lot/expiration are ignored — re-enter the override in a second save.
 - **Schedule**: refused for Cancelled/Completed orders and for dates before today.
 - **Manual action required** is set by the confirmation workflows when Flexi posting or a BoM
   update failed; the dashboard tile counts these orders and drills to the filtered list.
@@ -126,7 +136,11 @@ States (`ManufactureOrderState`): Draft(1) → Planned(2) → SemiProductManufac
 | `BackgroundRefresh` planned-data refresh | catalog-owned | Periodic reload of `Stock.Planned`; this flow refreshes it on write as well |
 
 ## Runtime facts
-None.
+- Before 2026-11 the lot/expiration came from two divergent formulas: the backend default from the
+  **creation** time (with an `AddMonths` day-clamp, e.g. Nov 30 + 1 → Dec 30) and a browser
+  recompute from the planned date that only ran in Draft when the date was edited. Orders created
+  the same day could differ by a month (MO-2026-493 2028-11-30 vs MO-2026-494 2028-12-31, both
+  planned 2026-11-02, 24 months). Existing rows were not migrated.
 
 ## Known quirks
 - **Reverting or cancelling never undoes side effects.** Going back from Completed or
