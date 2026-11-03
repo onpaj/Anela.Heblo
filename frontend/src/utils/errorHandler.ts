@@ -112,6 +112,18 @@ export function resolveSwaggerErrorMessage(error: unknown): string | undefined {
 }
 
 /**
+ * Message to show for a failed generated-client call: the translated business message
+ * when the failure carries an error envelope, otherwise the thrown `Error`'s own message,
+ * otherwise `fallback`.
+ */
+export function resolveApiErrorMessage(error: unknown, fallback: string): string {
+  return (
+    resolveSwaggerErrorMessage(error) ??
+    (error instanceof Error ? error.message : fallback)
+  );
+}
+
+/**
  * Extract error message from various error types
  */
 export function extractErrorMessage(error: any): string {

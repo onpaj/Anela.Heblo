@@ -24,6 +24,7 @@ import TransportBoxHistory from "../transport/box-detail/TransportBoxHistory";
 import TransportBoxActions from "../transport/box-detail/TransportBoxActions";
 import TransportBoxModals from "../transport/box-detail/TransportBoxModals";
 import QuickAddLastItemModal from "../transport/QuickAddLastItemModal";
+import { resolveApiErrorMessage } from "../../utils/errorHandler";
 import {
   TransportBoxDetailProps,
   ApiClientWithInternals,
@@ -198,9 +199,7 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
       // Success state change - no toast needed
     } catch (err) {
       console.error("Error assigning box number:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : "Neočekávaná chyba";
-      setBoxNumberError(errorMessage);
+      setBoxNumberError(resolveApiErrorMessage(err, "Neočekávaná chyba"));
       // Toast is already shown by global error handler - no need to show another one
     }
   };
@@ -424,11 +423,10 @@ const TransportBoxDetail: React.FC<TransportBoxDetailProps> = ({
       // State changed successfully - no toast needed for routine state changes
     } catch (error) {
       console.error("Failed to change state:", error);
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Neočekávaná chyba při změně stavu";
-      showError("Chyba při změně stavu", errorMessage);
+      showError(
+        "Chyba při změně stavu",
+        resolveApiErrorMessage(error, "Neočekávaná chyba při změně stavu"),
+      );
     }
   };
 

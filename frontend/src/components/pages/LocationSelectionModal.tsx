@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, MapPin, Loader2 } from "lucide-react";
 import { useChangeTransportBoxState } from "../../api/hooks/useTransportBoxes";
 import { TransportBoxState } from "../../api/generated/api-client";
+import { resolveApiErrorMessage } from "../../utils/errorHandler";
 
 interface LocationSelectionModalProps {
   isOpen: boolean;
@@ -63,7 +64,7 @@ const LocationSelectionModal: React.FC<LocationSelectionModalProps> = ({
       setSelectedLocation(""); // Reset form
     } catch (err) {
       console.error("Error changing to InReserve state:", err);
-      setError(err instanceof Error ? err.message : "Neočekávaná chyba");
+      setError(resolveApiErrorMessage(err, "Neočekávaná chyba"));
     }
   };
 
