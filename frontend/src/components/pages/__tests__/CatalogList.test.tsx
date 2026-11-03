@@ -221,6 +221,35 @@ describe("CatalogList", () => {
     expect(typeSelect).toHaveValue(ProductType.Material.toString());
   });
 
+  it("should pass the ND filter to the query and clear it", async () => {
+    mockUseCatalogQuery.mockReturnValue({
+      data: { items: mockCatalogItems, totalCount: 2 },
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    } as any);
+
+    renderWithQueryClient(<CatalogList />);
+
+    const ndCheckbox = screen.getByLabelText("Pouze ND");
+    expect(ndCheckbox).not.toBeChecked();
+
+    fireEvent.click(ndCheckbox);
+
+    await waitFor(() => {
+      const lastCall =
+        mockUseCatalogQuery.mock.calls[mockUseCatalogQuery.mock.calls.length - 1];
+      expect(lastCall[7]).toBe(true);
+    });
+    expect(screen.getByLabelText("Pouze ND")).toBeChecked();
+
+    fireEvent.click(screen.getByText("Vymazat"));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Pouze ND")).not.toBeChecked();
+    });
+  });
+
   it("should clear all filters", async () => {
     const mockRefetch = jest.fn();
     mockUseCatalogQuery.mockReturnValue({

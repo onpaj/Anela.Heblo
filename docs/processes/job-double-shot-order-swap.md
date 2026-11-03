@@ -81,8 +81,15 @@ Target: Shoptet order items, `eshopRemark`, and the status of held orders only. 
 
 ## Logic & formulas
 - Eligible order states: `ShoptetOrders:DoubleShotSwapEligibleStatusIds`; empty (the default)
-  means -1 Nova, 3 Ceka se na platbu, 32 Zaplaceno, -2 Vyrizuje se, 35 Poznamka, 73 Oprava-robot.
-  Never 26 (Bali se) or later: those are past picking.
+  means -1 Nova, 3 Ceka se na platbu, 32 Zaplaceno, -2 Vyrizuje se, 35 Poznamka, 73 Oprava-robot,
+  -3 Vyrizena. Never 26 (Bali se) or later carrier states: those are past picking. -3 is eligible
+  because orders rung up directly in the physical shop are created straight in Vyrizena and never
+  pass through the earlier states; such an order is swapped but its status is never changed (only
+  held orders are ever moved).
+  Caveat: -3 is also the state `CompleteDeliveredOrdersJob` moves delivered orders into, so a V order
+  that was missed earlier and has since shipped and completed would also be rewritten after
+  fulfilment. Shoptet's behaviour for item POST/DELETE on -3 orders is not yet documented in
+  `docs/integrations/shoptet-api.md`; check the dry-run log for -3 candidates before enabling the flag.
 - Only lines with `itemType == product` and a V code are swapped. Each V line is planned alone,
   so two V lines with the same code are swapped separately (the tag carries the V item id).
 - Swap = two calls, POST S then DELETE V; Shoptet has no atomic swap. Order of calls matters:
@@ -116,7 +123,7 @@ Target: Shoptet order items, `eshopRemark`, and the status of held orders only. 
 | Key | Repo default | Meaning |
 |---|---|---|
 | `FeatureManagement:is-double-shot-order-swap-enabled` | `false` | Off = dry run (log only) |
-| `ShoptetOrders:DoubleShotSwapEligibleStatusIds` | `[]` = -1, 3, 32, -2, 35, 73 | Order states in which lines may be rewritten |
+| `ShoptetOrders:DoubleShotSwapEligibleStatusIds` | `[]` = -1, 3, 32, -2, 35, 73, -3 | Order states in which lines may be rewritten |
 | `ShoptetOrders:DoubleShotSwapLookbackDays` | `14` | How far back (creation time) orders are searched |
 | `ShoptetOrders:DoubleShotSwapHoldStatusId` | unset; `23` in `appsettings.Production.json` | Status the add-on parks new V orders in; unset = no hold handling (the test store has no such status) |
 | `ShoptetOrders:DoubleShotSwapReleaseStatusId` | `-1` | Status a clean held order is moved to |

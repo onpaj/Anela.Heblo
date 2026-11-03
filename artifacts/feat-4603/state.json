@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4603",
+  "issue_number": 4603,
+  "created_at": "2026-11-02T07:26:05.581172Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-11-02T07:26:55.005894Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-11-02T07:26:58.315523Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-11-02T07:27:00.702468Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-11-02T07:27:02.997336Z"
+    },
+    "developing": {
+      "status": "pending",
+      "updated_at": null
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-11-02T09:21:35.371835Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-handlesave-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-11-02T08:31:12.368256Z"
+    }
+  ]
+}
