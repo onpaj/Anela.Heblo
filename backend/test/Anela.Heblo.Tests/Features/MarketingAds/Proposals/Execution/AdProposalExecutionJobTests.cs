@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.MarketingAds.Contracts;
 using Anela.Heblo.Application.Features.MarketingAds.Proposals.Execution;
+using Anela.Heblo.Application.Features.MarketingAds.Proposals.Limits;
 using Anela.Heblo.Domain.Features.MarketingAds;
 using Anela.Heblo.MarketingAds.TestKit;
 using Anela.Heblo.Persistence.MarketingAds;
@@ -485,8 +486,13 @@ public class AdProposalExecutionJobTests
         await using var otherContext = h.NewContext();
         var first = new AdProposalExecutionJob(new FaultyProposalRepository(h.Proposals, bothLoaded), h.Governance, h.Audit,
             new[] { executor.Object }, h.ContextBuilder, h.Evaluator, h.Time, NullLogger<AdProposalExecutionJob>.Instance);
-        var second = new AdProposalExecutionJob(new FaultyProposalRepository(new AdProposalRepository(otherContext), bothLoaded),
-            new AdGovernanceRepository(otherContext), new AdAuditLog(otherContext), new[] { executor.Object }, h.ContextBuilder, h.Evaluator, h.Time,
+        // Everything the second delivery touches must sit on otherContext: a DbContext is not thread-safe, and the
+        // winner's limits-context reads would otherwise overlap the loser's SaveChanges on h.Context.
+        var otherProposals = new AdProposalRepository(otherContext);
+        var otherGovernance = new AdGovernanceRepository(otherContext);
+        var otherContextBuilder = new AdLimitsContextBuilder(otherGovernance, otherProposals, h.ReadModel.Object, h.Time);
+        var second = new AdProposalExecutionJob(new FaultyProposalRepository(otherProposals, bothLoaded),
+            otherGovernance, new AdAuditLog(otherContext), new[] { executor.Object }, otherContextBuilder, h.Evaluator, h.Time,
             NullLogger<AdProposalExecutionJob>.Instance);
 
         await Task.WhenAll(
