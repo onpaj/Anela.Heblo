@@ -189,6 +189,17 @@ public class LabelPdfShifterTests
         Math.Max(mediaBox.Y1, mediaBox.Y2).Should().BeApproximately(Height + highY, 0.001);
     }
 
+    // The PDF spec only allows multiples of 90, so anything else is treated as an unrotated page.
+    [Fact]
+    public void Shift_RotationNotAMultipleOf90_TreatsThePageAsUnrotated()
+    {
+        var original = CreatePdfWithInheritedPageAttributes(pageRotation: 45);
+
+        var shifted = LabelPdfShifter.Shift(original, Distance, 0);
+
+        AssertEdgesMoved(Box(shifted, "/MediaBox"), Box(original, "/MediaBox"), -Distance, 0, 0, 0);
+    }
+
     [Fact]
     public void Shift_KeepsPageRotation()
     {
