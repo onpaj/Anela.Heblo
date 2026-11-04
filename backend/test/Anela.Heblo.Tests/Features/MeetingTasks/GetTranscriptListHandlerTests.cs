@@ -117,6 +117,73 @@ public class GetTranscriptListHandlerTests
             .ReturnsAsync((new List<MeetingTranscript>(), 0));
     }
 
+    private void SetupRepositoryReturnsMeeting(string summary)
+    {
+        var transcript = new MeetingTranscript
+        {
+            Id = Guid.NewGuid(),
+            PlaudRecordingId = "rec-002",
+            PlaudCreatedAt = new DateTime(2026, 5, 2, 9, 0, 0, DateTimeKind.Utc),
+            Subject = "Retro",
+            Summary = summary,
+            RawTranscript = "raw text",
+            Status = MeetingTranscriptStatus.Approved,
+            ReceivedAt = new DateTime(2026, 5, 2, 9, 30, 0, DateTimeKind.Utc),
+            Tasks = new List<ProposedTask>
+            {
+                new() { Id = Guid.NewGuid(), Title = "T", Description = "D", Assignee = "A", Status = ProposedTaskStatus.Approved }
+            }
+        };
+
+        _repositoryMock
+            .Setup(r => r.GetListAsync(
+                It.IsAny<MeetingTranscriptStatus?>(),
+                It.IsAny<string?>(),
+                It.IsAny<bool>(),
+                It.IsAny<bool>(),
+                It.IsAny<string?>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync((new List<MeetingTranscript> { transcript }, 1));
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsSummary_WhenIncludeSummaryIsNotSet()
+    {
+        // Arrange
+        SetupRepositoryReturnsMeeting("Retro summary");
+
+        // Act
+        var result = await _handler.Handle(new GetTranscriptListRequest(), CancellationToken.None);
+
+        // Assert
+        result.Items.Single().Summary.Should().Be("Retro summary");
+    }
+
+    [Fact]
+    public async Task Handle_ReturnsNullSummary_AndKeepsOtherFields_WhenIncludeSummaryIsFalse()
+    {
+        // Arrange
+        SetupRepositoryReturnsMeeting("Retro summary");
+
+        // Act
+        var result = await _handler.Handle(
+            new GetTranscriptListRequest { IncludeSummary = false },
+            CancellationToken.None);
+
+        // Assert
+        result.TotalCount.Should().Be(1);
+        var item = result.Items.Single();
+        item.Summary.Should().BeNull();
+        item.RawTranscript.Should().BeNull();
+        item.PlaudRecordingId.Should().Be("rec-002");
+        item.Subject.Should().Be("Retro");
+        item.Status.Should().Be("Approved");
+        item.TaskCount.Should().Be(1);
+        item.ApprovedTaskCount.Should().Be(1);
+    }
+
     [Fact]
     public async Task Handle_ForwardsSearchText_ToRepository()
     {

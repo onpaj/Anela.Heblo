@@ -1,9 +1,14 @@
+using Anela.Heblo.Application.Features.MeetingTasks.Services;
+using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptList;
 using Anela.Heblo.Domain.Features.MeetingTasks;
+using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.MeetingTasks;
 using Anela.Heblo.Tests.Common;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Npgsql;
 using Xunit;
 
@@ -254,4 +259,105 @@ public class MeetingTranscriptRepositorySearchIntegrationTests : IAsyncLifetime
         totalCount.Should().Be(1);
         items.Should().ContainSingle(x => x.PlaudRecordingId == "p11");
     }
+
+    private GetTranscriptListHandler BuildListHandler(bool isManager, string email)
+    {
+        var guard = new Mock<IMeetingAccessGuard>();
+        guard.Setup(g => g.IsManager()).Returns(isManager);
+        var currentUser = new Mock<ICurrentUserService>();
+        currentUser.Setup(u => u.GetCurrentUser()).Returns(new CurrentUser(null, "Caller", email, true));
+
+        return new GetTranscriptListHandler(
+            _repository,
+            guard.Object,
+            currentUser.Object,
+            NullLogger<GetTranscriptListHandler>.Instance);
+    }
+
+    [Fact]
+    public async Task ListHandler_WithIncludeSummaryFalse_StillFindsMeetingMatchingOnlyInSummary()
+    {
+        // Arrange — "Budget" appears only in the hit's summary
+        var hit = BuildTranscript("s1", "Q3 Planning", "Budget review for Q3", "some raw text");
+        var miss = BuildTranscript("s2", "Daily Sync", "Quick sync about deployment", "some raw text");
+        _context.MeetingTranscripts.AddRange(hit, miss);
+        await _context.SaveChangesAsync();
+        var handler = BuildListHandler(isManager: true, email: "manager@anela.cz");
+
+        // Act
+        var result = await handler.Handle(
+            new GetTranscriptListRequest { SearchText = "Budget", IncludeSummary = false },
+            CancellationToken.None);
+
+        // Assert
+        result.TotalCount.Should().Be(1);
+        var item = result.Items.Should().ContainSingle().Subject;
+        item.PlaudRecordingId.Should().Be("s1");
+        item.Summary.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ListHandler_NonManagerSeesOnlyPublicAndGrantedMeetings_ForEitherIncludeSummaryValue(bool includeSummary)
+    {
+        // Arrange
+        var hiddenPrivate = BuildTranscript("v1", "Private", "text", "raw");
+        hiddenPrivate.AccessLevel = MeetingAccessLevel.Private;
+        var visiblePublic = BuildTranscript("v2", "Public", "text", "raw");
+        visiblePublic.AccessLevel = MeetingAccessLevel.Public;
+        var visibleGranted = BuildTranscript("v3", "Granted", "text", "raw");
+        visibleGranted.AccessLevel = MeetingAccessLevel.Restricted;
+        var hiddenRestricted = BuildTranscript("v4", "Not granted", "text", "raw");
+        hiddenRestricted.AccessLevel = MeetingAccessLevel.Restricted;
+        _context.MeetingTranscripts.AddRange(hiddenPrivate, visiblePublic, visibleGranted, hiddenRestricted);
+        _context.MeetingAccessGrants.AddRange(
+            BuildGrant(visibleGranted.Id, "reader@anela.cz"),
+            BuildGrant(hiddenRestricted.Id, "someone.else@anela.cz"));
+        await _context.SaveChangesAsync();
+        var handler = BuildListHandler(isManager: false, email: "reader@anela.cz");
+
+        // Act
+        var result = await handler.Handle(
+            new GetTranscriptListRequest { IncludeSummary = includeSummary },
+            CancellationToken.None);
+
+        // Assert
+        result.TotalCount.Should().Be(2);
+        result.Items.Select(x => x.PlaudRecordingId).Should().BeEquivalentTo("v2", "v3");
+    }
+
+    [Fact]
+    public async Task ListHandler_WithIncludeSummaryFalse_KeepsNewestFirstOrderAndPaging()
+    {
+        // Arrange
+        var oldest = BuildTranscript("o1", "Oldest", "text", "raw");
+        oldest.PlaudCreatedAt = new DateTime(2026, 1, 1, 9, 0, 0, DateTimeKind.Utc);
+        var middle = BuildTranscript("o2", "Middle", "text", "raw");
+        middle.PlaudCreatedAt = new DateTime(2026, 2, 1, 9, 0, 0, DateTimeKind.Utc);
+        var newest = BuildTranscript("o3", "Newest", "text", "raw");
+        newest.PlaudCreatedAt = new DateTime(2026, 3, 1, 9, 0, 0, DateTimeKind.Utc);
+        _context.MeetingTranscripts.AddRange(oldest, middle, newest);
+        await _context.SaveChangesAsync();
+        var handler = BuildListHandler(isManager: true, email: "manager@anela.cz");
+
+        // Act
+        var result = await handler.Handle(
+            new GetTranscriptListRequest { PageNumber = 2, PageSize = 2, IncludeSummary = false },
+            CancellationToken.None);
+
+        // Assert — page 2 of newest-first [o3, o2 | o1]
+        result.TotalCount.Should().Be(3);
+        result.TotalPages.Should().Be(2);
+        result.Items.Select(x => x.PlaudRecordingId).Should().Equal("o1");
+    }
+
+    private static MeetingAccessGrant BuildGrant(Guid meetingId, string email) => new()
+    {
+        Id = Guid.NewGuid(),
+        MeetingTranscriptId = meetingId,
+        UserEmail = email,
+        GrantedAt = DateTime.UtcNow,
+        GrantedByUserEmail = "manager@anela.cz"
+    };
 }

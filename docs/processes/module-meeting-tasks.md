@@ -33,6 +33,12 @@ managers" (`IMeetingAccessGuard.IsManager`) and see **all** meetings.
 
 MCP tools (`MeetingTasksMcpTools`, read-only, require `anela.meetings.read`, same visibility
 rules): `ListMeetings`, `GetMeetingSummary`, `GetMeetingTranscript`, `GetMeetingTasks`.
+`ListMeetings` takes an optional `includeSummary` (default `true`). With `false`, every item's
+`Summary` is `null` so scheduled checks can poll for new meetings cheaply: full summaries put a
+20-item page at about 220–230k characters, over the Claude app's tool-output limit (measured
+2026-11-04). It only shapes the output: summaries are still loaded from the database and search
+still matches them. `GET api/meeting-tasks` accepts the same flag as `IncludeSummary`; the web UI
+does not send it.
 
 ## Processes
 - `sync-plaud-recordings` — Hangfire `plaud-polling` every 5 min (off by default): Plaud CLI →
