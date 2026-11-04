@@ -38305,7 +38305,7 @@ export class MeetingTranscriptDto implements IMeetingTranscriptDto {
     plaudRecordingId?: string;
     plaudCreatedAt?: Date;
     subject?: string;
-    summary?: string;
+    summary?: string | undefined;
     rawTranscript?: string;
     status?: string;
     receivedAt?: Date;
@@ -38409,7 +38409,7 @@ export interface IMeetingTranscriptDto {
     plaudRecordingId?: string;
     plaudCreatedAt?: Date;
     subject?: string;
-    summary?: string;
+    summary?: string | undefined;
     rawTranscript?: string;
     status?: string;
     receivedAt?: Date;

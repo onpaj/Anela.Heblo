@@ -58,7 +58,7 @@ public class GetTranscriptListHandler : IRequestHandler<GetTranscriptListRequest
             PlaudRecordingId = t.PlaudRecordingId,
             PlaudCreatedAt = t.PlaudCreatedAt,
             Subject = t.Subject,
-            Summary = request.IncludeSummary ? t.Summary : null!,
+            Summary = request.IncludeSummary ? t.Summary : null,
             Status = t.Status.ToString(),
             ReceivedAt = t.ReceivedAt,
             ReviewedAt = t.ReviewedAt,
