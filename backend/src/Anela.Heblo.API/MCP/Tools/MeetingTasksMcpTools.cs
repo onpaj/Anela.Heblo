@@ -49,6 +49,8 @@ public class MeetingTasksMcpTools
         int pageNumber = 1,
         [Description("Page size for pagination (default: 20)")]
         int pageSize = 20,
+        [Description("Include each meeting's full summary text (default: true). Set to false for a compact list when only ids, dates, status and task counts are needed: Summary is then null on every item, which keeps pages small. This changes the output only; searchText still matches against the summary.")]
+        bool includeSummary = true,
         CancellationToken cancellationToken = default)
     {
         _currentUserService.EnsureFeatureAccess(Feature.Anela_Meetings, "Meeting Notes");
@@ -61,7 +63,8 @@ public class MeetingTasksMcpTools
                 StatusFilter = statusFilter,
                 SearchInTranscript = searchInTranscript,
                 PageNumber = pageNumber,
-                PageSize = pageSize
+                PageSize = pageSize,
+                IncludeSummary = includeSummary
             };
 
             var response = await _mediator.Send(request, cancellationToken);

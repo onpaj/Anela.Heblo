@@ -42,7 +42,7 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 - `GenerateLeaflet` — generates a marketing leaflet in Czech Markdown using the knowledge base and historical leaflets as style references
 
 **Meeting Notes (4)** — read-only; all require the `anela.meetings.read` permission. Per-meeting visibility (Public / Private / Restricted) is enforced per caller, same as the web UI.
-- `ListMeetings` — list meetings (summary level: subject, summary, status, task counts; no raw transcript) with search, status filter, and pagination
+- `ListMeetings` — list meetings (summary level: subject, summary, status, task counts; no raw transcript) with search, status filter, and pagination. Optional `includeSummary` (default `true`): set it to `false` for a compact list where `Summary` is `null` on every item, because full summaries can push a 20-item page past a client's tool-output limit. It changes the output only; `searchText` still matches the summary, and all other fields, paging, ordering and visibility stay the same
 - `GetMeetingSummary` — summary and metadata of a single meeting (no raw transcript, no task detail)
 - `GetMeetingTranscript` — full raw transcript text of a single meeting
 - `GetMeetingTasks` — proposed task list extracted from a single meeting

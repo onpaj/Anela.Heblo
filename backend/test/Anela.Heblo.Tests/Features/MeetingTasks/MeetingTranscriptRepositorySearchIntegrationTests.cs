@@ -1,9 +1,14 @@
+using Anela.Heblo.Application.Features.MeetingTasks.Services;
+using Anela.Heblo.Application.Features.MeetingTasks.UseCases.GetTranscriptList;
 using Anela.Heblo.Domain.Features.MeetingTasks;
+using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Persistence;
 using Anela.Heblo.Persistence.MeetingTasks;
 using Anela.Heblo.Tests.Common;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Npgsql;
 using Xunit;
 
@@ -253,5 +258,41 @@ public class MeetingTranscriptRepositorySearchIntegrationTests : IAsyncLifetime
         // Assert — only the Approved record matches both filters
         totalCount.Should().Be(1);
         items.Should().ContainSingle(x => x.PlaudRecordingId == "p11");
+    }
+
+    private GetTranscriptListHandler BuildListHandler(bool isManager, string email)
+    {
+        var guard = new Mock<IMeetingAccessGuard>();
+        guard.Setup(g => g.IsManager()).Returns(isManager);
+        var currentUser = new Mock<ICurrentUserService>();
+        currentUser.Setup(u => u.GetCurrentUser()).Returns(new CurrentUser(null, "Caller", email, true));
+
+        return new GetTranscriptListHandler(
+            _repository,
+            guard.Object,
+            currentUser.Object,
+            NullLogger<GetTranscriptListHandler>.Instance);
+    }
+
+    [Fact]
+    public async Task ListHandler_WithIncludeSummaryFalse_StillFindsMeetingMatchingOnlyInSummary()
+    {
+        // Arrange — "Budget" appears only in the hit's summary
+        var hit = BuildTranscript("s1", "Q3 Planning", "Budget review for Q3", "some raw text");
+        var miss = BuildTranscript("s2", "Daily Sync", "Quick sync about deployment", "some raw text");
+        _context.MeetingTranscripts.AddRange(hit, miss);
+        await _context.SaveChangesAsync();
+        var handler = BuildListHandler(isManager: true, email: "manager@anela.cz");
+
+        // Act
+        var result = await handler.Handle(
+            new GetTranscriptListRequest { SearchText = "Budget", IncludeSummary = false },
+            CancellationToken.None);
+
+        // Assert
+        result.TotalCount.Should().Be(1);
+        var item = result.Items.Should().ContainSingle().Subject;
+        item.PlaudRecordingId.Should().Be("s1");
+        item.Summary.Should().BeNull();
     }
 }
