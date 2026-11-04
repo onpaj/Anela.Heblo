@@ -655,6 +655,52 @@ The `EshopStock.Code` field is the variant-level SKU accepted by `POST /api/orde
 
 **Snapshot (verified 2026-11-01, test store):** `GET /api/products/snapshot` returns **403 `required-webhook-registration`** — it needs a registered `job:finished` webhook, so it is not usable without webhook infrastructure. Not used. (`GET /api/products/changes` incremental sync would be a possible later optimisation.)
 
+### 4.3a Variant EAN = QR short URL (convention, 2026-10-15)
+
+Anela does not use EAN-13. Every variant's `ean` field holds the QR short URL
+`https://qr.anela.cz/<variant code>` (e.g. `DEO001030` → `https://qr.anela.cz/DEO001030`).
+`qr.anela.cz` resolves any code dynamically (302 to the product/variant page), so no per-product
+redirect is needed — only the `ean` value. Backfilled on 2026-10-15 for all 450 variants;
+skipped: codes containing `/` (`1149/1`, `1300/*`) and the `TEST*` products. New products must get
+the same value when created.
+
+**Update call:** `PATCH /api/products/{guid}` with
+`{"data":{"variants":[{"code":"SA001","ean":"https://qr.anela.cz/SA001"}]}}`.
+Variants are matched by `code` (an unknown `code` **creates a new variant**). Sending only
+`code` + `ean` leaves every other field untouched (verified by before/after diff); do not send
+`parameters` unless sending the full set — omitted parameters are deleted. `ean` max length 255.
+Bulk alternative: `PATCH /api/products/batch` (async JSONL job).
+
+### 4.3b Product flags (štítky) — read and set (probed 2026-11-01, test store)
+
+- **Definitions:** `GET /api/products/flags` → `data.flags[]` of `{code, title, system, color, showInDetail, showInCategory}`. Flags are identified by `code` (e.g. `doporucujeme`, `bestseller`, `new`), not by the numeric id shown in the admin UI. A custom flag must be created in the Shoptet admin first.
+- **Read:** flags are absent from the default product detail; use `GET /api/products/{guid}?include=flags` → `data.flags[]` of `{code, title, dateFrom, dateTo}` (`null` when the flag is not time-limited). `productFlags` is not a valid include here.
+- **Set:** `PATCH /api/products/{guid}` with `{"data":{"flags":[{"code":"bestseller"},{"code":"doporucujeme"}]}}` → 200. Verified by before/after diff: only `flags` (and `changeTime`) changed.
+- **Always send the product's existing flag codes plus the new one.** Whether an omitted flag is removed was **not** tested; assume the array replaces the list.
+- Flags are **product-level**, not variant-level: flagging one variant code flags every size of that product.
+- Not yet probed: `dateFrom`/`dateTo` on write, and `PATCH /api/products/batch` for flags.
+
+### 4.3c Product categories — read and set (verified 2026-11-01, test store 780175)
+
+- **Read:** `GET /api/products/{guid}?include=allCategories` → `data.categories[]` of `{guid, name, parentGuid}` (no `visible`/priority). `include=categories` is invalid. The default category is the separate `data.defaultCategory` `{guid, name, visible}`. Categories are identified by GUID only; the numeric IDs in the admin/sheet are not exposed (match by name path via `GET /api/categories`, `parentGuid`).
+- **Set:** `PATCH /api/products/{guid}` with `{"data":{"categoryGuids":["<guid>",…],"defaultCategoryGuid":"<guid>"}}` → 200.
+- **`categoryGuids` REPLACES the whole list** (25 → 17 on a product: exactly the sent set, nothing merged, nothing else changed besides `changeTime`). To remove a category send the current list minus it; to add, current plus it. Always read the current list first.
+- Confirmed on the live store (269953) for 42 products; no other product field changed. **Exception:** changing `defaultCategoryGuid` regenerates `url` and every `variants[].url` (the URL path follows the default category); the old URL answers 301 to the new one (checked for one product).
+- Hidden categories are listed in `allCategories` like any other and can be kept or removed the same way. Nothing was added to a hidden category.
+- Not tested: default category absent from the list, `PATCH /api/products/batch` for categories. A concurrent update returns `423 concurrent-categories-update` (retry).
+
+### 4.3d Product filtering parameters (filtry) — read and set (verified 2026-11-01, test store 780175 then live 269953)
+
+- **Definitions:** `GET /api/products/filtering-parameters` → `data.filteringParameters[]` of `{id, code, name, displayName, priority, values[{id, valueIndex, name, priority, color, image}]}`. Parameters are identified by `code` (`typ-pleti`, `stav-pleti`, `problem`, `vekova-kategorie`, `konzistence`, `bez-eo`, `vegan`, `darek-pro-koho`). Note `problem` has displayName "Na co se hodí". Values are created/edited with `POST|PATCH /api/products/filtering-parameters/{code}[/{valueIndex}]` (not used).
+- **Read a product:** `GET /api/products/{guid}?include=filteringParameters` → `data.filteringParameters[]` of `{code, name, displayName, values[…]}` with only the values assigned to the product (the `/api/eshop` include does not support it).
+- **Set:** `PATCH /api/products/{guid}` with `{"data":{"filteringParameters":[{"code":"typ-pleti","values":["normalni","sucha"]}]}}` → 200.
+  - **Values are the value CODE (`valueIndex`)**, not the display name; a name returns `422 Unknown filtering parameter value with code "Normální"`. The spec's example looks like a name — it is not.
+  - **The whole list is REPLACED.** Sending one parameter deletes the product's other parameters. Always send every parameter of the product, read first. Omitting a parameter removes it; `values: []` is rejected (`422 minimum of 1 items`).
+  - An unknown `valueIndex` is a 422; a value must already exist in the definitions.
+- Value codes differ per store (`pro-vsechny-druhy-pokozky` vs the live code for "Všechny typy pokožky"): resolve names to codes from that store's definitions.
+- Verified on live for 55 products; nothing else on the product changed (`changeTime` aside).
+- `categoryGuids` / `defaultCategoryGuid` (§4.3c) and `filteringParameters` can be sent in the **same** `PATCH` (verified on 56 sets and gift packages; each part keeps its own replace semantics). Sets / BAL products are located by **variant code** (`data.variants[].code`), their names are not unique.
+
 ### 4.4 Stock listing — resilience characteristics
 
 > **Update 2026-11-01:** the stock CSV (pattern 46, `StockClient:Url`) is retired. `ShoptetStockClient.ListAsync` now reads `GET /api/stocks/{stockId}/supplies?itemsPerPage=1000&page=N` (all pages) and maps `amount` -> stock and `location` -> location; the resilience policy below (pipeline `shoptet-stock`) is unchanged and now wraps these API calls, which the dependency tracker does record. Parity check against the test store before the switch: CSV vs supplies, 444/444 codes equal in stock and location. The text below describing the CSV host, token redaction, encoding and column layout is historical.
@@ -1870,3 +1916,30 @@ failed 3 hours after creation and emits **no** `job:finished` webhook.
 **Why Heblo uses per-item PATCH, not batch:** the price sync pushes only *changed*
 prices — a handful per run — so the batch endpoint's inbound-webhook dependency buys
 nothing. Batch remains the option if a bulk repricing is ever needed.
+
+## Product images API (verified 2026-11-01 on production)
+
+Used for the 2026-11-02 label photo swap (64 products). Gallery path segment is `shop`.
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/api/products/{guid}?include=images` | `images[]`: `name` (e.g. `66-7.jpg`), `priority`, `description`, `seoName`, `isMainImage`; `variants[].image` = image `name` |
+| `POST` | `/api/products/{guid}/images/shop` | **Async**, body `{"data":{"images":[{"sourceUrl","priority","description"}]}}`. Upload is by **public URL** only (SAS link works); max 100 per call. Returns `202 {data:{jobId}}`; poll `GET /api/system/jobs/{jobId}` until `status` is `completed`. New images get new names (`66.jpg`, `66-1.jpg`, …) |
+| `PATCH` | `/api/products/{guid}/images/shop` | Sync. `{"data":{"images":[{"name","priority"}]}}`. The image with `priority` 1 becomes `isMainImage` |
+| `PATCH` | `/api/products/{guid}` | `{"data":{"variants":[{"code","image":"<image name>"}]}}` re-points a variant's photo; the image must already exist on the product. Send only `code` + `image` |
+| `DELETE` | `/api/products/{guid}/images/shop/{name}` | `409` if a variant still uses the image (unless `removeReference=true`, which clears the variant's photo — do not use) |
+| `PATCH` | `/api/products/{guid}/images/shop/source` | Async; replaces an image's file in place keeping its name (not used) |
+
+**Requires a registered `job:finished` webhook.** Without one, `POST …/images/shop` returns `403 required-webhook-registration` and nothing is queued (same restriction as §3.11 and the async note in the price-list section). The webhook only has to *exist*; the job result can be read by polling. For the swap a placeholder `POST /api/webhooks` registration (`event: job:finished`, any URL) was used and deleted afterwards (`DELETE /api/webhooks/{id}`).
+
+**Variant photos follow the main image.** When a product's main image changes, Shoptet itself moves variants that used the *old* main image onto the *new* main image, even if the request never touched them. If such variants must keep their old photo, PATCH them back before deleting the old image.
+
+**Original files** (for backups) are served unsigned at `https://cdn.myshoptet.com/usr/<domain>/user/shop/orig/<seoName>`; the `cdnName` values are resized (1024 px) copies.
+
+**Safe per-product order:** upload new → set priorities (new main = 1) → re-point variants → verify → delete old images. A rollback script restores `priority` and variant `image` values from a backup manifest.
+
+### Product visibility (verified 2026-11-01 on production, read; write documented before first use)
+
+- `GET /api/products` (list) and `GET /api/products/{guid}` both return `visibility`. Values seen on the live store: `visible`, `hidden`. The list response has no variant `code`; codes only come from the product detail (`variants[].code`).
+- Write: `PATCH /api/products/{guid}` with body `{"data":{"visibility":"visible"|"hidden"}}` (same endpoint the variant `image` re-point uses; send only the field you change). Re-read the product afterwards to confirm.
+- Double-shot sets are two products per size family: the **V** product (customer-facing, variants `SAxxx005V/030V/100V`) and one **S** product per size (`SAxxx005S`, `…030S`, `…100S`, composition / price and stock sync, must stay hidden).
