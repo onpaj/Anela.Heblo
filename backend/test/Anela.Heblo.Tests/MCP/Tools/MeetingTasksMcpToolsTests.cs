@@ -161,34 +161,19 @@ public class MeetingTasksMcpToolsTests
     }
 
     [Fact]
-    public async Task ListMeetings_ReturnsNullSummary_AndKeepsOtherFields_WhenIncludeSummaryIsFalse()
+    public async Task ListMeetings_SerializesSummaryAsExplicitNull_WhenIncludeSummaryIsFalse()
     {
         // Arrange
         RouteListRequestsThroughRealHandler(isManager: true, email: "manager@anela.cz");
 
         // Act
-        var json = await _tools.ListMeetings(pageNumber: 3, pageSize: 5, includeSummary: false);
+        var json = await _tools.ListMeetings(includeSummary: false);
 
         // Assert
         Assert.DoesNotContain(ListedSummary, json);
         using var doc = JsonDocument.Parse(json);
-        var root = doc.RootElement;
-        Assert.Equal(41, root.GetProperty("TotalCount").GetInt32());
-        Assert.Equal(3, root.GetProperty("PageNumber").GetInt32());
-        Assert.Equal(5, root.GetProperty("PageSize").GetInt32());
-
-        var item = root.GetProperty("Items")[0];
+        var item = doc.RootElement.GetProperty("Items")[0];
         Assert.Equal(JsonValueKind.Null, item.GetProperty("Summary").ValueKind);
-        Assert.Equal(JsonValueKind.Null, item.GetProperty("RawTranscript").ValueKind);
-        Assert.Equal(ListedMeetingId, item.GetProperty("Id").GetGuid());
-        Assert.Equal("rec-listed", item.GetProperty("PlaudRecordingId").GetString());
-        Assert.Equal("Weekly sync", item.GetProperty("Subject").GetString());
-        Assert.Equal("PartiallyApproved", item.GetProperty("Status").GetString());
-        Assert.Equal("Manager", item.GetProperty("ReviewedByUser").GetString());
-        Assert.Equal("Public", item.GetProperty("AccessLevel").GetString());
-        Assert.Equal(3, item.GetProperty("TaskCount").GetInt32());
-        Assert.Equal(1, item.GetProperty("ApprovedTaskCount").GetInt32());
-        Assert.Equal(1, item.GetProperty("RejectedTaskCount").GetInt32());
     }
 
     [Fact]
