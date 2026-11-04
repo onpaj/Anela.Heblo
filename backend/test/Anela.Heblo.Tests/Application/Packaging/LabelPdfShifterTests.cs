@@ -31,13 +31,13 @@ public class LabelPdfShifterTests
         return ms.ToArray();
     }
 
-    // Hand-written so /MediaBox and /Rotate live only on the /Pages node and the page inherits them.
+    // Hand-written so /MediaBox, /CropBox and /Rotate live only on the /Pages node and the page inherits them.
     private static byte[] CreatePdfWithInheritedPageAttributes(int pageRotation)
     {
         var objects = new[]
         {
             "<< /Type /Catalog /Pages 2 0 R >>",
-            FormattableString.Invariant($"<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 {Width} {Height}] /Rotate {pageRotation} >>"),
+            FormattableString.Invariant($"<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 {Width} {Height}] /CropBox [10 20 {Width - 10} {Height - 20}] /Rotate {pageRotation} >>"),
             "<< /Type /Page /Parent 2 0 R >>",
         };
 
@@ -145,7 +145,7 @@ public class LabelPdfShifterTests
     [InlineData(90, Distance, 0, 0, -Distance, 0, 0)]
     [InlineData(90, 0, -Distance, -Distance, 0, 0, 0)]
     [InlineData(90, -Distance, 0, 0, Distance, 0, Distance)]
-    public void Shift_MovesMediaBoxInheritedFromThePagesNode(
+    public void Shift_MovesBoxesInheritedFromThePagesNode(
         int pageRotation, double right, double up, double x1, double y1, double x2, double y2)
     {
         var original = CreatePdfWithInheritedPageAttributes(pageRotation);
@@ -153,6 +153,7 @@ public class LabelPdfShifterTests
         var shifted = LabelPdfShifter.Shift(original, right, up);
 
         AssertEdgesMoved(Box(shifted, "/MediaBox"), Box(original, "/MediaBox"), x1, y1, x2, y2);
+        AssertEdgesMoved(Box(shifted, "/CropBox"), Box(original, "/CropBox"), x1, y1, x2, y2);
     }
 
     [Fact]
