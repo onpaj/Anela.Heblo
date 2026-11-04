@@ -139,26 +139,15 @@ public class OverheadCostProvider : IOverheadCostProvider
                 dateFrom, dateTo);
         }
 
-        // Krok 2: Spočítat celkové tržby
-        var totalRevenue = SalesRevenueAllocation.CalculateTotalRevenue(products, costsFrom, costsTo);
+        // Krok 2: Rozpočítat pool podle tržeb - náklad na kus pro každý produkt
+        var allocation = SalesRevenueAllocation.Allocate(totalCost, products, costsFrom, costsTo, months);
 
-        // Krok 3: Vypočítat sazbu na korunu tržby
-        if (totalRevenue <= 0)
+        if (!allocation.HasAllocatableRevenue)
         {
             _logger.LogWarning("No sales revenue found for period {DateFrom} to {DateTo}", dateFrom, dateTo);
-            return CreateCostCacheData(
-                SalesRevenueAllocation.BuildProductCosts(products, 0m, costsFrom, costsTo, months),
-                dateFrom,
-                dateTo);
         }
 
-        var costPerRevenueUnit = totalCost / totalRevenue;
-
-        // Krok 4: Vypočítat náklad na kus pro každý produkt podle jeho tržby na kus
-        var productCosts = SalesRevenueAllocation.BuildProductCosts(
-            products, costPerRevenueUnit, costsFrom, costsTo, months);
-
-        return CreateCostCacheData(productCosts, dateFrom, dateTo);
+        return CreateCostCacheData(allocation.ProductCosts, dateFrom, dateTo);
     }
 
     private (DateOnly dateFrom, DateOnly dateTo, DateTime costsFrom, DateTime costsTo) GetDateRange()
