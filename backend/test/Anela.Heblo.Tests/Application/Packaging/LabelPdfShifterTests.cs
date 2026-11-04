@@ -168,20 +168,25 @@ public class LabelPdfShifterTests
     }
 
     // A PDF rectangle may name any two opposite corners, so "low" must not be read off the array order.
-    [Fact]
-    public void Shift_BoxWrittenWithSwappedCorners_StillGrowsOnThePrintedLeft()
+    [Theory]
+    [InlineData(Distance, 0, -Distance, 0, 0, 0)]
+    [InlineData(0, -Distance, 0, 0, 0, Distance)]
+    [InlineData(-Distance, 0, Distance, 0, Distance, 0)]
+    [InlineData(0, Distance, 0, -Distance, 0, -Distance)]
+    public void Shift_BoxWrittenWithSwappedCorners_MovesTheSameEdges(
+        double right, double up, double lowX, double lowY, double highX, double highY)
     {
         using var document = new PdfDocument();
         document.AddPage().Elements.SetRectangle("/MediaBox", new PdfRectangle(new XPoint(Width, Height), new XPoint(0, 0)));
         using var ms = new MemoryStream();
         document.Save(ms);
 
-        var mediaBox = Box(LabelPdfShifter.Shift(ms.ToArray(), Distance, 0), "/MediaBox");
+        var mediaBox = Box(LabelPdfShifter.Shift(ms.ToArray(), right, up), "/MediaBox");
 
-        Math.Min(mediaBox.X1, mediaBox.X2).Should().BeApproximately(-Distance, 0.001);
-        Math.Max(mediaBox.X1, mediaBox.X2).Should().BeApproximately(Width, 0.001);
-        Math.Min(mediaBox.Y1, mediaBox.Y2).Should().BeApproximately(0, 0.001);
-        Math.Max(mediaBox.Y1, mediaBox.Y2).Should().BeApproximately(Height, 0.001);
+        Math.Min(mediaBox.X1, mediaBox.X2).Should().BeApproximately(lowX, 0.001);
+        Math.Max(mediaBox.X1, mediaBox.X2).Should().BeApproximately(Width + highX, 0.001);
+        Math.Min(mediaBox.Y1, mediaBox.Y2).Should().BeApproximately(lowY, 0.001);
+        Math.Max(mediaBox.Y1, mediaBox.Y2).Should().BeApproximately(Height + highY, 0.001);
     }
 
     [Fact]
