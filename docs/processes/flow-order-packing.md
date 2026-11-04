@@ -144,9 +144,9 @@ inferred from one printed label, not verified against the print dialog. Heblo se
 options, so a page that grows depends on each PC's dialog: fit-to-page scaling can shrink it and a
 dialog that centres it moves the content by only half the offset. The offset is in PDF points, so it is
 the same physical distance at any printer resolution (the Zebra is 300 dpi) unless the print dialog
-scales the page. Fail-open: malformed
-offsets, a failed carrier lookup or an unparsable PDF are logged at Warning and the original label is
-served unshifted. (Replaced the shared per-carrier database setting `public."CarrierLabelOffsets"` /
+scales the page. Fail-open: malformed offsets, a failed carrier lookup or an unparsable PDF are logged
+at Warning and the original label is served unshifted.
+(Replaced the shared per-carrier database setting `public."CarrierLabelOffsets"` /
 Nastavení expedice → Štítky from #4498 — table dropped by migration `DropCarrierLabelOffsets` — which
 had replaced the four 10 mm direction flags `is-label-offset-{left,right,up,down}-enabled`, the
 per-carrier `is-{gls,ppl,zasilkovna}-label-offset-enabled` flags and the 180° rotation flags
