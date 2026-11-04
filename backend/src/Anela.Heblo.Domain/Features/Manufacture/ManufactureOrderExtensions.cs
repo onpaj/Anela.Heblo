@@ -47,24 +47,64 @@ public static class ManufactureOrderExtensions
         manufactureOrder.Products.ForEach(p => p.LotNumber = lotNumber);
     }
 
+    /// <summary>
+    /// True while lot and expiration still follow the planned date: before the semi-product is
+    /// confirmed (Draft, Planned). From SemiProductManufactured on they are frozen.
+    /// </summary>
+    public static bool CanRecomputeLotAndExpiration(this ManufactureOrder manufactureOrder)
+    {
+        return manufactureOrder.State is ManufactureOrderState.Draft or ManufactureOrderState.Planned;
+    }
+
+    /// <summary>
+    /// Sets the default lot and expiration, derived from <see cref="ManufactureOrder.PlannedDate"/>,
+    /// on the semi-product and every product row. No-op for an order without a semi-product.
+    /// </summary>
+    public static void ApplyDefaultLotAndExpiration(this ManufactureOrder manufactureOrder)
+    {
+        if (manufactureOrder.SemiProduct == null)
+        {
+            return;
+        }
+
+        var lotNumber = GetDefaultLot(manufactureOrder.PlannedDate);
+        var expirationDate = GetDefaultExpiration(manufactureOrder.PlannedDate, manufactureOrder.SemiProduct.ExpirationMonths);
+
+        manufactureOrder.SemiProduct.LotNumber = lotNumber;
+        manufactureOrder.SemiProduct.ExpirationDate = expirationDate;
+        foreach (var product in manufactureOrder.Products)
+        {
+            product.LotNumber = lotNumber;
+            product.ExpirationDate = expirationDate;
+        }
+    }
+
     public static DateOnly GetDefaultExpiration(DateTime manufactureDate, int months)
     {
-        // Calculate expiration date (last day of month after adding expiration months)
-        var expirationDate = manufactureDate.AddMonths(months);
-        var lastDayOfExpirationMonth = DateOnly.FromDateTime(new DateTime(expirationDate.Year, expirationDate.Month, 1)
-                .AddMonths(1) // Last day of month
-                .AddDays(-1)
-                .AddMonths(1) // Expiration is adjusted by one more month 
-        );
+        return GetDefaultExpiration(DateOnly.FromDateTime(manufactureDate), months);
+    }
 
-        return lastDayOfExpirationMonth;
+    /// <summary>
+    /// Expiration = last day of the month that is <paramref name="months"/> + 1 months after the
+    /// manufacture month. Works from the first of the month so no day is ever clamped
+    /// (30 Oct + 30 months → 31 May, not 30 May).
+    /// </summary>
+    public static DateOnly GetDefaultExpiration(DateOnly manufactureDate, int months)
+    {
+        var expirationMonth = new DateOnly(manufactureDate.Year, manufactureDate.Month, 1).AddMonths(months + 1);
+        return expirationMonth.AddMonths(1).AddDays(-1);
     }
 
     public static string GetDefaultLot(DateTime manufactureDate)
     {
+        return GetDefaultLot(DateOnly.FromDateTime(manufactureDate));
+    }
+
+    public static string GetDefaultLot(DateOnly manufactureDate)
+    {
         // Calculate lot number in wwyy format (ISO week + 2-digit year)
         var year = (manufactureDate.Year % 100).ToString("D2");
-        var week = GetWeekNumber(manufactureDate).ToString("D2");
+        var week = GetWeekNumber(manufactureDate.ToDateTime(TimeOnly.MinValue)).ToString("D2");
         return $"{week}{year}";
     }
 

@@ -40,6 +40,15 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
                     new Dictionary<string, string> { { "id", request.Id.ToString() } });
             }
 
+            var originalLotNumber = order.SemiProduct?.LotNumber;
+            var originalExpirationDate = order.SemiProduct?.ExpirationDate;
+
+            // A planned-date change while Draft/Planned recomputes lot + expiration from the new
+            // date and wins over any lot/expiration sent in the same request (see below).
+            var recomputeLotAndExpiration = request.PlannedDate.HasValue
+                && request.PlannedDate.Value != order.PlannedDate
+                && order.CanRecomputeLotAndExpiration();
+
             // Update basic properties only if provided
             if (request.PlannedDate.HasValue)
                 order.PlannedDate = request.PlannedDate.Value;
@@ -74,14 +83,20 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
                     order.SemiProduct.ActualQuantity = request.SemiProduct.PlannedQuantity.Value;
                 }
 
-                if (request.SemiProduct.LotNumber != null)
+                // Manual lot/expiration override — honoured only when the planned date did not change.
+                if (request.SemiProduct.LotNumber != null && !recomputeLotAndExpiration)
                     order.SemiProduct.LotNumber = request.SemiProduct.LotNumber;
 
-                if (request.SemiProduct.ExpirationDate != null)
+                if (request.SemiProduct.ExpirationDate != null && !recomputeLotAndExpiration)
                     order.SemiProduct.ExpirationDate = request.SemiProduct.ExpirationDate;
 
                 if (request.SemiProduct.ActualQuantity != null)
                     order.SemiProduct.ActualQuantity = request.SemiProduct.ActualQuantity.Value;
+            }
+
+            if (recomputeLotAndExpiration)
+            {
+                order.ApplyDefaultLotAndExpiration();
             }
 
             // Update products only if provided
@@ -136,6 +151,14 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
                 }
             }
 
+            // Product rows carry the semi-product's lot + expiration, also when no product rows
+            // were sent (e.g. a manual lot override on its own).
+            if (order.SemiProduct != null
+                && (order.SemiProduct.LotNumber != originalLotNumber || order.SemiProduct.ExpirationDate != originalExpirationDate))
+            {
+                PropagateLotAndExpirationToProducts(order);
+            }
+
             // Update manual action required if provided
             if (request.ManualActionRequired.HasValue)
                 order.ManualActionRequired = request.ManualActionRequired.Value;
@@ -170,6 +193,15 @@ public class UpdateManufactureOrderHandler : IRequestHandler<UpdateManufactureOr
         {
             _logger.LogError(ex, "Error updating manufacture order {OrderId}", request.Id);
             return new UpdateManufactureOrderResponse(Application.Shared.ErrorCodes.InternalServerError);
+        }
+    }
+
+    private static void PropagateLotAndExpirationToProducts(ManufactureOrder order)
+    {
+        foreach (var product in order.Products)
+        {
+            product.LotNumber = order.SemiProduct!.LotNumber;
+            product.ExpirationDate = order.SemiProduct.ExpirationDate;
         }
     }
 
