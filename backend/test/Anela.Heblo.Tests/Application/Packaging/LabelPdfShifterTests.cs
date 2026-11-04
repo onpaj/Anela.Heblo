@@ -119,13 +119,18 @@ public class LabelPdfShifterTests
     }
 
     [Theory]
-    [InlineData(Distance, 0, -Distance, 0, 0, 0)]
-    [InlineData(0, -Distance, 0, 0, 0, Distance)]
-    [InlineData(-Distance, 0, Distance, 0, Distance, 0)]
-    [InlineData(0, Distance, 0, -Distance, 0, -Distance)]
-    public void Shift_MovesEveryPageBoxTheSameWay(double right, double up, double x1, double y1, double x2, double y2)
+    [InlineData(0, Distance, 0, -Distance, 0, 0, 0)]
+    [InlineData(0, 0, -Distance, 0, 0, 0, Distance)]
+    [InlineData(0, -Distance, 0, Distance, 0, Distance, 0)]
+    [InlineData(0, 0, Distance, 0, -Distance, 0, -Distance)]
+    [InlineData(90, Distance, 0, 0, -Distance, 0, 0)]
+    [InlineData(90, 0, -Distance, -Distance, 0, 0, 0)]
+    [InlineData(90, -Distance, 0, 0, Distance, 0, Distance)]
+    [InlineData(90, 0, Distance, Distance, 0, Distance, 0)]
+    public void Shift_MovesEveryPageBoxTheSameWay(
+        int pageRotation, double right, double up, double x1, double y1, double x2, double y2)
     {
-        var original = CreatePdf(withInnerBoxes: true);
+        var original = CreatePdf(pageRotation, withInnerBoxes: true);
 
         var shifted = LabelPdfShifter.Shift(original, right, up);
 
