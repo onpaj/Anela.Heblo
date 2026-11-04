@@ -133,11 +133,18 @@ Zebra label, so the same axis lands on a different side of the paper per carrier
 the label's long side, Zásilkovna's along the short side). If no offset is non-zero, nothing else
 happens and the carrier is not looked up. Otherwise the carrier is resolved from the order's Shoptet
 shipping method GUID (`IPackingOrderShippingSource` + `IShippingMethodCatalog`) and, when this computer
-has an offset for it, every page's content is moved (PDFsharp, `LabelPdfShifter`: slides
-MediaBox/CropBox/… the opposite way in printed-page orientation, honouring the page's `/Rotate`;
-content is not re-rendered). Content pushed past an edge is cut off and the opposite edge gets the
-same amount of blank. The offset is in PDF points, so it is the same physical distance at any printer
-resolution (the Zebra is 300 dpi) unless the print dialog scales the page. Fail-open: malformed
+has an offset for it, every page's content is moved (PDFsharp, `LabelPdfShifter`: changes
+MediaBox/CropBox/… in printed-page orientation, honouring the page's `/Rotate`; content is not
+re-rendered). Each axis decides on its own. Content moving **right or down** grows the page: blank is
+added on the opposite side, the edge it moves towards stays, nothing is cut off and the page is longer
+by the offset. Content moving **left or up** slides the page at the same size: content pushed past that
+edge is cut off and the opposite edge gets the same amount of blank, because the print is assumed to
+place the page from its left / top edge, so growing there would not move anything. That anchoring is
+inferred from one printed label, not verified against the print dialog. Heblo sets no print-dialog
+options, so a page that grows depends on each PC's dialog: fit-to-page scaling can shrink it and a
+dialog that centres it moves the content by only half the offset. The offset is in PDF points, so it is
+the same physical distance at any printer resolution (the Zebra is 300 dpi) unless the print dialog
+scales the page. Fail-open: malformed
 offsets, a failed carrier lookup or an unparsable PDF are logged at Warning and the original label is
 served unshifted. (Replaced the shared per-carrier database setting `public."CarrierLabelOffsets"` /
 Nastavení expedice → Štítky from #4498 — table dropped by migration `DropCarrierLabelOffsets` — which

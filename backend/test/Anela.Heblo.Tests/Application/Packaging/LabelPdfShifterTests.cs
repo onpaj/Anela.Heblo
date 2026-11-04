@@ -12,13 +12,18 @@ public class LabelPdfShifterTests
     private const double Width = 288.0;
     private const double Height = 432.0;
 
-    private static byte[] CreatePdf(int pageRotation = 0, bool withCropBox = false)
+    private static readonly string[] InnerPageBoxKeys = ["/CropBox", "/BleedBox", "/TrimBox", "/ArtBox"];
+
+    private static byte[] CreatePdf(int pageRotation = 0, bool withInnerBoxes = false)
     {
         using var document = new PdfDocument();
         var page = document.AddPage();
         page.Elements.SetRectangle("/MediaBox", new PdfRectangle(new XPoint(0, 0), new XPoint(Width, Height)));
-        if (withCropBox)
-            page.Elements.SetRectangle("/CropBox", new PdfRectangle(new XPoint(10, 20), new XPoint(Width - 10, Height - 20)));
+        if (withInnerBoxes)
+        {
+            foreach (var key in InnerPageBoxKeys)
+                page.Elements.SetRectangle(key, new PdfRectangle(new XPoint(10, 20), new XPoint(Width - 10, Height - 20)));
+        }
         page.Rotate = pageRotation;
 
         using var ms = new MemoryStream();
@@ -59,58 +64,118 @@ public class LabelPdfShifterTests
         return document.Pages[0].Elements.GetRectangle(key);
     }
 
-    // Moving the content by (right, up) on the printed page slides the visible window the
-    // opposite way along the user-space axes that point to the printed right / top edge after
-    // /Rotate: right = +x, +y, -x, -y and up = +y, -x, -y, +x for 0°, 90°, 180°, 270°.
-    [Theory]
-    [InlineData(0, -Distance, 0, Distance, 0)]
-    [InlineData(90, -Distance, 0, 0, Distance)]
-    [InlineData(180, -Distance, 0, -Distance, 0)]
-    [InlineData(270, -Distance, 0, 0, -Distance)]
-    [InlineData(-90, -Distance, 0, 0, -Distance)]
-    [InlineData(0, Distance, 0, -Distance, 0)]
-    [InlineData(0, 0, Distance, 0, -Distance)]
-    [InlineData(0, 0, -Distance, 0, Distance)]
-    [InlineData(90, 0, Distance, Distance, 0)]
-    [InlineData(180, 0, Distance, 0, Distance)]
-    [InlineData(270, 0, Distance, -Distance, 0)]
-    [InlineData(0, -Distance, Distance, Distance, -Distance)]
-    public void Shift_MovesMediaBoxOppositeToThePrintedContentMove(
-        int pageRotation, double right, double up, double dx, double dy)
+    private static void AssertEdgesMoved(PdfRectangle box, PdfRectangle original, double x1, double y1, double x2, double y2)
     {
-        var shifted = LabelPdfShifter.Shift(CreatePdf(pageRotation), right, up);
+        box.X1.Should().BeApproximately(original.X1 + x1, 0.001);
+        box.Y1.Should().BeApproximately(original.Y1 + y1, 0.001);
+        box.X2.Should().BeApproximately(original.X2 + x2, 0.001);
+        box.Y2.Should().BeApproximately(original.Y2 + y2, 0.001);
+    }
 
-        var mediaBox = Box(shifted, "/MediaBox");
-        mediaBox.X1.Should().BeApproximately(dx, 0.001);
-        mediaBox.Y1.Should().BeApproximately(dy, 0.001);
-        mediaBox.X2.Should().BeApproximately(Width + dx, 0.001);
-        mediaBox.Y2.Should().BeApproximately(Height + dy, 0.001);
+    // Content moving right or down grows the window on the opposite printed side; the edge it moves
+    // towards stays. Content moving left or up slides the whole window the opposite way.
+    // The printed right / top edges are +x/+y, +y/-x, -x/-y, -y/+x for 0°, 90°, 180°, 270°.
+    [Theory]
+    // Right: the printed left edge moves out.
+    [InlineData(0, Distance, 0, -Distance, 0, 0, 0)]
+    [InlineData(90, Distance, 0, 0, -Distance, 0, 0)]
+    [InlineData(180, Distance, 0, 0, 0, Distance, 0)]
+    [InlineData(270, Distance, 0, 0, 0, 0, Distance)]
+    [InlineData(-90, Distance, 0, 0, 0, 0, Distance)]
+    // Down: the printed top edge moves out.
+    [InlineData(0, 0, -Distance, 0, 0, 0, Distance)]
+    [InlineData(90, 0, -Distance, -Distance, 0, 0, 0)]
+    [InlineData(180, 0, -Distance, 0, -Distance, 0, 0)]
+    [InlineData(270, 0, -Distance, 0, 0, Distance, 0)]
+    [InlineData(-90, 0, -Distance, 0, 0, Distance, 0)]
+    // Left: the whole window slides towards the printed right.
+    [InlineData(0, -Distance, 0, Distance, 0, Distance, 0)]
+    [InlineData(90, -Distance, 0, 0, Distance, 0, Distance)]
+    [InlineData(180, -Distance, 0, -Distance, 0, -Distance, 0)]
+    [InlineData(270, -Distance, 0, 0, -Distance, 0, -Distance)]
+    [InlineData(-90, -Distance, 0, 0, -Distance, 0, -Distance)]
+    // Up: the whole window slides towards the printed bottom.
+    [InlineData(0, 0, Distance, 0, -Distance, 0, -Distance)]
+    [InlineData(90, 0, Distance, Distance, 0, Distance, 0)]
+    [InlineData(180, 0, Distance, 0, Distance, 0, Distance)]
+    [InlineData(270, 0, Distance, -Distance, 0, -Distance, 0)]
+    [InlineData(-90, 0, Distance, -Distance, 0, -Distance, 0)]
+    // Both axes at once: each decides on its own.
+    [InlineData(0, Distance, -Distance, -Distance, 0, 0, Distance)]
+    [InlineData(0, Distance, Distance, -Distance, -Distance, 0, -Distance)]
+    [InlineData(0, -Distance, -Distance, Distance, 0, Distance, Distance)]
+    [InlineData(0, -Distance, Distance, Distance, -Distance, Distance, -Distance)]
+    [InlineData(90, Distance, -Distance, -Distance, -Distance, 0, 0)]
+    [InlineData(180, -Distance, -Distance, -Distance, -Distance, -Distance, 0)]
+    [InlineData(270, Distance, Distance, -Distance, 0, -Distance, Distance)]
+    public void Shift_MovesEachMediaBoxEdgeForThePrintedContentMove(
+        int pageRotation, double right, double up, double x1, double y1, double x2, double y2)
+    {
+        var original = CreatePdf(pageRotation);
+
+        var shifted = LabelPdfShifter.Shift(original, right, up);
+
+        AssertEdgesMoved(Box(shifted, "/MediaBox"), Box(original, "/MediaBox"), x1, y1, x2, y2);
+    }
+
+    [Theory]
+    [InlineData(Distance, 0, -Distance, 0, 0, 0)]
+    [InlineData(0, -Distance, 0, 0, 0, Distance)]
+    [InlineData(-Distance, 0, Distance, 0, Distance, 0)]
+    [InlineData(0, Distance, 0, -Distance, 0, -Distance)]
+    public void Shift_MovesEveryPageBoxTheSameWay(double right, double up, double x1, double y1, double x2, double y2)
+    {
+        var original = CreatePdf(withInnerBoxes: true);
+
+        var shifted = LabelPdfShifter.Shift(original, right, up);
+
+        foreach (var key in InnerPageBoxKeys.Append("/MediaBox"))
+            AssertEdgesMoved(Box(shifted, key), Box(original, key), x1, y1, x2, y2);
+    }
+
+    [Theory]
+    [InlineData(0, Distance, 0, -Distance, 0, 0, 0)]
+    [InlineData(0, 0, -Distance, 0, 0, 0, Distance)]
+    [InlineData(0, -Distance, 0, Distance, 0, Distance, 0)]
+    [InlineData(90, Distance, 0, 0, -Distance, 0, 0)]
+    [InlineData(90, 0, -Distance, -Distance, 0, 0, 0)]
+    [InlineData(90, -Distance, 0, 0, Distance, 0, Distance)]
+    public void Shift_MovesMediaBoxInheritedFromThePagesNode(
+        int pageRotation, double right, double up, double x1, double y1, double x2, double y2)
+    {
+        var original = CreatePdfWithInheritedPageAttributes(pageRotation);
+
+        var shifted = LabelPdfShifter.Shift(original, right, up);
+
+        AssertEdgesMoved(Box(shifted, "/MediaBox"), Box(original, "/MediaBox"), x1, y1, x2, y2);
     }
 
     [Fact]
-    public void Shift_ShiftsCropBoxTogetherWithMediaBox()
+    public void Shift_ZeroOffset_LeavesEveryPageBoxUnchanged()
     {
-        var shifted = LabelPdfShifter.Shift(CreatePdf(withCropBox: true), -Distance, 0);
+        var original = CreatePdf(withInnerBoxes: true);
 
-        var cropBox = Box(shifted, "/CropBox");
-        cropBox.X1.Should().BeApproximately(10 + Distance, 0.001);
-        cropBox.Y1.Should().BeApproximately(20, 0.001);
-        cropBox.X2.Should().BeApproximately(Width - 10 + Distance, 0.001);
-        cropBox.Y2.Should().BeApproximately(Height - 20, 0.001);
+        var shifted = LabelPdfShifter.Shift(original, 0, 0);
+
+        foreach (var key in InnerPageBoxKeys.Append("/MediaBox"))
+            AssertEdgesMoved(Box(shifted, key), Box(original, key), 0, 0, 0, 0);
     }
 
-    [Theory]
-    [InlineData(0, Distance, 0)]
-    [InlineData(90, 0, Distance)]
-    public void Shift_ShiftsMediaBoxInheritedFromThePagesNode(int pageRotation, double dx, double dy)
+    // A PDF rectangle may name any two opposite corners, so "low" must not be read off the array order.
+    [Fact]
+    public void Shift_BoxWrittenWithSwappedCorners_StillGrowsOnThePrintedLeft()
     {
-        var shifted = LabelPdfShifter.Shift(CreatePdfWithInheritedPageAttributes(pageRotation), -Distance, 0);
+        using var document = new PdfDocument();
+        document.AddPage().Elements.SetRectangle("/MediaBox", new PdfRectangle(new XPoint(Width, Height), new XPoint(0, 0)));
+        using var ms = new MemoryStream();
+        document.Save(ms);
 
-        var mediaBox = Box(shifted, "/MediaBox");
-        mediaBox.X1.Should().BeApproximately(dx, 0.001);
-        mediaBox.Y1.Should().BeApproximately(dy, 0.001);
-        mediaBox.X2.Should().BeApproximately(Width + dx, 0.001);
-        mediaBox.Y2.Should().BeApproximately(Height + dy, 0.001);
+        var mediaBox = Box(LabelPdfShifter.Shift(ms.ToArray(), Distance, 0), "/MediaBox");
+
+        Math.Min(mediaBox.X1, mediaBox.X2).Should().BeApproximately(-Distance, 0.001);
+        Math.Max(mediaBox.X1, mediaBox.X2).Should().BeApproximately(Width, 0.001);
+        Math.Min(mediaBox.Y1, mediaBox.Y2).Should().BeApproximately(0, 0.001);
+        Math.Max(mediaBox.Y1, mediaBox.Y2).Should().BeApproximately(Height, 0.001);
     }
 
     [Fact]
