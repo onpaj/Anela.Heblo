@@ -1,3 +1,4 @@
+using System.Net;
 using Anela.Heblo.Application.Features.Photobank.Infrastructure.Jobs;
 using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
@@ -1208,5 +1209,96 @@ public class PhotobankIndexJobTests
         _photoTagRepoMock.Verify(r => r.PhotoTagExistsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Never);
         _photoTagRepoMock.Verify(r => r.GetPhotoTagsByPhotoAndSourceAsync(It.IsAny<int>(), It.IsAny<PhotoTagSource>(), It.IsAny<CancellationToken>()), Times.Never);
         _photoTagRepoMock.Verify(r => r.AddPhotoTagAsync(It.IsAny<PhotoTag>(), It.IsAny<CancellationToken>()), Times.Exactly(3));
+    }
+
+    private PhotobankIndexRoot SetupRootForGoneTests(string? deltaLink)
+    {
+        var root = new PhotobankIndexRoot
+        {
+            Id = 1,
+            SharePointPath = "/sites/test/photos",
+            DriveId = "drive-1",
+            RootItemId = "root-item-1",
+            DeltaLink = deltaLink,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+        };
+
+        _rootRepoMock
+            .Setup(r => r.GetActiveRootsWithDriveAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([root]);
+        _tagRuleRepoMock
+            .Setup(r => r.GetActiveTagRulesAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        _rootRepoMock
+            .Setup(r => r.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(Task.CompletedTask);
+
+        return root;
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_Graph410WithStoredDeltaLink_RetriesWithoutTokenAndPersistsNewDeltaLink()
+    {
+        var root = SetupRootForGoneTests("https://graph/stale");
+
+        _graphServiceMock
+            .Setup(g => g.GetDeltaAsync("drive-1", "root-item-1", "https://graph/stale", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Gone", null, HttpStatusCode.Gone));
+        _graphServiceMock
+            .Setup(g => g.GetDeltaAsync("drive-1", "root-item-1", null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new GraphDeltaResult { Items = [], NewDeltaLink = "new-link" });
+
+        await _job.ExecuteAsync();
+
+        root.DeltaLink.Should().Be("new-link");
+        root.LastIndexedAt.Should().NotBeNull();
+        _graphServiceMock.Verify(g => g.GetDeltaAsync("drive-1", "root-item-1", "https://graph/stale", It.IsAny<CancellationToken>()), Times.Once);
+        _graphServiceMock.Verify(g => g.GetDeltaAsync("drive-1", "root-item-1", null, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_Graph410WithoutStoredDeltaLink_DoesNotRetry()
+    {
+        var root = SetupRootForGoneTests(null);
+
+        _graphServiceMock
+            .Setup(g => g.GetDeltaAsync("drive-1", "root-item-1", null, It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Gone", null, HttpStatusCode.Gone));
+
+        await _job.ExecuteAsync();
+
+        _graphServiceMock.Verify(g => g.GetDeltaAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
+        root.DeltaLink.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_NonGoneHttpErrorWithStoredDeltaLink_DoesNotRetryOrClearToken()
+    {
+        var root = SetupRootForGoneTests("https://graph/stale");
+
+        _graphServiceMock
+            .Setup(g => g.GetDeltaAsync("drive-1", "root-item-1", "https://graph/stale", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Server error", null, HttpStatusCode.InternalServerError));
+
+        await _job.ExecuteAsync();
+
+        _graphServiceMock.Verify(g => g.GetDeltaAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Once);
+        root.DeltaLink.Should().Be("https://graph/stale");
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_Graph410OnRetry_StopsAfterTwoCallsAndDoesNotThrow()
+    {
+        SetupRootForGoneTests("https://graph/stale");
+
+        _graphServiceMock
+            .Setup(g => g.GetDeltaAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new HttpRequestException("Gone", null, HttpStatusCode.Gone));
+
+        Func<Task> act = () => _job.ExecuteAsync();
+
+        await act.Should().NotThrowAsync();
+        _graphServiceMock.Verify(g => g.GetDeltaAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 }

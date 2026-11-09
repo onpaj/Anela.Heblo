@@ -1,3 +1,4 @@
+using System.Net;
 using Anela.Heblo.Application.Features.Photobank.Services;
 using Anela.Heblo.Domain.Features.BackgroundJobs;
 using Anela.Heblo.Domain.Features.Photobank;
@@ -83,7 +84,7 @@ public class PhotobankIndexJob : IRecurringJob
                 await _rootRepository.SaveChangesAsync(ct);
             }
 
-            var delta = await _graphService.GetDeltaAsync(root.DriveId!, root.RootItemId!, root.DeltaLink, ct);
+            var delta = await GetDeltaWithResyncAsync(root, ct);
 
             var activeTagRules = await _tagRuleRepository.GetActiveTagRulesAsync(ct);
 
@@ -144,6 +145,20 @@ public class PhotobankIndexJob : IRecurringJob
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to index root {RootId}", root.Id);
+        }
+    }
+
+    private async Task<GraphDeltaResult> GetDeltaWithResyncAsync(PhotobankIndexRoot root, CancellationToken ct)
+    {
+        try
+        {
+            return await _graphService.GetDeltaAsync(root.DriveId!, root.RootItemId!, root.DeltaLink, ct);
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Gone && !string.IsNullOrEmpty(root.DeltaLink))
+        {
+            _logger.LogWarning(ex, "Delta token for root {RootId} is expired (410 Gone). Discarding it and performing a full resync.", root.Id);
+            root.DeltaLink = null;
+            return await _graphService.GetDeltaAsync(root.DriveId!, root.RootItemId!, null, ct);
         }
     }
 
