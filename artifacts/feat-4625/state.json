@@ -21,16 +21,16 @@
       "updated_at": "2026-11-09T05:09:58.194184Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-11-09T05:36:35.243294Z"
     }
   },
   "tasks": [
     {
       "name": "add-410-resync-tests",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-11-09T05:36:35.601185Z"
     },
     {
       "name": "implement-410-resync",
