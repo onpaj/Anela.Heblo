@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4630",
+  "issue_number": 4630,
+  "created_at": "2026-11-09T07:12:57.838042Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-11-09T07:13:54.460715Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-11-09T07:13:54.602503Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-11-09T07:13:54.750503Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-11-09T07:13:54.895362Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-11-09T07:18:58.087008Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-11-09T08:19:03.697437Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-errorboundary-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-11-09T07:18:58.258228Z"
+    }
+  ]
+}
