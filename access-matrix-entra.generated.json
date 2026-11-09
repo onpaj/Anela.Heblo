@@ -441,6 +441,16 @@
       "value": "warehouse.stock_override.read"
     },
     {
+      "id": "78bb804e-eddd-5596-acf7-b3ecbb6f7520",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Warehouse_PackerStatistics Read",
+      "displayName": "warehouse.packer_statistics.read",
+      "isEnabled": true,
+      "value": "warehouse.packer_statistics.read"
+    },
+    {
       "id": "16a28dc3-088b-57f3-8575-1bb19884ec19",
       "allowedMemberTypes": [
         "User"
@@ -844,6 +854,7 @@
         "warehouse.stock_up.read",
         "warehouse.stock_up.write",
         "warehouse.gift_packages.read",
+        "warehouse.packer_statistics.read",
         "warehouse.gift_packages.write",
         "marketing.article.read",
         "marketing.article.write",
@@ -908,6 +919,7 @@
         "warehouse.packaging.read",
         "warehouse.stock_up.read",
         "warehouse.gift_packages.read",
+        "warehouse.packer_statistics.read",
         "marketing.article.read",
         "marketing.leaflet.read",
         "marketing.photobank.read",
@@ -1036,6 +1048,7 @@
         "warehouse.logistics.write",
         "warehouse.stock_up.write",
         "warehouse.gift_packages.read",
+        "warehouse.packer_statistics.read",
         "warehouse.gift_packages.write",
         "jobs.trigger.read",
         "jobs.disable.read",

@@ -3,6 +3,23 @@ import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import BaleniHome from '../BaleniHome';
+import { GetPackingDashboardResponse } from '../../../api/hooks/usePackingDashboard';
+
+const mockUsePackingDashboard = jest.fn();
+jest.mock('../../../api/hooks/usePackingDashboard', () => ({
+  ...jest.requireActual('../../../api/hooks/usePackingDashboard'),
+  usePackingDashboard: () => mockUsePackingDashboard(),
+}));
+
+const dashboard = (overrides: Partial<GetPackingDashboardResponse>): GetPackingDashboardResponse => ({
+  ordersBeingPackedCount: 3,
+  ordersBeingProcessedCount: 7,
+  ordersBeingPackedCountLastSync: null,
+  totalOrdersPackedToday: 42,
+  canViewPackerBreakdown: true,
+  packedByPacker: [{ packerId: 'u1', packerName: 'Jana', orderCount: 20 }],
+  ...overrides,
+});
 
 const renderHome = () => {
   const queryClient = new QueryClient({
@@ -18,6 +35,28 @@ const renderHome = () => {
 };
 
 describe('BaleniHome', () => {
+  beforeEach(() => {
+    mockUsePackingDashboard.mockReturnValue({ data: undefined, isLoading: false });
+  });
+
+  it('shows the per-packer breakdown to users allowed to see it', () => {
+    mockUsePackingDashboard.mockReturnValue({ data: dashboard({}), isLoading: false });
+    renderHome();
+    expect(screen.getByText('Zabaleno dnes podle baličů')).toBeInTheDocument();
+    expect(screen.getByText('Jana')).toBeInTheDocument();
+  });
+
+  it('shows only the daily total to users without the packer statistics permission', () => {
+    mockUsePackingDashboard.mockReturnValue({
+      data: dashboard({ canViewPackerBreakdown: false, packedByPacker: [] }),
+      isLoading: false,
+    });
+    renderHome();
+    expect(screen.getByText('42')).toBeInTheDocument();
+    expect(screen.queryByText('Zabaleno dnes podle baličů')).not.toBeInTheDocument();
+    expect(screen.queryByText(/nikdo nezabalil/)).not.toBeInTheDocument();
+  });
+
   it('renders section headings', () => {
     renderHome();
     expect(screen.getByText('Přehled')).toBeInTheDocument();

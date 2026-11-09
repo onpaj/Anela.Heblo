@@ -8,6 +8,13 @@ public class GetPackingDashboardResponse : BaseResponse
     public int? OrdersBeingProcessedCount { get; set; }
     public DateTimeOffset? OrdersBeingPackedCountLastSync { get; set; }
     public int TotalOrdersPackedToday { get; set; }
+
+    /// <summary>
+    /// False when the caller lacks <c>warehouse.packer_statistics.read</c>; then
+    /// <see cref="PackedByPacker"/> is always empty and the client hides the breakdown.
+    /// </summary>
+    public bool CanViewPackerBreakdown { get; set; }
+
     public List<PackerStatsDto> PackedByPacker { get; set; } = new();
 
     public GetPackingDashboardResponse() { }

@@ -41394,6 +41394,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
         super(data);
     }
 
+    canViewPackerBreakdown?: boolean;
     override init(_data?: any) {
         super.init(_data);
         if (_data) {
@@ -41407,6 +41408,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
                     this.packedByPacker!.push(PackerStatsDto.fromJS(item));
             }
         }
+            this.canViewPackerBreakdown = _data["canViewPackerBreakdown"];
     }
 
     static override fromJS(data: any): GetPackingDashboardResponse {
@@ -41428,6 +41430,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
                 data["packedByPacker"].push(item.toJSON());
         }
         super.toJSON(data);
+        data["canViewPackerBreakdown"] = this.canViewPackerBreakdown;
         return data;
     }
 }
@@ -41443,6 +41446,7 @@ export interface IGetPackingDashboardResponse extends IBaseResponse {
 export class PackerStatsDto implements IPackerStatsDto {
     packerId?: string | undefined;
     packerName?: string;
+    canViewPackerBreakdown?: boolean;
     orderCount?: number;
 
     constructor(data?: IPackerStatsDto) {
@@ -41494,6 +41498,7 @@ export class GetPackingStatisticsResponse extends BaseResponse implements IGetPa
     byPacker?: PackerThroughputDto[];
     byCarrier?: CarrierMixDto[];
     packagesPerOrder?: PackagesPerOrderBucketDto[];
+    canViewPackerBreakdown?: boolean;
 
     constructor(data?: IGetPackingStatisticsResponse) {
         super(data);
@@ -41511,6 +41516,7 @@ export class GetPackingStatisticsResponse extends BaseResponse implements IGetPa
                 for (let item of _data["throughputDaily"])
                     this.throughputDaily!.push(DailyThroughputDto.fromJS(item));
             }
+            this.canViewPackerBreakdown = _data["canViewPackerBreakdown"];
             if (Array.isArray(_data["hourHeatmap"])) {
                 this.hourHeatmap = [] as any;
                 for (let item of _data["hourHeatmap"])
@@ -41552,6 +41558,7 @@ export class GetPackingStatisticsResponse extends BaseResponse implements IGetPa
             for (let item of this.throughputDaily)
                 data["throughputDaily"].push(item.toJSON());
         }
+        data["canViewPackerBreakdown"] = this.canViewPackerBreakdown;
         if (Array.isArray(this.hourHeatmap)) {
             data["hourHeatmap"] = [];
             for (let item of this.hourHeatmap)
@@ -41587,6 +41594,7 @@ export interface IGetPackingStatisticsResponse extends IBaseResponse {
     byPacker?: PackerThroughputDto[];
     byCarrier?: CarrierMixDto[];
     packagesPerOrder?: PackagesPerOrderBucketDto[];
+    canViewPackerBreakdown?: boolean;
 }
 
 export class PackingStatisticsSummaryDto implements IPackingStatisticsSummaryDto {

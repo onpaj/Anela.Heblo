@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Domain.Features.Packaging;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -10,17 +11,20 @@ public class GetPackingDashboardHandler : IRequestHandler<GetPackingDashboardReq
     private readonly IPackageRepository _repo;
     private readonly IPackingOrderCountSource _packingOrderClient;
     private readonly TimeProvider _timeProvider;
+    private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<GetPackingDashboardHandler> _logger;
 
     public GetPackingDashboardHandler(
         IPackageRepository repo,
         IPackingOrderCountSource packingOrderClient,
         TimeProvider timeProvider,
+        ICurrentUserService currentUserService,
         ILogger<GetPackingDashboardHandler> logger)
     {
         _repo = repo;
         _packingOrderClient = packingOrderClient;
         _timeProvider = timeProvider;
+        _currentUserService = currentUserService;
         _logger = logger;
     }
 
@@ -33,6 +37,10 @@ public class GetPackingDashboardHandler : IRequestHandler<GetPackingDashboardReq
         var end = start.AddDays(1);
 
         var (total, byPacker) = await _repo.GetPackedTodayByPackerAsync(start, end, cancellationToken);
+        var canViewPackerBreakdown = PackerStatisticsAccess.CanViewBreakdown(_currentUserService);
+        var visiblePackers = canViewPackerBreakdown
+            ? byPacker
+            : Array.Empty<PackerPackingSummary>();
 
         int? ordersBeingPackedCount = null;
         int? ordersBeingProcessedCount = null;
@@ -54,7 +62,8 @@ public class GetPackingDashboardHandler : IRequestHandler<GetPackingDashboardReq
             OrdersBeingProcessedCount = ordersBeingProcessedCount,
             OrdersBeingPackedCountLastSync = ordersBeingPackedCountLastSync,
             TotalOrdersPackedToday = total,
-            PackedByPacker = byPacker
+            CanViewPackerBreakdown = canViewPackerBreakdown,
+            PackedByPacker = visiblePackers
                 .Select(p => new PackerStatsDto
                 {
                     PackerId = p.PackedByUserId,

@@ -144,7 +144,11 @@ const BaleniStatistics: React.FC = () => {
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div
+        className={`grid grid-cols-2 md:grid-cols-3 gap-4 ${
+          data?.canViewPackerBreakdown ? "xl:grid-cols-6" : "xl:grid-cols-5"
+        }`}
+      >
         <KpiCard label="Balíků" value={summary?.totalPackages ?? "—"} loading={isLoading} />
         <KpiCard label="Objednávek" value={summary?.totalOrders ?? "—"} loading={isLoading} />
         <KpiCard
@@ -157,7 +161,9 @@ const BaleniStatistics: React.FC = () => {
           value={summary ? `${summary.trackingCoveragePercent} %` : "—"}
           loading={isLoading}
         />
-        <KpiCard label="Baličů" value={summary?.distinctPackers ?? "—"} loading={isLoading} />
+        {data?.canViewPackerBreakdown && (
+          <KpiCard label="Baličů" value={data.summary.distinctPackers} loading={isLoading} />
+        )}
         <KpiCard
           label="Nejvytíženější den"
           value={
@@ -189,10 +195,12 @@ const BaleniStatistics: React.FC = () => {
             <PackingHourHeatmap data={data.hourHeatmap} />
           </Panel>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Panel title="Baliči" subtitle={attributionHint ?? "Počet zabalených objednávek na baliče"}>
-              <PackerLeaderboard data={data.byPacker} />
-            </Panel>
+          <div className={`grid grid-cols-1 gap-6 ${data.canViewPackerBreakdown ? "lg:grid-cols-2" : ""}`}>
+            {data.canViewPackerBreakdown && (
+              <Panel title="Baliči" subtitle={attributionHint ?? "Počet zabalených objednávek na baliče"}>
+                <PackerLeaderboard data={data.byPacker} />
+              </Panel>
+            )}
 
             <Panel title="Dopravci" subtitle="Podíl balíků podle dopravce">
               <CarrierMixChart data={data.byCarrier} />

@@ -65,7 +65,7 @@ Two developer-run steps produce the inputs (not scheduled, not run at deploy):
 ## Data flow
 **A. Catalogue of permissions (build time)**
 1. `access-matrix.json` (repo root) is the single hand-edited source: `baseRole`
-   (`heblo_user`), `features` (47 keys such as `Warehouse_Packaging`, each with Czech `label`,
+   (`heblo_user`), `features` (48 keys such as `Warehouse_Packaging`, each with Czech `label`,
    optional `hasWrite` / `hasAdmin`), `menuPaths` (frontend route → required permissions), and
    `seedGroups` (16 starter groups).
 2. `AccessMatrixGen` writes five generated files: `Feature.generated.cs` (the `Feature` enum),

@@ -1,6 +1,8 @@
 using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingDashboard;
+using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Packaging;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -36,7 +38,8 @@ public class GetPackingDashboardHandlerTests
         out Mock<IPackingOrderCountSource> packingClient,
         (int TotalDistinctOrders, IReadOnlyList<PackerPackingSummary> ByPacker) repoResult,
         int shoptetCount = 5,
-        int processingCount = 7)
+        int processingCount = 7,
+        bool canViewPackerBreakdown = true)
     {
         repo = new Mock<IPackageRepository>();
         repo.Setup(r => r.GetPackedTodayByPackerAsync(
@@ -49,10 +52,15 @@ public class GetPackingDashboardHandlerTests
         packingClient.Setup(c => c.GetOrdersBeingProcessedCountAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(processingCount);
 
+        var currentUser = new Mock<ICurrentUserService>();
+        currentUser.Setup(u => u.IsInRole(AccessRoles.WarehousePackerStatisticsRead))
+            .Returns(canViewPackerBreakdown);
+
         return new GetPackingDashboardHandler(
             repo.Object,
             packingClient.Object,
             new FakeTimeProvider(PragueNow),
+            currentUser.Object,
             NullLogger<GetPackingDashboardHandler>.Instance);
     }
 
@@ -129,5 +137,41 @@ public class GetPackingDashboardHandlerTests
 
         // Assert
         result.PackedByPacker[0].PackerName.Should().Be("Neznámý");
+    }
+
+    [Fact]
+    public async Task Handle_WithPackerStatisticsPermission_ReturnsBreakdownAndFlagsItVisible()
+    {
+        // Arrange
+        var byPacker = new List<PackerPackingSummary> { new(Guid.NewGuid(), "Alice", 4) };
+        var sut = MakeSut(out _, out _, (4, byPacker), canViewPackerBreakdown: true);
+
+        // Act
+        var result = await sut.Handle(new GetPackingDashboardRequest(), CancellationToken.None);
+
+        // Assert
+        result.CanViewPackerBreakdown.Should().BeTrue();
+        result.PackedByPacker.Should().ContainSingle(p => p.PackerName == "Alice");
+    }
+
+    [Fact]
+    public async Task Handle_WithoutPackerStatisticsPermission_ReturnsTotalButHidesBreakdown()
+    {
+        // Arrange
+        var byPacker = new List<PackerPackingSummary>
+        {
+            new(Guid.NewGuid(), "Alice", 4),
+            new(Guid.NewGuid(), "Bob", 2),
+        };
+        var sut = MakeSut(out _, out _, (6, byPacker), canViewPackerBreakdown: false);
+
+        // Act
+        var result = await sut.Handle(new GetPackingDashboardRequest(), CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeTrue();
+        result.TotalOrdersPackedToday.Should().Be(6);
+        result.CanViewPackerBreakdown.Should().BeFalse();
+        result.PackedByPacker.Should().BeEmpty();
     }
 }

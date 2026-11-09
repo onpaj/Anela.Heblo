@@ -32,6 +32,7 @@ public enum Feature
     Warehouse_StockUp,
     Warehouse_GiftPackages,
     Warehouse_StockOverride,
+    Warehouse_PackerStatistics,
     Marketing_Article,
     Marketing_Leaflet,
     Marketing_Photobank,

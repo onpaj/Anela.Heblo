@@ -17,6 +17,7 @@ const sampleData: PackingStatisticsResponse = {
   fromDate: "2026-05-27",
   toDate: "2026-06-25",
   packerAttributionSince: "2026-06-09",
+  canViewPackerBreakdown: true,
   summary: {
     totalPackages: 120,
     totalOrders: 80,
@@ -86,5 +87,30 @@ describe("BaleniStatistics", () => {
     });
     render(<BaleniStatistics />);
     expect(screen.queryByText(/Evidence baličů je dostupná až od/)).not.toBeInTheDocument();
+  });
+
+  it("shows the packer leaderboard and packer KPI to users allowed to see the breakdown", () => {
+    setHookResult({ data: sampleData });
+    render(<BaleniStatistics />);
+    expect(screen.getByText("Baliči")).toBeInTheDocument();
+    expect(screen.getByText("Baličů")).toBeInTheDocument();
+  });
+
+  it("hides every per-packer element from users without the packer statistics permission", () => {
+    setHookResult({
+      data: {
+        ...sampleData,
+        canViewPackerBreakdown: false,
+        packerAttributionSince: null,
+        byPacker: [],
+        summary: { ...sampleData.summary, distinctPackers: 0 },
+      },
+    });
+    render(<BaleniStatistics />);
+
+    expect(screen.getByText("120")).toBeInTheDocument(); // totals still visible
+    expect(screen.getByText("Dopravci")).toBeInTheDocument();
+    expect(screen.queryByText("Baliči")).not.toBeInTheDocument();
+    expect(screen.queryByText("Baličů")).not.toBeInTheDocument();
   });
 });

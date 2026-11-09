@@ -10,6 +10,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Packaging/UseCases/GetPackingStatistics/**
   - backend/src/Anela.Heblo.Domain/Features/Packaging/PackingStatistics.cs
   - backend/src/Anela.Heblo.Domain/Features/Packaging/PackerPackingSummary.cs
+  - backend/src/Anela.Heblo.Application/Features/Packaging/PackerStatisticsAccess.cs
 verified_at: "5e993f9e2"
 related:
   - flow-order-packing
@@ -26,6 +27,15 @@ per order". Shown in three places:
 - Main dashboard tile **"Stav balení"** (tile id `packingstats`, category Orders, shown by default,
   no extra permission) — same numbers.
 - Statistics page (Statistiky, `/baleni/statistiky`) — `GET /api/packaging/statistics?fromDate=&toDate=`.
+
+## Who sees per-packer numbers
+Everyone with `warehouse.packaging.read` sees the totals. The **per-packer breakdown** (today's
+orders per packer, the statistics *Baliči* leaderboard, the *Baličů* KPI and "packer attribution
+since") is returned only to holders of `warehouse.packer_statistics.read` (seeded for Správce,
+Vedení, Vedoucí skladu; `super_user` always). The rule lives in `PackerStatisticsAccess` and is
+applied server-side in all three entry points. For everyone else the API sends an empty list,
+`distinctPackers = 0`, `packerAttributionSince = null` and `canViewPackerBreakdown = false`, and the
+UI hides those sections.
 
 ## Trigger
 On demand. The Balení dashboard query refreshes every 60 s in the browser; statistics are cached in
@@ -93,4 +103,5 @@ Default window (30 days) is a code constant in `GetPackingStatisticsHandler`.
 - `backend/src/Anela.Heblo.Application/Features/Packaging/UseCases/GetPackingStatistics/GetPackingStatisticsHandler.cs` — window, summary
 - `backend/src/Anela.Heblo.Application/Features/Packaging/UseCases/GetPackingDashboard/GetPackingDashboardHandler.cs` — today's counters
 - `backend/src/Anela.Heblo.Application/Features/Packaging/DashboardTiles/PackingStatsTile.cs` — dashboard tile
+- `backend/src/Anela.Heblo.Application/Features/Packaging/PackerStatisticsAccess.cs` — who may see the per-packer breakdown
 - `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Orders/ShoptetApiPackingOrderClient.cs` — Shoptet order counts
