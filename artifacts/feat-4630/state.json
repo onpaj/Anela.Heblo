@@ -21,16 +21,16 @@
       "updated_at": "2026-11-09T07:13:54.895362Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-11-09T07:18:58.087008Z"
     }
   },
   "tasks": [
     {
       "name": "add-errorboundary-tests",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-11-09T07:18:58.258228Z"
     }
   ]
 }
