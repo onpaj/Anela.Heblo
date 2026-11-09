@@ -25,5 +25,24 @@
       "updated_at": null
     }
   },
-  "tasks": []
+  "tasks": [
+    {
+      "name": "extract-page-window",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "documents-tab-harness-and-url-sync",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    },
+    {
+      "name": "documents-tab-pagination-sort-states",
+      "status": "pending",
+      "revision": 1,
+      "updated_at": null
+    }
+  ]
 }
