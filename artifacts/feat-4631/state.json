@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4631",
+  "issue_number": 4631,
+  "created_at": "2026-11-09T08:13:20.756161Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-11-09T08:13:51.282656Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-11-09T08:14:25.959638Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-11-09T08:14:29.196426Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-11-09T08:14:31.768580Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-11-09T08:20:58.188613Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-11-09T11:20:28.658737Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "extract-page-window",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-11-09T08:20:58.358701Z"
+    },
+    {
+      "name": "documents-tab-harness-and-url-sync",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-11-09T09:16:12.208307Z"
+    },
+    {
+      "name": "documents-tab-pagination-sort-states",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-11-09T10:18:24.611298Z"
+    }
+  ]
+}
