@@ -34,9 +34,9 @@
     },
     {
       "name": "implement-410-resync",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-11-09T06:38:28.745491Z"
     },
     {
       "name": "update-process-doc",
