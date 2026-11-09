@@ -16,7 +16,7 @@ owns:
   - backend/src/Anela.Heblo.Persistence/Photobank/PhotobankRootRepository.cs
   - backend/src/Anela.Heblo.Persistence/Photobank/PhotobankIndexRootConfiguration.cs
   - backend/src/Anela.Heblo.API/HealthChecks/Photobank/PhotobankSchemaHealthCheck.cs
-verified_at: "5e993f9e2"
+verified_at: "cfa80f64b"
 related:
   - flow-photobank-tag-rules
   - job-photobank-auto-tag
@@ -48,7 +48,9 @@ Source: Microsoft Graph (SharePoint/OneDrive drives), app-only token for scope
    1. If `RootItemId` is empty: `GET /v1.0/drives/{DriveId}/root:/{SharePointPath}:` → store the
       folder's item id in `RootItemId` (saved immediately).
    2. Delta: first run (no `DeltaLink`) `GET /v1.0/drives/{DriveId}/items/{RootItemId}/delta`;
-      later runs call the stored `DeltaLink`. Follow `@odata.nextLink` until `@odata.deltaLink`.
+      later runs call the stored `DeltaLink`. If Graph answers the stored link with 410 Gone
+      (expired token), the `DeltaLink` is cleared and the call is retried once as a full
+      enumeration. Follow `@odata.nextLink` until `@odata.deltaLink`.
       **All pages are read into memory before anything is written.**
    3. Map items (`PhotobankGraphService.MapItem`): items with a `deleted` facet → delete;
       folders and non-files skipped; files kept only with extension `.jpg .jpeg .png .webp .gif
@@ -98,15 +100,16 @@ browser for a year under `?v=<ModifiedAt>`, so a replaced file gets a fresh thum
 ## Runtime facts
 - Marketing site document library drive id `b!jj_-5-FohEybxp_61HKbJLmG6KD2FqJOmZeQYQNbxqrCWYOs1rorQ5BtZfHEjWKj`, example root path `/Grafika_interní/PROFI_FOCENI` — `docs/features/photobank.md` (undated, written 2026-04/05 with the feature).
 - Nightly index failed on `Cannot write DateTime with Kind=Unspecified to PostgreSQL type 'timestamp with time zone'` because timestamp-conversion migrations were missing in an environment — #3757, closed by #3915 on 2026-08-13; `PhotobankSchemaHealthCheck` (`photobank-schema`, `/health/ready`) now flags the drift.
+- Graph 410 Gone on the stored delta token made the nightly index fail for roots in telemetry 2026-11-03..07 — #4625; since then handled by the one-time full resync above.
 
 ## Known quirks
 - **Failures are invisible in Hangfire.** Every exception inside a root is caught and logged
   (`Failed to index root {RootId}`); the job still ends Succeeded. Check `LastIndexedAt` on the
   settings tab or the logs.
-- **An expired or invalid `DeltaLink` blocks the root every night.** Graph answers an expired
-  delta token with an error (typically 410 Gone / resync required); the code calls
-  `EnsureSuccessStatusCode` and has no resync handling, so the root fails on every run until
-  `DeltaLink` is cleared in the DB (next run then does a full walk). (Read from code, not observed.)
+- **An expired `DeltaLink` (410 Gone) auto-recovers, once per run.** The job clears
+  `DeltaLink` and retries as a full walk. A full walk reports no deletions, so photos deleted
+  in SharePoint while the token was stale stay indexed. If the retry also fails, the root is
+  logged as `Failed to index root` and skipped; other (non-410) errors are not retried.
 - **Wrong `SharePointPath` or `DriveId` also fails silently** — the resolve call throws, the
   root is skipped and logged, nothing in the UI shows it except an empty `LastIndexedAt`.
 - **Deleting an index root keeps its photos.** `DeleteRoot` removes only the root row; its
