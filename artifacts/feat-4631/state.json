@@ -21,16 +21,16 @@
       "updated_at": "2026-11-09T08:14:31.768580Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-11-09T08:20:58.188613Z"
     }
   },
   "tasks": [
     {
       "name": "extract-page-window",
-      "status": "pending",
+      "status": "completed",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-11-09T08:20:58.358701Z"
     },
     {
       "name": "documents-tab-harness-and-url-sync",
