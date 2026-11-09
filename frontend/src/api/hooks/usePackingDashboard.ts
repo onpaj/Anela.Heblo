@@ -12,6 +12,8 @@ export type GetPackingDashboardResponse = {
   ordersBeingProcessedCount: number | null;
   ordersBeingPackedCountLastSync: string | null;
   totalOrdersPackedToday: number;
+  /** False unless the caller holds warehouse.packer_statistics.read; packedByPacker is then empty. */
+  canViewPackerBreakdown: boolean;
   packedByPacker: PackerStatsDto[];
 };
 
@@ -33,6 +35,7 @@ export const usePackingDashboard = () =>
           ? response.ordersBeingPackedCountLastSync.toISOString()
           : null,
         totalOrdersPackedToday: response.totalOrdersPackedToday ?? 0,
+        canViewPackerBreakdown: response.canViewPackerBreakdown ?? false,
         packedByPacker: (response.packedByPacker ?? []).map((p) => ({
           packerId: p.packerId,
           packerName: p.packerName ?? '',

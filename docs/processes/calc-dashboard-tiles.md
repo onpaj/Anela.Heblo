@@ -138,7 +138,9 @@ BackgroundRefresh tasks. "Today"/"yesterday" are **UTC** dates unless stated.
   totals (`Paginator.TotalCount`, page 1) in status `ShoptetOrders:PackingStateId` (26) and
   `ShoptetOrders:ProcessingStateId` (−2); left empty if Shoptet fails. `totalOrdersPackedToday`
   = distinct `OrderCode` in `public."Packages"` with `PackedAt` in today (server local day);
-  per packer = distinct orders per `PackedByUserId`/`PackedBy`, most first.
+  per packer = distinct orders per `PackedByUserId`/`PackedBy`, most first — sent only to holders
+  of `warehouse.packer_statistics.read` (`canViewPackerBreakdown`); everyone else gets the total
+  and an empty list (see `calc-packing-statistics`).
 
 **Weather** — `weatherforecast`: see `sync-weather-forecast`.
 

@@ -18,6 +18,8 @@ interface PackingStatsData {
   ordersBeingProcessedCount: number | null;
   ordersBeingPackedCountLastSync: string | null;
   totalOrdersPackedToday: number;
+  /** False unless the caller holds warehouse.packer_statistics.read; packedByPacker is then empty. */
+  canViewPackerBreakdown?: boolean;
   packedByPacker: PackerStat[];
 }
 
@@ -90,7 +92,7 @@ export const PackingStatsTile: React.FC<PackingStatsTileProps> = ({ data, target
         </div>
       </div>
 
-      {stats.packedByPacker.length > 0 && (
+      {stats.canViewPackerBreakdown && stats.packedByPacker.length > 0 && (
         <ul className="space-y-1 flex-1 overflow-y-auto">
           {stats.packedByPacker.map((p) => (
             <li
@@ -104,7 +106,7 @@ export const PackingStatsTile: React.FC<PackingStatsTileProps> = ({ data, target
         </ul>
       )}
 
-      {stats.packedByPacker.length === 0 && (
+      {stats.canViewPackerBreakdown && stats.packedByPacker.length === 0 && (
         <p className="text-xs text-neutral-gray dark:text-graphite-muted italic">Dnes zatím nikdo nezabalil žádnou objednávku.</p>
       )}
     </div>

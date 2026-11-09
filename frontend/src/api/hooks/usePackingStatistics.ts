@@ -55,6 +55,8 @@ export interface PackingStatisticsResponse {
   fromDate: string;
   toDate: string;
   packerAttributionSince: string | null;
+  /** False unless the caller holds warehouse.packer_statistics.read; byPacker is then empty. */
+  canViewPackerBreakdown: boolean;
   summary: PackingStatisticsSummary;
   throughputDaily: DailyThroughput[];
   hourHeatmap: HourBucket[];
@@ -136,6 +138,7 @@ export const usePackingStatistics = (params: PackingStatisticsParams = {}) =>
         packerAttributionSince: response.packerAttributionSince
           ? response.packerAttributionSince.toISOString()
           : null,
+        canViewPackerBreakdown: response.canViewPackerBreakdown ?? false,
         summary: toPackingStatisticsSummary(response.summary),
         throughputDaily: (response.throughputDaily ?? []).map(toDailyThroughput),
         hourHeatmap: (response.hourHeatmap ?? []).map(toHourBucket),

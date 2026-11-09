@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Package, Truck, BarChart3, Move } from 'lucide-react';
 import { useScreenView } from '../../telemetry/useScreenView';
-import { usePackingDashboard } from '../../api/hooks/usePackingDashboard';
+import { usePackingDashboard, PackerStatsDto } from '../../api/hooks/usePackingDashboard';
 
 interface BaleniTile {
   id: string;
@@ -66,6 +66,51 @@ const StatCard: React.FC<{
   </div>
 );
 
+interface PackerBreakdownProps {
+  packers: PackerStatsDto[];
+}
+
+/** Today's orders per packer — rendered only for holders of warehouse.packer_statistics.read. */
+const PackerBreakdown: React.FC<PackerBreakdownProps> = ({ packers }) => (
+  <div className="bg-white dark:bg-graphite-surface border border-border-light dark:border-graphite-border rounded-xl p-6 shadow-soft dark:shadow-soft-dark">
+    <p className="text-sm text-neutral-gray dark:text-graphite-muted mb-4">Zabaleno dnes podle baličů</p>
+    {packers.length > 0 ? (
+      <ul className="space-y-2">
+        {packers.map((p) => (
+          <li
+            key={p.packerId ?? p.packerName}
+            className="flex items-center justify-between py-2 px-3 bg-secondary-blue-pale dark:bg-graphite-surface-2 rounded-lg"
+          >
+            <span className="text-sm font-medium text-neutral-slate dark:text-graphite-text">{p.packerName}</span>
+            <span className="text-sm font-bold text-primary-blue dark:text-graphite-accent">{p.orderCount}</span>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p className="text-sm text-neutral-gray dark:text-graphite-muted italic">Dnes zatím nikdo nezabalil žádnou objednávku.</p>
+    )}
+  </div>
+);
+
+const SKELETON_ROW_KEYS = [0, 1, 2];
+
+/**
+ * Shown while loading: whether the caller may see the breakdown is only known once the
+ * response arrives, so permitted users get a placeholder instead of the card popping in.
+ */
+const PackerBreakdownSkeleton: React.FC = () => (
+  <div
+    data-testid="packer-breakdown-skeleton"
+    className="bg-white dark:bg-graphite-surface border border-border-light dark:border-graphite-border rounded-xl p-6 shadow-soft dark:shadow-soft-dark"
+  >
+    <div className="space-y-3">
+      {SKELETON_ROW_KEYS.map((i) => (
+        <div key={i} className="h-8 bg-secondary-blue-pale dark:bg-graphite-surface-2 rounded animate-pulse" />
+      ))}
+    </div>
+  </div>
+);
+
 const BaleniHome: React.FC = () => {
   useScreenView('Baleni', 'BaleniHome');
   const { data, isLoading } = usePackingDashboard();
@@ -94,30 +139,8 @@ const BaleniHome: React.FC = () => {
           />
         </div>
 
-        <div className="bg-white dark:bg-graphite-surface border border-border-light dark:border-graphite-border rounded-xl p-6 shadow-soft dark:shadow-soft-dark">
-          <p className="text-sm text-neutral-gray dark:text-graphite-muted mb-4">Zabaleno dnes podle baličů</p>
-          {isLoading ? (
-            <div className="space-y-3">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="h-8 bg-secondary-blue-pale dark:bg-graphite-surface-2 rounded animate-pulse" />
-              ))}
-            </div>
-          ) : data && data.packedByPacker.length > 0 ? (
-            <ul className="space-y-2">
-              {data.packedByPacker.map((p) => (
-                <li
-                  key={p.packerId ?? p.packerName}
-                  className="flex items-center justify-between py-2 px-3 bg-secondary-blue-pale dark:bg-graphite-surface-2 rounded-lg"
-                >
-                  <span className="text-sm font-medium text-neutral-slate dark:text-graphite-text">{p.packerName}</span>
-                  <span className="text-sm font-bold text-primary-blue dark:text-graphite-accent">{p.orderCount}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-sm text-neutral-gray dark:text-graphite-muted italic">Dnes zatím nikdo nezabalil žádnou objednávku.</p>
-          )}
-        </div>
+        {isLoading && <PackerBreakdownSkeleton />}
+        {!isLoading && data?.canViewPackerBreakdown && <PackerBreakdown packers={data.packedByPacker} />}
       </section>
 
       <section>

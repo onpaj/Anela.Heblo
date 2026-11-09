@@ -37,6 +37,7 @@ export type GetPackagesResponse = {
   totalCount: number;
   pageNumber: number;
   pageSize: number;
+  canViewPackerBreakdown: boolean;
 };
 
 const toPackageDto = (dto: GeneratedPackageDto): PackageDto => ({
@@ -80,6 +81,7 @@ export const usePackagesQuery = (request: GetPackagesRequest) =>
         totalCount: response.totalCount ?? 0,
         pageNumber: response.pageNumber ?? request.pageNumber,
         pageSize: response.pageSize ?? request.pageSize,
+        canViewPackerBreakdown: response.canViewPackerBreakdown ?? false,
       };
     },
     staleTime: 1000 * 30,

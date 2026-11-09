@@ -108,6 +108,7 @@ export function ZasilkyPage() {
         {data && (
           <ZasilkyTable
             items={data.items}
+            canViewPackerBreakdown={data.canViewPackerBreakdown}
             sortBy={sortBy}
             sortDescending={sortDescending}
             onSortChange={handleSortChange}
