@@ -41388,13 +41388,13 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
     ordersBeingProcessedCount?: number | undefined;
     ordersBeingPackedCountLastSync?: Date | undefined;
     totalOrdersPackedToday?: number;
+    canViewPackerBreakdown?: boolean;
     packedByPacker?: PackerStatsDto[];
 
     constructor(data?: IGetPackingDashboardResponse) {
         super(data);
     }
 
-    canViewPackerBreakdown?: boolean;
     override init(_data?: any) {
         super.init(_data);
         if (_data) {
@@ -41402,13 +41402,13 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
             this.ordersBeingProcessedCount = _data["ordersBeingProcessedCount"];
             this.ordersBeingPackedCountLastSync = _data["ordersBeingPackedCountLastSync"] ? new Date(_data["ordersBeingPackedCountLastSync"].toString()) : <any>undefined;
             this.totalOrdersPackedToday = _data["totalOrdersPackedToday"];
+            this.canViewPackerBreakdown = _data["canViewPackerBreakdown"];
             if (Array.isArray(_data["packedByPacker"])) {
                 this.packedByPacker = [] as any;
                 for (let item of _data["packedByPacker"])
                     this.packedByPacker!.push(PackerStatsDto.fromJS(item));
             }
         }
-            this.canViewPackerBreakdown = _data["canViewPackerBreakdown"];
     }
 
     static override fromJS(data: any): GetPackingDashboardResponse {
@@ -41424,13 +41424,13 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
         data["ordersBeingProcessedCount"] = this.ordersBeingProcessedCount;
         data["ordersBeingPackedCountLastSync"] = this.ordersBeingPackedCountLastSync ? this.ordersBeingPackedCountLastSync.toISOString() : <any>undefined;
         data["totalOrdersPackedToday"] = this.totalOrdersPackedToday;
+        data["canViewPackerBreakdown"] = this.canViewPackerBreakdown;
         if (Array.isArray(this.packedByPacker)) {
             data["packedByPacker"] = [];
             for (let item of this.packedByPacker)
                 data["packedByPacker"].push(item.toJSON());
         }
         super.toJSON(data);
-        data["canViewPackerBreakdown"] = this.canViewPackerBreakdown;
         return data;
     }
 }
@@ -41440,13 +41440,13 @@ export interface IGetPackingDashboardResponse extends IBaseResponse {
     ordersBeingProcessedCount?: number | undefined;
     ordersBeingPackedCountLastSync?: Date | undefined;
     totalOrdersPackedToday?: number;
+    canViewPackerBreakdown?: boolean;
     packedByPacker?: PackerStatsDto[];
 }
 
 export class PackerStatsDto implements IPackerStatsDto {
     packerId?: string | undefined;
     packerName?: string;
-    canViewPackerBreakdown?: boolean;
     orderCount?: number;
 
     constructor(data?: IPackerStatsDto) {
@@ -41492,13 +41492,13 @@ export class GetPackingStatisticsResponse extends BaseResponse implements IGetPa
     fromDate?: Date;
     toDate?: Date;
     packerAttributionSince?: Date | undefined;
+    canViewPackerBreakdown?: boolean;
     summary?: PackingStatisticsSummaryDto;
     throughputDaily?: DailyThroughputDto[];
     hourHeatmap?: HourBucketDto[];
     byPacker?: PackerThroughputDto[];
     byCarrier?: CarrierMixDto[];
     packagesPerOrder?: PackagesPerOrderBucketDto[];
-    canViewPackerBreakdown?: boolean;
 
     constructor(data?: IGetPackingStatisticsResponse) {
         super(data);
@@ -41510,13 +41510,13 @@ export class GetPackingStatisticsResponse extends BaseResponse implements IGetPa
             this.fromDate = _data["fromDate"] ? new Date(_data["fromDate"].toString()) : <any>undefined;
             this.toDate = _data["toDate"] ? new Date(_data["toDate"].toString()) : <any>undefined;
             this.packerAttributionSince = _data["packerAttributionSince"] ? new Date(_data["packerAttributionSince"].toString()) : <any>undefined;
+            this.canViewPackerBreakdown = _data["canViewPackerBreakdown"];
             this.summary = _data["summary"] ? PackingStatisticsSummaryDto.fromJS(_data["summary"]) : <any>undefined;
             if (Array.isArray(_data["throughputDaily"])) {
                 this.throughputDaily = [] as any;
                 for (let item of _data["throughputDaily"])
                     this.throughputDaily!.push(DailyThroughputDto.fromJS(item));
             }
-            this.canViewPackerBreakdown = _data["canViewPackerBreakdown"];
             if (Array.isArray(_data["hourHeatmap"])) {
                 this.hourHeatmap = [] as any;
                 for (let item of _data["hourHeatmap"])
@@ -41552,13 +41552,13 @@ export class GetPackingStatisticsResponse extends BaseResponse implements IGetPa
         data["fromDate"] = this.fromDate ? this.fromDate.toISOString() : <any>undefined;
         data["toDate"] = this.toDate ? this.toDate.toISOString() : <any>undefined;
         data["packerAttributionSince"] = this.packerAttributionSince ? this.packerAttributionSince.toISOString() : <any>undefined;
+        data["canViewPackerBreakdown"] = this.canViewPackerBreakdown;
         data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
         if (Array.isArray(this.throughputDaily)) {
             data["throughputDaily"] = [];
             for (let item of this.throughputDaily)
                 data["throughputDaily"].push(item.toJSON());
         }
-        data["canViewPackerBreakdown"] = this.canViewPackerBreakdown;
         if (Array.isArray(this.hourHeatmap)) {
             data["hourHeatmap"] = [];
             for (let item of this.hourHeatmap)
@@ -41588,13 +41588,13 @@ export interface IGetPackingStatisticsResponse extends IBaseResponse {
     fromDate?: Date;
     toDate?: Date;
     packerAttributionSince?: Date | undefined;
+    canViewPackerBreakdown?: boolean;
     summary?: PackingStatisticsSummaryDto;
     throughputDaily?: DailyThroughputDto[];
     hourHeatmap?: HourBucketDto[];
     byPacker?: PackerThroughputDto[];
     byCarrier?: CarrierMixDto[];
     packagesPerOrder?: PackagesPerOrderBucketDto[];
-    canViewPackerBreakdown?: boolean;
 }
 
 export class PackingStatisticsSummaryDto implements IPackingStatisticsSummaryDto {
@@ -41882,6 +41882,7 @@ export class GetPackagesResponse extends BaseResponse implements IGetPackagesRes
     totalCount?: number;
     pageNumber?: number;
     pageSize?: number;
+    canViewPackerBreakdown?: boolean;
 
     constructor(data?: IGetPackagesResponse) {
         super(data);
@@ -41898,6 +41899,7 @@ export class GetPackagesResponse extends BaseResponse implements IGetPackagesRes
             this.totalCount = _data["totalCount"];
             this.pageNumber = _data["pageNumber"];
             this.pageSize = _data["pageSize"];
+            this.canViewPackerBreakdown = _data["canViewPackerBreakdown"];
         }
     }
 
@@ -41918,6 +41920,7 @@ export class GetPackagesResponse extends BaseResponse implements IGetPackagesRes
         data["totalCount"] = this.totalCount;
         data["pageNumber"] = this.pageNumber;
         data["pageSize"] = this.pageSize;
+        data["canViewPackerBreakdown"] = this.canViewPackerBreakdown;
         super.toJSON(data);
         return data;
     }
@@ -41928,6 +41931,7 @@ export interface IGetPackagesResponse extends IBaseResponse {
     totalCount?: number;
     pageNumber?: number;
     pageSize?: number;
+    canViewPackerBreakdown?: boolean;
 }
 
 export class PackageDto implements IPackageDto {

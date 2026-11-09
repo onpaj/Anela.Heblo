@@ -9,6 +9,12 @@ public class GetPackagesResponse : BaseResponse
     public int PageNumber { get; set; }
     public int PageSize { get; set; }
 
+    /// <summary>
+    /// False when the caller lacks <c>warehouse.packer_statistics.read</c>; then
+    /// <see cref="PackageDto.PackedBy"/> and <see cref="PackageDto.PackedByUserId"/> are null.
+    /// </summary>
+    public bool CanViewPackerBreakdown { get; set; }
+
     public GetPackagesResponse() { }
     public GetPackagesResponse(ErrorCodes errorCode) : base(errorCode) { }
 }

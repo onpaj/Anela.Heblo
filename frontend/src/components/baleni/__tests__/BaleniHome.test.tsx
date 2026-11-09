@@ -57,6 +57,19 @@ describe('BaleniHome', () => {
     expect(screen.queryByText(/nikdo nezabalil/)).not.toBeInTheDocument();
   });
 
+  it('shows the empty state to permitted users when nobody has packed yet today', () => {
+    mockUsePackingDashboard.mockReturnValue({ data: dashboard({ packedByPacker: [] }), isLoading: false });
+    renderHome();
+    expect(screen.getByText('Zabaleno dnes podle baličů')).toBeInTheDocument();
+    expect(screen.getByText(/nikdo nezabalil/)).toBeInTheDocument();
+  });
+
+  it('shows a breakdown placeholder while the dashboard is loading', () => {
+    mockUsePackingDashboard.mockReturnValue({ data: undefined, isLoading: true });
+    renderHome();
+    expect(screen.getByTestId('packer-breakdown-skeleton')).toBeInTheDocument();
+  });
+
   it('renders section headings', () => {
     renderHome();
     expect(screen.getByText('Přehled')).toBeInTheDocument();

@@ -92,6 +92,25 @@ const PackerBreakdown: React.FC<PackerBreakdownProps> = ({ packers }) => (
   </div>
 );
 
+const SKELETON_ROW_KEYS = [0, 1, 2];
+
+/**
+ * Shown while loading: whether the caller may see the breakdown is only known once the
+ * response arrives, so permitted users get a placeholder instead of the card popping in.
+ */
+const PackerBreakdownSkeleton: React.FC = () => (
+  <div
+    data-testid="packer-breakdown-skeleton"
+    className="bg-white dark:bg-graphite-surface border border-border-light dark:border-graphite-border rounded-xl p-6 shadow-soft dark:shadow-soft-dark"
+  >
+    <div className="space-y-3">
+      {SKELETON_ROW_KEYS.map((i) => (
+        <div key={i} className="h-8 bg-secondary-blue-pale dark:bg-graphite-surface-2 rounded animate-pulse" />
+      ))}
+    </div>
+  </div>
+);
+
 const BaleniHome: React.FC = () => {
   useScreenView('Baleni', 'BaleniHome');
   const { data, isLoading } = usePackingDashboard();
@@ -120,7 +139,8 @@ const BaleniHome: React.FC = () => {
           />
         </div>
 
-        {data?.canViewPackerBreakdown && <PackerBreakdown packers={data.packedByPacker} />}
+        {isLoading && <PackerBreakdownSkeleton />}
+        {!isLoading && data?.canViewPackerBreakdown && <PackerBreakdown packers={data.packedByPacker} />}
       </section>
 
       <section>

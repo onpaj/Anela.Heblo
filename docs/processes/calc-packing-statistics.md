@@ -33,7 +33,8 @@ Everyone with `warehouse.packaging.read` sees the totals. The **per-packer break
 orders per packer, the statistics *Baliči* leaderboard, the *Baličů* KPI and "packer attribution
 since") is returned only to holders of `warehouse.packer_statistics.read` (seeded for Správce,
 Vedení, Vedoucí skladu; `super_user` always). The rule lives in `PackerStatisticsAccess` and is
-applied server-side in all three entry points. For everyone else the API sends an empty list,
+applied server-side in all three entry points, and also to the Zásilky list's per-package
+*Zabalil* field (`flow-order-packing`). For everyone else the API sends an empty list,
 `distinctPackers = 0`, `packerAttributionSince = null` and `canViewPackerBreakdown = false`, and the
 UI hides those sections.
 

@@ -1,6 +1,8 @@
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackages;
 using Anela.Heblo.Domain.Features.Logistics;
+using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Packaging;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -27,7 +29,8 @@ public class GetPackagesHandlerTests
 
     private static GetPackagesHandler MakeSut(out Mock<IPackageRepository> repo,
         out Mock<IShippingMethodCatalog> catalog,
-        (List<Package> Items, int TotalCount) result)
+        (List<Package> Items, int TotalCount) result,
+        bool canViewPackerBreakdown = true)
     {
         repo = new Mock<IPackageRepository>();
         repo.Setup(r => r.GetPaginatedAsync(
@@ -37,7 +40,10 @@ public class GetPackagesHandlerTests
                 It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(result);
         catalog = new Mock<IShippingMethodCatalog>();
-        return new GetPackagesHandler(repo.Object, catalog.Object);
+        var currentUser = new Mock<ICurrentUserService>();
+        currentUser.Setup(u => u.IsInRole(AccessRoles.WarehousePackerStatisticsRead))
+            .Returns(canViewPackerBreakdown);
+        return new GetPackagesHandler(repo.Object, catalog.Object, currentUser.Object);
     }
 
     [Fact]
@@ -169,5 +175,45 @@ public class GetPackagesHandlerTests
         var response = await sut.Handle(new GetPackagesRequest(), CancellationToken.None);
         response.Items.Should().BeEmpty();
         response.TotalCount.Should().Be(0);
+    }
+    private static Package MakePackedPackage(Guid packerId)
+    {
+        var package = MakePackage(1);
+        package.PackedBy = "Jana";
+        package.PackedByUserId = packerId;
+        return package;
+    }
+
+    [Fact]
+    public async Task Handle_WithPackerStatisticsRole_ReturnsWhoPackedEachPackage()
+    {
+        // Arrange
+        var packerId = Guid.NewGuid();
+        var sut = MakeSut(out _, out _, (new List<Package> { MakePackedPackage(packerId) }, 1));
+
+        // Act
+        var response = await sut.Handle(new GetPackagesRequest { PageNumber = 1, PageSize = 10 }, CancellationToken.None);
+
+        // Assert
+        response.CanViewPackerBreakdown.Should().BeTrue();
+        response.Items[0].PackedBy.Should().Be("Jana");
+        response.Items[0].PackedByUserId.Should().Be(packerId);
+    }
+
+    [Fact]
+    public async Task Handle_WithoutPackerStatisticsRole_WithholdsWhoPackedEachPackage()
+    {
+        // Arrange
+        var sut = MakeSut(out _, out _, (new List<Package> { MakePackedPackage(Guid.NewGuid()) }, 1),
+            canViewPackerBreakdown: false);
+
+        // Act
+        var response = await sut.Handle(new GetPackagesRequest { PageNumber = 1, PageSize = 10 }, CancellationToken.None);
+
+        // Assert
+        response.CanViewPackerBreakdown.Should().BeFalse();
+        response.Items.Should().ContainSingle();
+        response.Items[0].PackedBy.Should().BeNull();
+        response.Items[0].PackedByUserId.Should().BeNull();
     }
 }

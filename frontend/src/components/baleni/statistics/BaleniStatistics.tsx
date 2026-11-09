@@ -100,7 +100,9 @@ const BaleniStatistics: React.FC = () => {
   }
 
   const summary = data?.summary;
-  const attributionHint = data ? packerAttributionHint(data) : null;
+  const attributionHint = data?.canViewPackerBreakdown ? packerAttributionHint(data) : null;
+  // Keep the "Baličů" slot while loading so permitted users don't see the KPI row reflow.
+  const showPackerKpi = isLoading || Boolean(data?.canViewPackerBreakdown);
 
   return (
     <div className="pt-4 space-y-6" data-testid="baleni-statistics">
@@ -146,7 +148,7 @@ const BaleniStatistics: React.FC = () => {
       {/* KPI cards */}
       <div
         className={`grid grid-cols-2 md:grid-cols-3 gap-4 ${
-          data?.canViewPackerBreakdown ? "xl:grid-cols-6" : "xl:grid-cols-5"
+          showPackerKpi ? "xl:grid-cols-6" : "xl:grid-cols-5"
         }`}
       >
         <KpiCard label="Balíků" value={summary?.totalPackages ?? "—"} loading={isLoading} />
@@ -161,8 +163,8 @@ const BaleniStatistics: React.FC = () => {
           value={summary ? `${summary.trackingCoveragePercent} %` : "—"}
           loading={isLoading}
         />
-        {data?.canViewPackerBreakdown && (
-          <KpiCard label="Baličů" value={data.summary.distinctPackers} loading={isLoading} />
+        {showPackerKpi && (
+          <KpiCard label="Baličů" value={summary?.distinctPackers ?? "—"} loading={isLoading} />
         )}
         <KpiCard
           label="Nejvytíženější den"

@@ -58,6 +58,11 @@ every step that writes; reads need `warehouse.packaging.read`.
 | Re-create shipment | "Vytvořit novou zásilku" in the "shipment already exists" dialog | `POST /api/packaging/orders/{orderCode}/shipment/reset?numberOfPackages=N` |
 | Delete package | Zásilky list, delete button | `DELETE /api/packaging/packages/{id}` |
 
+The Zásilky list returns who packed each package (`packedBy`, `packedByUserId`) only to holders
+of `warehouse.packer_statistics.read`; for everyone else both are null, `canViewPackerBreakdown`
+is false and the *Zabalil* column is hidden — otherwise the per-packer counts withheld by
+`calc-packing-statistics` could be rebuilt from the rows. Same rule (`PackerStatisticsAccess`).
+
 Order state path in Shoptet: **Balí se** (`ShoptetOrders:PackingStateId`, default 26) →
 **Zabaleno** (`ShoptetOrders:PackedStateId`, default 52). Only orders in *Balí se* are packable.
 
