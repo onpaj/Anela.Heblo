@@ -62,12 +62,25 @@ internal sealed class HebloFeatureProvider : FeatureProvider
         }
         catch (Exception ex)
         {
-            var attempts = ex.Data["Anela.DbRetryAttempts"] as int? ?? 1;
-            var dbRetryExhausted = attempts > 1;
-            _logger.LogWarning(
-                ex,
-                "Feature flag resolution failed for key {FlagKey}; using default {DefaultValue}; dbRetryExhausted={DbRetryExhausted} attempts={Attempts}",
-                flagKey, defaultValue, dbRetryExhausted, attempts);
+            if (ex is OperationCanceledException && cancellationToken.IsCancellationRequested)
+            {
+                // The caller (typically an aborted HTTP request) gave up waiting. The shared
+                // override refresh is not affected, so this is not a DB problem — keep it quiet.
+                _logger.LogDebug(
+                    "Feature flag resolution cancelled for key {FlagKey}; using default {DefaultValue}; cancelledBy=caller",
+                    flagKey, defaultValue);
+            }
+            else
+            {
+                var attempts = ex.Data["Anela.DbRetryAttempts"] as int? ?? 1;
+                var dbRetryExhausted = attempts > 1;
+                var cancelledBy = ex is OperationCanceledException ? "refresh" : "none";
+                _logger.LogWarning(
+                    ex,
+                    "Feature flag resolution failed for key {FlagKey}; using default {DefaultValue}; dbRetryExhausted={DbRetryExhausted} attempts={Attempts} cancelledBy={CancelledBy}",
+                    flagKey, defaultValue, dbRetryExhausted, attempts, cancelledBy);
+            }
+
             return new ResolutionDetails<bool>(
                 flagKey,
                 defaultValue,

@@ -312,6 +312,65 @@ public class HebloFeatureProviderTests
         repo.Verify(r => r.GetAllAsDictionaryAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    [Fact]
+    public async Task ResolveBooleanValueAsync_CallerCancelled_LogsDebugNotWarning()
+    {
+        var repo = new Mock<IFeatureFlagOverrideRepository>();
+        var loggerMock = new Mock<ILogger<HebloFeatureProvider>>();
+        var provider = MakeProviderWithRepo(repo, logger: loggerMock.Object);
+        using var callerCts = new CancellationTokenSource();
+        callerCts.Cancel();
+
+        var result = await provider.ResolveBooleanValueAsync(FlagKey, defaultValue: false, context: null, callerCts.Token);
+
+        result.Value.Should().BeFalse();
+        result.Reason.Should().Be(Reason.Error);
+        repo.Verify(r => r.GetAllAsDictionaryAsync(It.IsAny<CancellationToken>()), Times.Never);
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Debug,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("cancelledBy=caller")),
+                It.IsAny<Exception?>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task ResolveBooleanValueAsync_RefreshCancelledWithoutCallerCancel_LogsWarningCancelledByRefresh()
+    {
+        // The load's own timeout (or the DB) cancelled the query; the caller's token is untouched.
+        var thrown = new OperationCanceledException("refresh timed out");
+        var loggerMock = new Mock<ILogger<HebloFeatureProvider>>();
+        var provider = MakeProvider(thrownException: thrown, logger: loggerMock.Object);
+
+        var result = await provider.ResolveBooleanValueAsync(FlagKey, defaultValue: false);
+
+        result.Reason.Should().Be(Reason.Error);
+        VerifyWarningLogged(loggerMock, thrown, "cancelledBy=refresh", "dbRetryExhausted=False", "attempts=1");
+    }
+
+    [Fact]
+    public async Task ResolveBooleanValueAsync_NonCancellationFailure_LogsWarningCancelledByNone()
+    {
+        var thrown = new InvalidOperationException("DB unavailable");
+        var loggerMock = new Mock<ILogger<HebloFeatureProvider>>();
+        var provider = MakeProvider(thrownException: thrown, logger: loggerMock.Object);
+
+        var result = await provider.ResolveBooleanValueAsync(FlagKey, defaultValue: false);
+
+        result.Reason.Should().Be(Reason.Error);
+        VerifyWarningLogged(loggerMock, thrown, "cancelledBy=none", "dbRetryExhausted=False", "attempts=1");
+    }
+
     private static void VerifyWarningLogged(Mock<ILogger<HebloFeatureProvider>> loggerMock, Exception expectedException, params string[] expectedFragments)
     {
         loggerMock.Verify(
