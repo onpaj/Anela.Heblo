@@ -28,9 +28,9 @@
   "tasks": [
     {
       "name": "single-flight-refresh",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 2,
-      "updated_at": "2026-11-11T13:32:30.481474Z"
+      "updated_at": "2026-11-11T13:35:27.046007Z"
     },
     {
       "name": "cancellation-source-diagnostics",
