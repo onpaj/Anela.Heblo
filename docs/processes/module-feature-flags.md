@@ -73,7 +73,11 @@ Plain CRUD (above): set override, clear override, list flags, evaluate flags for
   the previous value and who set it.
 - In-memory cache `feature_flag_overrides` (per app instance, `IMemoryCache`): the whole override
   table as a dictionary, absolute TTL 30 s, removed immediately by the upsert / clear handlers on
-  the instance that handled the write.
+  the instance that handled the write. When the entry is missing, exactly **one** database query
+  reloads it however many requests ask at the same moment (single-flight); the others wait for
+  that one result. The reload does not belong to any request: it runs on its own 5-second timeout
+  (`HebloFeatureProvider.RefreshTimeout`), so a browser aborting its request cannot cancel it. A
+  failed reload is not cached — the next evaluation tries again.
 
 ## External systems
 None. (The flags *gate* calls to Shoptet and CUPS, but this module itself talks to neither.)
@@ -107,6 +111,17 @@ None. (The flags *gate* calls to Shoptet and CUPS, but this module itself talks 
   only reaches their browser on reload (backend code sees it within 30 s).
 - Only boolean flags are supported; string/int/double/structure resolution throws
   `NotImplementedException`.
+- **A cancelled request gets the default, quietly.** If the caller's own request is cancelled
+  while it waits for the override reload, that one evaluation returns the caller-supplied default
+  (same landing spot as the DB-error quirk above) and is logged at Debug with `cancelledBy=caller`.
+  Real reload failures are logged at Warning with `cancelledBy=refresh` (the reload's own timeout
+  or a DB-side cancellation) or `cancelledBy=none` (any other error). Before #3971 every one of
+  these was a Warning and the aborted request also cancelled the DB command, which showed up in
+  Application Insights as bursts of Npgsql `TaskCanceledException`.
+- **A reload already running when an admin flips a flag can re-cache the old value.** The write
+  handler removes the cache entry, but a reload that started just before the write may finish
+  afterwards and store the pre-write table for up to 30 s. Same worst-case delay as on other
+  instances.
 
 ## Code entry points
 - `backend/src/Anela.Heblo.Application/Features/FeatureFlags/FeatureFlagRegistry.cs` — the flag list and defaults (source of truth)
