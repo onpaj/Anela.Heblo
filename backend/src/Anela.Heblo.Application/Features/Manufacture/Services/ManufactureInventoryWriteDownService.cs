@@ -1,5 +1,4 @@
 using Anela.Heblo.Application.Features.Manufacture.Contracts;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Manufacture.Inventory;
 using Microsoft.Extensions.Logging;
@@ -42,7 +41,7 @@ public class ManufactureInventoryWriteDownService : IManufactureInventoryWriteDo
         // Exclude semi-products, then aggregate by product+lot+expiration so repeated output of the same
         // product/lot produces a single inventory row instead of duplicates.
         var lines = productsWithQuantity
-            .Where(p => !catalogEntries.TryGetValue(p.ProductCode, out var entry) || entry.Type != ProductType.SemiProduct)
+            .Where(p => !catalogEntries.TryGetValue(p.ProductCode, out var entry) || entry.Type != ProductKind.SemiProduct)
             .GroupBy(p => new { p.ProductCode, p.LotNumber, p.ExpirationDate })
             .Select(g => new
             {

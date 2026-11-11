@@ -268,7 +268,7 @@ public class SubmitManufactureStockTakingHandlerTests
         };
 
         _catalogRepositoryMock.Setup(x => x.GetByIdAsync(productCode, It.IsAny<CancellationToken>()))
-            .ReturnsAsync((CatalogAggregate)null);
+            .ReturnsAsync((ProductCatalogSnapshot)null);
 
         // Act
         var response = await _handler.Handle(request, CancellationToken.None);
@@ -307,7 +307,7 @@ public class SubmitManufactureStockTakingHandlerTests
         response.Success.Should().BeFalse();
         response.ErrorCode.Should().Be(ErrorCodes.InvalidOperation);
         response.Params["ProductCode"].Should().Be(productCode);
-        response.Params["ProductType"].Should().Be(ProductType.Product.ToString());
+        response.Params["ProductType"].Should().Be(ProductKind.Product.ToString());
         response.Params["Message"].Should().Be("Manufacture stock taking only supports materials");
 
         // Verify ERP service was never called
@@ -371,7 +371,17 @@ public class SubmitManufactureStockTakingHandlerTests
         // Assert - the amount confirmed by the ERP is written back, not the requested target
         response.Success.Should().BeTrue();
         _catalogStockSyncMock.Verify(
-            x => x.SyncErpStockTakingAsync(productCode, 50.0m, It.IsAny<CancellationToken>()),
+            x => x.SyncErpStockTakingAsync(
+                productCode,
+                50.0m,
+                It.Is<ProductStockTakingSnapshot>(r =>
+                    r.Id == stockTakingRecord.Id &&
+                    r.Code == productCode &&
+                    r.Type == StockTakingKind.Erp &&
+                    r.AmountNew == stockTakingRecord.AmountNew &&
+                    r.AmountOld == stockTakingRecord.AmountOld &&
+                    r.User == stockTakingRecord.User),
+                It.IsAny<CancellationToken>()),
             Times.Once);
     }
 
@@ -397,7 +407,7 @@ public class SubmitManufactureStockTakingHandlerTests
             .ReturnsAsync(stockTakingRecord);
 
         _catalogStockSyncMock
-            .Setup(x => x.SyncErpStockTakingAsync(productCode, It.IsAny<decimal>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.SyncErpStockTakingAsync(productCode, It.IsAny<decimal>(), It.IsAny<ProductStockTakingSnapshot>(), It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("cache unavailable"));
 
         // Act
@@ -432,7 +442,7 @@ public class SubmitManufactureStockTakingHandlerTests
         // Assert
         response.Success.Should().BeFalse();
         _catalogStockSyncMock.Verify(
-            x => x.SyncErpStockTakingAsync(It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<CancellationToken>()),
+            x => x.SyncErpStockTakingAsync(It.IsAny<string>(), It.IsAny<decimal>(), It.IsAny<ProductStockTakingSnapshot>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
 
@@ -440,45 +450,42 @@ public class SubmitManufactureStockTakingHandlerTests
 
     #region Helper methods
 
-    private CatalogAggregate CreateMaterialWithLots(string productCode)
+    private ProductCatalogSnapshot CreateMaterialWithLots(string productCode)
     {
-        var product = new CatalogAggregate
+        var product = new ProductCatalogSnapshot
         {
             ProductCode = productCode,
             ProductName = $"Material {productCode}",
-            Type = ProductType.Material,
-            Stock = new StockData(),
-            Location = "A1",
+            Type = ProductKind.Material,
+            Stock = new ProductStockSnapshot(),
             HasLots = true
         };
 
         return product;
     }
 
-    private CatalogAggregate CreateMaterialWithoutLots(string productCode)
+    private ProductCatalogSnapshot CreateMaterialWithoutLots(string productCode)
     {
-        var product = new CatalogAggregate
+        var product = new ProductCatalogSnapshot
         {
             ProductCode = productCode,
             ProductName = $"Material {productCode}",
-            Type = ProductType.Material,
-            Stock = new StockData(),
-            Location = "B2",
+            Type = ProductKind.Material,
+            Stock = new ProductStockSnapshot(),
             HasLots = false
         };
 
         return product;
     }
 
-    private CatalogAggregate CreateNonMaterialProduct(string productCode)
+    private ProductCatalogSnapshot CreateNonMaterialProduct(string productCode)
     {
-        return new CatalogAggregate
+        return new ProductCatalogSnapshot
         {
             ProductCode = productCode,
             ProductName = $"Product {productCode}",
-            Type = ProductType.Product, // Not a material
-            Stock = new StockData(),
-            Location = "C3",
+            Type = ProductKind.Product, // Not a material
+            Stock = new ProductStockSnapshot(),
             HasLots = false
         };
     }

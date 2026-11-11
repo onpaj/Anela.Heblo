@@ -1,5 +1,4 @@
 using Anela.Heblo.Application.Features.Purchase.Contracts;
-using Anela.Heblo.Application.Features.Purchase.UseCases.GetPurchaseStockAnalysis;
 
 namespace Anela.Heblo.Application.Features.Purchase.Services;
 
@@ -117,9 +116,9 @@ public class StockAnalysisCalculator : IStockAnalysisCalculator
         };
     }
 
-    public List<StockAnalysisItemDto> FilterItems(List<StockAnalysisItemDto> items, GetPurchaseStockAnalysisRequest request)
+    public List<StockAnalysisItemDto> FilterItems(List<StockAnalysisItemDto> items, StockAnalysisFilter filter)
     {
-        return items.Where(item => ShouldIncludeItem(item, request)).ToList();
+        return items.Where(item => ShouldIncludeItem(item, filter)).ToList();
     }
 
     public List<StockAnalysisItemDto> SortItems(List<StockAnalysisItemDto> items, StockAnalysisSortBy sortBy, bool descending)
@@ -154,14 +153,14 @@ public class StockAnalysisCalculator : IStockAnalysisCalculator
         };
     }
 
-    private bool ShouldIncludeItem(StockAnalysisItemDto item, GetPurchaseStockAnalysisRequest request)
+    private bool ShouldIncludeItem(StockAnalysisItemDto item, StockAnalysisFilter filter)
     {
-        if (request.OnlyConfigured && !item.IsConfigured)
+        if (filter.OnlyConfigured && !item.IsConfigured)
         {
             return false;
         }
 
-        return request.StockStatus switch
+        return filter.StockStatus switch
         {
             StockStatusFilter.Critical => item.Severity == StockSeverity.Critical,
             StockStatusFilter.Low => item.Severity == StockSeverity.Low,

@@ -30,13 +30,14 @@ public class GetDailyConsumptionBreakdownHandler
         if (consumptions.Count == 0)
             return new GetDailyConsumptionBreakdownResponse { Success = true, Date = request.Date, GroupBy = request.GroupBy.ToString() };
 
-        var materials = (await _repository.GetAllWithAllocationsAsync(cancellationToken)).ToList();
+        var consumedMaterialIds = consumptions.Select(c => c.PackingMaterialId).Distinct().ToList();
+        var materialNameById = await _repository.GetMaterialNamesByIdsAsync(consumedMaterialIds, cancellationToken);
 
         var groups = request.GroupBy switch
         {
-            ConsumptionGroupBy.Material => BuildGroupByMaterial(consumptions, materials),
-            ConsumptionGroupBy.Product => BuildGroupByProduct(consumptions, materials),
-            ConsumptionGroupBy.Order => BuildGroupByOrder(consumptions, materials),
+            ConsumptionGroupBy.Material => BuildGroupByMaterial(consumptions, materialNameById),
+            ConsumptionGroupBy.Product => BuildGroupByProduct(consumptions, materialNameById),
+            ConsumptionGroupBy.Order => BuildGroupByOrder(consumptions, materialNameById),
             _ => throw new ArgumentOutOfRangeException(nameof(request.GroupBy), request.GroupBy, "Unhandled GroupBy value.")
         };
 
@@ -51,10 +52,8 @@ public class GetDailyConsumptionBreakdownHandler
 
     private static List<ConsumptionGroupDto> BuildGroupByMaterial(
         List<PackingMaterialConsumption> consumptions,
-        List<PackingMaterial> materials)
+        IReadOnlyDictionary<int, string> materialNameById)
     {
-        var materialNameById = materials.ToDictionary(m => m.Id, m => m.Name);
-
         return consumptions
             .GroupBy(c => c.PackingMaterialId)
             .Select(g =>
@@ -86,10 +85,8 @@ public class GetDailyConsumptionBreakdownHandler
 
     private static List<ConsumptionGroupDto> BuildGroupByProduct(
         List<PackingMaterialConsumption> consumptions,
-        List<PackingMaterial> materials)
+        IReadOnlyDictionary<int, string> materialNameById)
     {
-        var materialNameById = materials.ToDictionary(m => m.Id, m => m.Name);
-
         return consumptions
             .Where(c => c.ProductCode != null)
             .GroupBy(c => c.ProductCode!)
@@ -124,10 +121,8 @@ public class GetDailyConsumptionBreakdownHandler
 
     private static List<ConsumptionGroupDto> BuildGroupByOrder(
         List<PackingMaterialConsumption> consumptions,
-        List<PackingMaterial> materials)
+        IReadOnlyDictionary<int, string> materialNameById)
     {
-        var materialNameById = materials.ToDictionary(m => m.Id, m => m.Name);
-
         return consumptions
             .Where(c => c.InvoiceId != null)
             .GroupBy(c => c.InvoiceId!)

@@ -56,6 +56,8 @@ public class BatchPlanItemDto
     public string OptimizationNote { get; set; } = "";    // Explanation of how this was calculated
 
     public bool Enabled { get; set; } = true;
+
+    public bool IsNd { get; set; }
 }
 
 public class BatchPlanSummaryDto

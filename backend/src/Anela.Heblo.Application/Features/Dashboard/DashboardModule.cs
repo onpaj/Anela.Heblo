@@ -21,6 +21,10 @@ public static class DashboardModule
         // Shared scaffold for Enable/Disable tile (and future) mutations
         services.AddScoped<IUserDashboardSettingsMutator, UserDashboardSettingsMutator>();
 
+        // Provisioning (write) and effective-settings projection (read-only) of user dashboard settings
+        services.AddScoped<IUserDashboardSettingsProvisioner, UserDashboardSettingsProvisioner>();
+        services.AddScoped<IUserDashboardSettingsReader, UserDashboardSettingsReader>();
+
         return services;
     }
 }

@@ -5,7 +5,7 @@ module: catalog
 summary: The product catalog — one in-memory view of every product, material, semi-product and goods code combining Flexi, Shoptet and Heblo data (stock, prices, history, margins) — plus stock taking, stock-up to Shoptet, product weights and material container/lot labels.
 owns: []
 verified_at: "5e993f9e2"
-related: [calc-catalog-merge, sync-catalog-stock, sync-catalog-history, sync-catalog-prices, sync-catalog-master-data, calc-bundle-sales-expansion, calc-margins, feed-stock-up, feed-product-weight, job-product-export-download, job-doubleshot-availability-sync, flow-stock-taking, flow-lots-and-material-containers, flow-product-composition-order]
+related: [calc-catalog-merge, sync-catalog-stock, sync-catalog-eshop-products, sync-catalog-history, sync-catalog-prices, sync-catalog-master-data, calc-bundle-sales-expansion, calc-margins, feed-stock-up, feed-product-weight, job-product-export-download, job-doubleshot-availability-sync, flow-stock-taking, flow-lots-and-material-containers, flow-product-composition-order]
 ---
 
 # Catalog
@@ -50,6 +50,7 @@ Manufacture_MaterialInventory, Manufacture_MaterialContainers, Manufacture_Label
 ## Processes
 - `calc-catalog-merge` — assembles the product cache from all sources; debounced after each source load, 4 h validity.
 - `sync-catalog-stock` — ERP/e-shop stock, transport/reserve/quarantine, ordered, planned, sklad výroby; BackgroundRefresh 5–10 min.
+- `sync-catalog-eshop-products` — Shoptet REST sweep for image, weight, dimensions and flags; hourly.
 - `sync-catalog-history` — purchase (query 19), consumption (query 21), manufacture receipts; hourly.
 - `calc-bundle-sales-expansion` — sales history (query 37) with gift packages expanded into components; hourly.
 - `sync-catalog-prices` — Shoptet price list (incl. actions), Flexi price list (query 41), Heureka URL; 30 min / hourly.
@@ -83,7 +84,7 @@ container discard, read-only lists and statistics.
 | System | Read | Write |
 |---|---|---|
 | Flexi (ERP) | stock-to-date (warehouses 4/5/20), user queries 19, 21, 37, 38, 41, stock-movement lines, lots, BoM (kusovník) and set parts | ceník weight (`feed-product-weight`), BoM line order/phase (`flow-product-composition-order`); ERP stock taking via the Manufacture module |
-| Shoptet | product CSV export (stock), `GET /api/pricelists/{id}`, `GET /api/stocks/{id}/supplies` | `PATCH /api/stocks/{id}/movements` — deltas (`feed-stock-up`), absolute real stock (`flow-stock-taking`) |
+| Shoptet | `GET /api/products*` (product sweep, flags), `GET /api/pricelists/{id}`, `GET /api/stocks/{id}/supplies` | `PATCH /api/stocks/{id}/movements` — deltas (`feed-stock-up`), absolute real stock (`flow-stock-taking`) |
 | anela.cz Heureka XML feed | product URLs | — |
 | CUPS → Zebra ZD411 | — | raw ZPL labels |
 | Azure Blob Storage | — | product export snapshots |

@@ -15,7 +15,7 @@ owns:
   - backend/src/Adapters/Anela.Heblo.Adapters.Microsoft365/OutlookCalendarSyncService.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Microsoft365/Microsoft365AdapterServiceCollectionExtensions.cs
   - backend/src/Anela.Heblo.Domain/Features/Marketing/MarketingAction.cs
-verified_at: "5e993f9e2"
+verified_at: "b39cecadf"
 related:
   - sync-marketing-calendar
 ---
@@ -120,8 +120,9 @@ Event body sent to Graph:
   (`MarketingActionModal`, typed by `MarketingActionGrid`) reads `fl.path`, so every existing
   link loads with an empty path, is filtered out on save, and `PUT` replaces the set with
   nothing. The optional "Popis" label of a folder link is never sent to the API at all.
-- **Folder type labels do not match enum names**: General = "Obrázky", Seasonal = "Texty",
-  ProductLine = "Videa", Campaign = "Grafika", Other = "Ostatní".
+- **Folder type labels are Czech**: `MarketingFolderType` values map to UI labels Images (0) =
+  "Obrázky", Texts (1) = "Texty", Videos (2) = "Videa", Graphics (3) = "Grafika",
+  Other (99) = "Ostatní".
 
 ## Code entry points
 - `backend/src/Anela.Heblo.Application/Features/Marketing/UseCases/CreateMarketingAction/CreateMarketingActionHandler.cs` — create + compensating delete

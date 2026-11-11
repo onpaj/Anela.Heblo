@@ -1,0 +1,2 @@
+# regression-tests r1
+In MarketingCalendarPage.test.tsx (the two existing mapping expectations were already updated in map-folder-links), added: (1) an action without folderLinks maps to `folderLinks: []`; (2) a regression test asserting the detail action's API `folderKey` values reach the modal's `existingAction.folderLinks[].path` and no `folderKey` property is passed through. Mock-modal pattern used; real-modal submit not feasible (modal is mocked at module level). `react-scripts test` on src/components/marketing/pages: 27 passed.

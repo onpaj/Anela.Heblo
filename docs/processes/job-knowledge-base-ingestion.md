@@ -19,7 +19,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Shared/Rag/DocumentExtractors/**
   - backend/src/Anela.Heblo.Domain/Features/KnowledgeBase/**
   - backend/src/Anela.Heblo.Persistence/KnowledgeBase/**
-verified_at: "0f56d8740"
+verified_at: "5d14855b6"
 related: [flow-knowledge-base-ask]
 ---
 

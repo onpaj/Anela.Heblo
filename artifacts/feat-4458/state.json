@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4458",
+  "issue_number": 4458,
+  "created_at": "2026-10-22T22:11:07.954152Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-22T22:11:56.630474Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-22T22:11:59.320820Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-22T22:12:01.821058Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-22T22:12:04.371404Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-23T00:14:49.308454Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-23T01:15:50.518128Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "refactor-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-22T22:37:44.404472Z"
+    },
+    {
+      "name": "add-handler-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-22T23:36:35.353175Z"
+    },
+    {
+      "name": "final-validation",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T00:27:36.303761Z"
+    }
+  ]
+}

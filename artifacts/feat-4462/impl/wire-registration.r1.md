@@ -1,0 +1,2 @@
+# wire-registration r1
+Replaced unguarded `cts.Token.Register(() => process.Kill(...))` in `RunCliCoreAsync` with `using var killRegistration = cts.Token.Register(() => TryKillProcessTree(process, _logger));`. Added `RunCli_WhenCliHangsPastTimeout_ThrowsTimeoutException_AndHostSurvives` (plus NoopRefreshClient) to PlaudCliClientTimeoutTests. Grep found no other Register/Timer/Task.Run callbacks in the Plaud adapter. `dotnet test Adapters.Plaud.Tests`: 50 passed. dotnet format: no diffs (only pre-existing-style CA1416 warning for File.SetUnixFileMode, guarded by Skip.If).

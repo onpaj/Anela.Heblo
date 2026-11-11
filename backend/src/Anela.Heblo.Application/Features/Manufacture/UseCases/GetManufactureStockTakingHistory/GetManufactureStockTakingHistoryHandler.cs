@@ -27,7 +27,7 @@ public class GetManufactureStockTakingHistoryHandler
                 new Dictionary<string, string> { { "ProductCode", request.ProductCode } });
         }
 
-        IEnumerable<StockTakingRecord> query = product.StockTakingHistory;
+        IEnumerable<ProductStockTakingSnapshot> query = product.StockTakingHistory;
         query = request.SortBy?.ToLower() switch
         {
             "code" => request.SortDescending ? query.OrderByDescending(x => x.Code) : query.OrderBy(x => x.Code),
@@ -45,7 +45,7 @@ public class GetManufactureStockTakingHistoryHandler
             .Select(r => new ManufactureStockTakingHistoryItemDto
             {
                 Id = r.Id,
-                Type = r.Type,
+                Type = r.Type == StockTakingKind.Erp ? StockTakingType.Erp : StockTakingType.Eshop,
                 Code = r.Code,
                 AmountNew = r.AmountNew,
                 AmountOld = r.AmountOld,

@@ -16,7 +16,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Purchase/Infrastructure/PurchaseCatalogSourceAdapter.cs
   - backend/src/Anela.Heblo.Application/Features/Manufacture/Infrastructure/ManufactureCatalogSourceAdapter.cs
   - backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogManufactureCatalogSourceAdapter.cs
-verified_at: "5e993f9e2"
+verified_at: "0b7b902c9"
 related: [calc-catalog-merge, feed-stock-up, flow-stock-taking]
 ---
 
@@ -55,11 +55,11 @@ ERP stock and lots directly in the caches (see `flow-stock-taking`).
    Goods. Union, drop names containing "archiv". Each row carries code, name, suffix, type id,
    stock, average stock price, MOQ, lots/expiration flags, volume, weight, note, supplier.
    Called through `CatalogResilienceService`.
-2. **E-shop stock** (`ShoptetStockClient.ListAsync`): `GET StockClient:Url` — the Shoptet
-   product CSV export (`https://www.anela.cz/export/products.csv-…`), windows-1250, `;`
-   separated. Columns by index: 0 code, 1 pair code, 2 name, 3 default image, 4 image,
-   15 name suffix, **25 stock**, 26 location, 27 weight, 28 height, 29 depth, 30 width,
-   31 atypical shipping. Called through `CatalogResilienceService`.
+2. **E-shop stock** (`ShoptetStockClient.ListAsync`): `GET /api/stocks/{Shoptet:StockId}/supplies?itemsPerPage=1000&page=N`
+   (Shoptet REST, private API token), all pages. Per variant: `code`, `amount` -> `Stock`
+   (free stock, net of open-order `claim`; null -> 0), `location` -> `Location`. Name, image,
+   weight, dimensions and flags are not read here (see `sync-catalog-eshop-products`).
+   Called through `CatalogResilienceService`.
 3. **Transport / Reserve / Quarantine** (`LogisticsCatalogTransportSourceAdapter`): Heblo
    `TransportBoxes` with items, summed per product code (item amount cast to int):
    Transport = boxes in state InTransit, Received or Opened; Reserve = Reserve; Quarantine =
@@ -78,7 +78,7 @@ ERP stock and lots directly in the caches (see `flow-stock-taking`).
 ## Logic & formulas
 - Units: pieces for products/goods, the Flexi unit (often g or kg) for materials and
   semi-products. No VAT involved.
-- `WarehouseStock` = e-shop stock if the code is in the Shoptet CSV, else ERP stock.
+- `WarehouseStock` = e-shop stock if the code is in the Shoptet supplies list, else ERP stock.
   `Available = WarehouseStock + Transport + Manufactured`; `Total = Available + Reserve`;
   Quarantine is shown but counted nowhere; `EffectiveStock = Available + Ordered` (purchase
   planning). Planned is never part of Total.
@@ -88,8 +88,8 @@ ERP stock and lots directly in the caches (see `flow-stock-taking`).
 ## Configuration
 | Key | Repo default | Meaning |
 |---|---|---|
-| `StockClient:Url` | `https://www.anela.cz/export/products.csv-xxxxxxxxxx` (placeholder; real token in Key Vault) | Shoptet product CSV export |
-| `StockClient:TimeoutSeconds` | 8 | Per-attempt timeout of the Shoptet stock HttpClient |
+| `Shoptet:StockId` | `1` | Warehouse whose supplies are listed |
+| `StockClient:TimeoutSeconds`, `MaxRetryAttempts`, `RetryBaseDelaySeconds` | 8, 3, 1 | Per-attempt timeout and retry of the Shoptet stock HttpClient (pipeline `shoptet-stock`) |
 | `BackgroundRefresh:ICatalogRepository:Refresh{ErpStock,EshopStock,Transport,Reserve,Ordered,Planned,Manufactured}Data` | see Trigger, tier 1 | Intervals |
 | Flexi warehouse ids | 5 / 20 / 4 (constants in `FlexiStockClient`) | Material / semi-product / product warehouses |
 
@@ -110,17 +110,17 @@ ERP stock and lots directly in the caches (see `flow-stock-taking`).
   `gotcha_stock_planned_disjoint_from_total`.
 - **Transport amounts are truncated to int** per box item before summing.
 - **ERP stock decides which codes exist at all** (only the first merge seeds the list — see
-  `calc-catalog-merge`). A product missing from the e-shop CSV falls back to ERP stock only on
+  `calc-catalog-merge`). A product missing from the Shoptet supplies list falls back to ERP stock only on
   restart; until then it keeps its last e-shop figure.
-- The Shoptet CSV is read by fixed column index; a column added or reordered in the Shoptet
-  export template silently shifts every field.
+- Supplies are paged at 1000 items; the paginator's `pageCount` decides how many pages are read.
+  Each page is one call under the 8 s per-attempt timeout.
 - `RefreshPlannedData` is the only stock source refreshed on demand; transport box and purchase
   order changes wait for the next 5-minute tick.
 
 ## Code entry points
 - `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogStockRefreshService.cs` — the seven refresh methods
 - `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Stock/FlexiStockClient.cs` — warehouses, type filter, "archiv" filter
-- `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Stock/ShoptetStockClient.cs` — CSV download and column map (`StockDataMap`)
+- `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Stock/ShoptetStockClient.cs` — supplies listing (`ListAsync`) and stock writes
 - `backend/src/Anela.Heblo.Application/Features/Logistics/Infrastructure/LogisticsCatalogTransportSourceAdapter.cs` — box states per figure
 - `backend/src/Anela.Heblo.Persistence/Purchase/PurchaseOrders/PurchaseOrderRepository.cs` — `GetOrderedQuantitiesAsync`
 - `backend/src/Anela.Heblo.Persistence/Manufacture/ManufactureOrderRepository.cs` — `GetPlannedQuantitiesAsync`

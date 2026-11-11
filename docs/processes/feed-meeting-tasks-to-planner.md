@@ -10,7 +10,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/MeetingTasks/Services/NoOpMeetingTaskExporter.cs
   - backend/src/Anela.Heblo.Application/Features/MeetingTasks/Services/GraphTodoContracts.cs
   - backend/src/Anela.Heblo.Application/Features/MeetingTasks/MeetingTasksModule.cs
-verified_at: "5e993f9e2"
+verified_at: "c0a98229"
 related:
   - sync-plaud-recordings
 ---

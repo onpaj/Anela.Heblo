@@ -195,4 +195,50 @@ public class ShoptetApiInvoiceSourceTests
         client.Verify(x => x.GetInvoiceAsync("A", It.IsAny<CancellationToken>()), Times.Once);
         client.Verify(x => x.GetInvoiceAsync("B", It.IsAny<CancellationToken>()), Times.Once);
     }
+
+    [Fact]
+    public async Task GetAllAsync_ListModeNullPrice_ExcludesItemWithoutFetchingDetail()
+    {
+        // Arrange
+        var noPrice = BuildDto("A", orderCode: "ORD-A");
+        noPrice.Price = null;
+        var dtoB = BuildDto("B", orderCode: "ORD-B", currency: "CZK");
+
+        var client = new Mock<IShoptetInvoiceClient>();
+        client.Setup(x => x.ListInvoicesAsync(It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ShoptetInvoiceDto> { noPrice, dtoB });
+        client.Setup(x => x.GetInvoiceAsync("B", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(dtoB);
+
+        var query = new IssuedInvoiceSourceQuery { RequestId = "REQ-6", Currency = "CZK" };
+
+        // Act
+        var result = await BuildSource(client).GetAllAsync(query);
+
+        // Assert
+        var batch = result.Single();
+        batch.Invoices.Should().HaveCount(1);
+        batch.Invoices[0].OrderCode.Should().Be("B");
+        client.Verify(x => x.GetInvoiceAsync("A", It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task GetAllAsync_ListModeEmptyList_ReturnsSingleEmptyBatchWithoutDetailCalls()
+    {
+        // Arrange
+        var client = new Mock<IShoptetInvoiceClient>();
+        client.Setup(x => x.ListInvoicesAsync(It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new List<ShoptetInvoiceDto>());
+
+        var query = new IssuedInvoiceSourceQuery { RequestId = "REQ-7", Currency = "CZK" };
+
+        // Act
+        var result = await BuildSource(client).GetAllAsync(query);
+
+        // Assert
+        var batch = result.Single();
+        batch.BatchId.Should().Be("REQ-7");
+        batch.Invoices.Should().BeEmpty();
+        client.Verify(x => x.GetInvoiceAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
 }

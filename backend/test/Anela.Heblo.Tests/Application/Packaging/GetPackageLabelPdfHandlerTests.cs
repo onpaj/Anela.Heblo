@@ -277,15 +277,29 @@ public class GetPackageLabelPdfHandlerTests
         return ms.ToArray();
     }
 
-    private static double Points(int mm) => Math.Round(mm * 72 / 25.4, 3);
+    private const double PointsPerMm = 72 / 25.4;
 
-    private static IReadOnlyList<(double X, double Y)> MediaBoxOrigins(byte[] pdfBytes)
+    /// <summary>Asserts how far each MediaBox edge of every page moved compared with the source PDF, in mm.</summary>
+    private static void AssertMediaBoxEdgesMovedMm(
+        byte[] original, byte[] shifted, double x1Mm, double y1Mm, double x2Mm, double y2Mm)
+    {
+        var before = MediaBoxes(original);
+        var after = MediaBoxes(shifted);
+
+        after.Should().HaveSameCount(before);
+        foreach (var (was, now) in before.Zip(after))
+        {
+            now.X1.Should().BeApproximately(was.X1 + x1Mm * PointsPerMm, 0.01);
+            now.Y1.Should().BeApproximately(was.Y1 + y1Mm * PointsPerMm, 0.01);
+            now.X2.Should().BeApproximately(was.X2 + x2Mm * PointsPerMm, 0.01);
+            now.Y2.Should().BeApproximately(was.Y2 + y2Mm * PointsPerMm, 0.01);
+        }
+    }
+
+    private static IReadOnlyList<PdfRectangle> MediaBoxes(byte[] pdfBytes)
     {
         using var document = PdfReader.Open(new MemoryStream(pdfBytes), PdfDocumentOpenMode.Import);
-        return document.Pages.Cast<PdfPage>()
-            .Select(p => p.Elements.GetRectangle("/MediaBox"))
-            .Select(box => (Math.Round(box.X1, 3), Math.Round(box.Y1, 3)))
-            .ToList();
+        return document.Pages.Cast<PdfPage>().Select(p => p.Elements.GetRectangle("/MediaBox")).ToList();
     }
 
     [Fact]
@@ -300,38 +314,40 @@ public class GetPackageLabelPdfHandlerTests
     }
 
     [Theory]
-    [InlineData(5, 0)]
-    [InlineData(-5, 0)]
-    [InlineData(0, 7)]
-    [InlineData(0, -3)]
-    [InlineData(4, -6)]
-    public async Task Handle_CarrierHasOffset_ShiftsEveryPageByThatManyMm(int xMm, int yMm)
+    [InlineData(5, 0, -5, 0, 0, 0)]
+    [InlineData(-5, 0, 5, 0, 5, 0)]
+    [InlineData(0, 7, 0, -7, 0, -7)]
+    [InlineData(0, -3, 0, 0, 0, 3)]
+    [InlineData(4, -6, -4, 0, 0, 6)]
+    public async Task Handle_CarrierHasOffset_ShiftsEveryPageByThatManyMm(
+        int xMm, int yMm, double x1Mm, double y1Mm, double x2Mm, double y2Mm)
     {
-        SetupLabelPdf(CreatePdf(pageCount: 2));
+        var original = CreatePdf(pageCount: 2);
+        SetupLabelPdf(original);
         SetupOffsets(Offset(Carriers.Zasilkovna, xMm, yMm));
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
         response.Success.Should().BeTrue();
         response.ContentType.Should().Be("application/pdf");
-        // Content moves by sliding the MediaBox the opposite way.
-        var expected = (-Points(xMm), -Points(yMm));
-        MediaBoxOrigins(await ReadContentAsync(response)).Should().Equal(expected, expected);
+        AssertMediaBoxEdgesMovedMm(original, await ReadContentAsync(response), x1Mm, y1Mm, x2Mm, y2Mm);
     }
 
     [Theory]
-    [InlineData(Carriers.Zasilkovna, 2, -5)]
-    [InlineData(Carriers.PPL, -4, 3)]
-    [InlineData(Carriers.GLS, 6, 1)]
-    public async Task Handle_SeveralCarriersConfigured_UsesTheOrdersCarrierOffset(Carriers carrier, int xMm, int yMm)
+    [InlineData(Carriers.Zasilkovna, -2, 0, 0, 5)]
+    [InlineData(Carriers.PPL, 4, -3, 4, -3)]
+    [InlineData(Carriers.GLS, -6, -1, 0, -1)]
+    public async Task Handle_SeveralCarriersConfigured_UsesTheOrdersCarrierOffset(
+        Carriers carrier, double x1Mm, double y1Mm, double x2Mm, double y2Mm)
     {
+        var original = CreatePdf(pageCount: 1);
         SetupCarrier(carrier);
-        SetupLabelPdf(CreatePdf(pageCount: 1));
+        SetupLabelPdf(original);
         SetupOffsets(Offset(Carriers.Zasilkovna, 2, -5), Offset(Carriers.PPL, -4, 3), Offset(Carriers.GLS, 6, 1));
 
         var response = await CreateHandler().Handle(Request(), CancellationToken.None);
 
-        MediaBoxOrigins(await ReadContentAsync(response)).Should().Equal((-Points(xMm), -Points(yMm)));
+        AssertMediaBoxEdgesMovedMm(original, await ReadContentAsync(response), x1Mm, y1Mm, x2Mm, y2Mm);
     }
 
     [Fact]

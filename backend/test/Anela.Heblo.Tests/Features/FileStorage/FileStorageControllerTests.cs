@@ -1,5 +1,5 @@
 using Anela.Heblo.API.Controllers;
-using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
+using Anela.Heblo.Application.Features.FileStorage.Contracts;
 using Anela.Heblo.Application.Shared;
 using MediatR;
 using Microsoft.AspNetCore.Http;

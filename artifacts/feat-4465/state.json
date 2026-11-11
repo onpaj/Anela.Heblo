@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4465",
+  "issue_number": 4465,
+  "created_at": "2026-10-23T04:10:07.522036Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-23T04:11:03.358387Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-23T04:11:03.656746Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-23T04:11:04.027263Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-23T04:11:04.226260Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-23T04:22:24.925536Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-23T07:40:18.497095Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "rename-enum-and-backend-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T04:22:25.661525Z"
+    },
+    {
+      "name": "update-frontend",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T05:22:33.964304Z"
+    },
+    {
+      "name": "update-process-doc",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T06:17:15.062500Z"
+    }
+  ]
+}

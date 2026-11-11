@@ -7,7 +7,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/ExpeditionListArchive/**
   - backend/src/Anela.Heblo.Application/Features/FileStorage/Infrastructure/ExpeditionListArchiveBlobStoreAdapter.cs
   - backend/src/Anela.Heblo.API/Controllers/ExpeditionListArchiveController.cs
-verified_at: "5e993f9e2"
+verified_at: "26a0c4e1d"
 related:
   - flow-picking-list
 ---
@@ -40,7 +40,7 @@ No scheduled job.
 2. **PDFs of a day**: `ListBlobsAsync(container, prefix = date)` → keep `*.pdf` → DTO with
    `BlobPath` (`{date}/{file}`), `FileName`, `ListId` (file name without `.pdf`, the "ID:" printed in
    the PDF header), `CreatedOn`, `ContentLength`.
-3. **Download**: validate path → `DownloadAsync(container, blobPath)` → streamed as `application/pdf`.
+3. **Download**: validate path → `DownloadAsync(container, blobPath)` → streamed as `application/pdf`. A blob that no longer exists (storage 404, surfaced as `FileNotFoundException`) returns a structured `BlobNotFound` failure (HTTP 404) instead of a 500.
 4. **Reprint**: validate path → download blob → write to a temp file `{guid}.pdf`
    (`FileSystemTemporaryFileAccessor`) → send to the keyed `"cups"` `IPrintQueueSink`
    (`CupsPrintQueueSink` → IPP Print-Job to `{Cups:ServerUrl}/printers/{Cups:PrinterName}`) →

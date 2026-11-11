@@ -1,0 +1,58 @@
+{
+  "feature_id": "feat-4466",
+  "issue_number": 4466,
+  "created_at": "2026-10-23T05:11:26.054052Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-23T05:12:35.831453Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-23T05:12:36.454194Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-23T05:12:37.009412Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-23T05:12:37.538265Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-23T05:15:40.400673Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-23T09:15:48.202553Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "backend-available-transitions",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T05:48:06.950154Z"
+    },
+    {
+      "name": "regenerate-api-client",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T06:20:32.987011Z"
+    },
+    {
+      "name": "frontend-transition-selector",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T07:22:17.872812Z"
+    },
+    {
+      "name": "frontend-wire-detail-page",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-23T08:22:10.702137Z"
+    }
+  ]
+}

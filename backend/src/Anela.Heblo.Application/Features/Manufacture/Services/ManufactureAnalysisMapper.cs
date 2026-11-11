@@ -1,6 +1,6 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
-using Anela.Heblo.Domain.Features.Catalog;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -18,7 +18,7 @@ public class ManufactureAnalysisMapper : IManufactureAnalysisMapper
     }
 
     public ManufacturingStockItemDto MapToDto(
-        CatalogAggregate catalogItem,
+        ProductCatalogSnapshot catalogItem,
         ManufacturingStockSeverity severity,
         double dailySalesRate,
         double salesInPeriod,
@@ -49,7 +49,8 @@ public class ManufactureAnalysisMapper : IManufactureAnalysisMapper
             BatchSize = catalogItem.Properties.BatchSize.ToString(),
             ProductFamily = catalogItem.ProductFamily ?? string.Empty,
             Severity = severity,
-            IsConfigured = catalogItem.Properties.OptimalStockDaysSetup > 0
+            IsConfigured = catalogItem.Properties.OptimalStockDaysSetup > 0,
+            IsNd = catalogItem.Properties.IsNd
         };
 
         _logger.LogDebug("Mapped catalog item {Code} to DTO: severity {Severity}, stock days {StockDays}, overstock {Overstock}%",

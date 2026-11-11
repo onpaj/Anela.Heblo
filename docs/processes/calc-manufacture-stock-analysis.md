@@ -17,7 +17,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Manufacture/Configuration/ManufactureAnalysisConstants.cs
   - backend/src/Anela.Heblo.Application/Features/Manufacture/Validators/GetManufacturingStockAnalysisRequestValidator.cs
   - backend/src/Anela.Heblo.API/Controllers/ManufacturingStockAnalysisController.cs
-verified_at: "5e993f9e2"
+verified_at: "b24ee0e7f"
 related:
   - calc-batch-planning
   - flow-manufacture-order
@@ -40,10 +40,11 @@ severity check-boxes, `searchTerm`, `pageNumber`/`pageSize` (default 1/20), `sor
 StockDaysAvailable), `sortDescending`, `salesMultiplier` (default 1.0), `isExport`.
 
 ## Data flow
-1. Catalog cache (`IManufactureCatalogSource.GetAllAsync`) → items with `Type == Product`.
+1. Catalog cache (`IManufactureCatalogSource.GetAllAsync`, returning Manufacture-owned `ProductCatalogSnapshot` mapped from `CatalogAggregate` on the Catalog side) → items with `Type == Product`.
 2. Per item: sales history, stock, properties (`OptimalStockDaysSetup`, `StockMinSetup`,
    `BatchSize`), product family, manufacture history — all already merged by the catalog module
-   from Flexi, Shoptet and Heblo tables.
+   from Flexi, Shoptet and Heblo tables. `IsNd` (Flexi "ND" attribute) is
+   passed through to each item as a display-only flag; it does not affect severity or ranking.
 3. Compute metrics → filter → sort → page; summary counts are over **all** analysed items.
 
 ## Logic & formulas

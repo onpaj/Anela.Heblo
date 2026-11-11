@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-3960",
+  "issue_number": 3960,
+  "created_at": "2026-10-20T10:17:56.867972Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-20T10:20:37.870874Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-20T10:20:40.828414Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-20T10:20:43.840457Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-20T10:20:46.532906Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-20T12:21:03.190672Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-20T13:19:42.944934Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "verify-existing-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-20T11:57:33.796304Z"
+    },
+    {
+      "name": "add-residual-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-20T12:24:51.130785Z"
+    }
+  ]
+}

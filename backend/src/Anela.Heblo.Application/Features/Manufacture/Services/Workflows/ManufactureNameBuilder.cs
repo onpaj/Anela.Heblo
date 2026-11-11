@@ -1,11 +1,10 @@
-using Anela.Heblo.Application.Features.Manufacture.UseCases.UpdateManufactureOrder;
 using Anela.Heblo.Domain.Features.Manufacture;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services.Workflows;
 
 public interface IManufactureNameBuilder
 {
-    string Build(UpdateManufactureOrderDto order, ErpManufactureType type);
+    string Build(ManufactureOrder order, ErpManufactureType type);
 }
 
 internal sealed class ManufactureNameBuilder : IManufactureNameBuilder
@@ -20,7 +19,7 @@ internal sealed class ManufactureNameBuilder : IManufactureNameBuilder
         _nameFormatter = nameFormatter ?? throw new ArgumentNullException(nameof(nameFormatter));
     }
 
-    public string Build(UpdateManufactureOrderDto order, ErpManufactureType type)
+    public string Build(ManufactureOrder order, ErpManufactureType type)
     {
         ArgumentNullException.ThrowIfNull(order.SemiProduct, nameof(order.SemiProduct));
         var semiCode = order.SemiProduct.ProductCode;

@@ -140,6 +140,8 @@ public sealed class CatalogRepository : ICatalogRepository
     public Task RefreshAttributesData(CancellationToken ct) => _metaRefreshService.RefreshAttributesData(ct);
     public Task RefreshErpStockData(CancellationToken ct) => _stockRefreshService.RefreshErpStockData(ct);
     public Task RefreshEshopStockData(CancellationToken ct) => _stockRefreshService.RefreshEshopStockData(ct);
+
+    public Task RefreshEshopProductData(CancellationToken ct) => _stockRefreshService.RefreshEshopProductData(ct);
     public Task RefreshPurchaseHistoryData(CancellationToken ct) => _historyRefreshService.RefreshPurchaseHistoryData(ct);
     public Task RefreshManufactureHistoryData(CancellationToken ct) => _historyRefreshService.RefreshManufactureHistoryData(ct);
     public Task RefreshConsumedHistoryData(CancellationToken ct) => _historyRefreshService.RefreshConsumedHistoryData(ct);
@@ -177,6 +179,9 @@ public sealed class CatalogRepository : ICatalogRepository
             product.Margins = await _marginService.GetMarginAsync(product, dateFrom, dateTo, ct);
         }
     }
+
+    public Task ApplyNdFlagAsync(string productCode, bool isNd) =>
+        _cacheStore.ApplyNdAsync(productCode, isNd);
 
     // --- Load date properties ---
 

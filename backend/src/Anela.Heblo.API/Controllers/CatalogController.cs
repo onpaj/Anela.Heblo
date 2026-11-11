@@ -9,6 +9,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductStatistics;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetProductUsage;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetWarehouseStatistics;
 using Anela.Heblo.Application.Features.Catalog.UseCases.RecalculateProductWeight;
+using Anela.Heblo.Application.Features.Catalog.UseCases.SetNd;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateProductCompositionOrder;
 using Microsoft.AspNetCore.Mvc;
@@ -185,6 +186,18 @@ public class CatalogController : BaseApiController
     public async Task<ActionResult<RecalculateProductWeightResponse>> RecalculateProductWeight(
         [FromBody] RecalculateProductWeightRequest request)
     {
+        var response = await _mediator.Send(request);
+        return HandleResponse(response);
+    }
+
+    [HttpPut("{productCode}/nd")]
+    [FeatureAuthorize(Feature.Products_Catalog, AccessLevel.Write)]
+    public async Task<ActionResult<SetNdResponse>> SetNd(
+        string productCode,
+        [FromBody] SetNdRequest request)
+    {
+        // The route is the source of truth for which product is changed
+        request.ProductCode = productCode;
         var response = await _mediator.Send(request);
         return HandleResponse(response);
     }

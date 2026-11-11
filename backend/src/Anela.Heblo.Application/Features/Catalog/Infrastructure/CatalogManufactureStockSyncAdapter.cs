@@ -29,10 +29,13 @@ internal sealed class CatalogManufactureStockSyncAdapter : IManufactureCatalogSt
     public async Task SyncErpStockTakingAsync(
         string productCode,
         decimal newStockAmount,
+        ProductStockTakingSnapshot record,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(record);
+
         var lots = await LoadLotsAsync(productCode, cancellationToken);
-        await _cacheStore.ApplyErpStockTakingAsync(productCode, newStockAmount, lots);
+        await _cacheStore.ApplyErpStockTakingAsync(productCode, newStockAmount, lots, CatalogAggregateSnapshotMapper.ToDomain(record));
     }
 
     /// <summary>

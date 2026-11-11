@@ -10,15 +10,13 @@ public class CreatePurchaseOrderRequestValidator : AbstractValidator<CreatePurch
             .GreaterThan(0L).WithMessage("Supplier is required");
 
         RuleFor(x => x.OrderDate)
-            .NotEmpty().WithMessage("Order date is required")
-            .Must(BeAValidDate).WithMessage("Order date must be a valid date")
-            .Must(NotBeTooFarInFuture).WithMessage("Order date cannot be more than 30 days in the future");
+            .NotEqual(default(DateTime)).WithMessage("Order date is required")
+            .Must(d => d.Date <= DateTime.UtcNow.Date.AddDays(30))
+            .WithMessage("Order date cannot be more than 30 days in the future");
 
         RuleFor(x => x.ExpectedDeliveryDate)
-            .Must(BeAValidDate).When(x => !string.IsNullOrEmpty(x.ExpectedDeliveryDate))
-            .WithMessage("Expected delivery date must be a valid date")
-            .Must((request, expectedDate) => BeAfterOrEqualToOrderDate(request.OrderDate, expectedDate))
-            .When(x => !string.IsNullOrEmpty(x.ExpectedDeliveryDate))
+            .Must((request, expectedDate) => expectedDate!.Value.Date >= request.OrderDate.Date)
+            .When(x => x.ExpectedDeliveryDate.HasValue)
             .WithMessage("Expected delivery date must be on or after the order date");
 
         RuleFor(x => x.Notes)
@@ -34,35 +32,6 @@ public class CreatePurchaseOrderRequestValidator : AbstractValidator<CreatePurch
         RuleFor(x => x.Lines)
             .Must(lines => lines == null || lines.Count <= 100)
             .WithMessage("A purchase order cannot have more than 100 line items");
-    }
-
-    private bool BeAValidDate(string? dateString)
-    {
-        if (string.IsNullOrEmpty(dateString))
-            return false;
-
-        return DateTime.TryParse(dateString, out _);
-    }
-
-    private bool NotBeTooFarInFuture(string? dateString)
-    {
-        if (string.IsNullOrEmpty(dateString) || !DateTime.TryParse(dateString, out var date))
-            return false;
-
-        var maxFutureDate = DateTime.UtcNow.AddDays(30);
-        return date.Date <= maxFutureDate.Date;
-    }
-
-    private bool BeAfterOrEqualToOrderDate(string? orderDateString, string? expectedDateString)
-    {
-        if (string.IsNullOrEmpty(orderDateString) || string.IsNullOrEmpty(expectedDateString))
-            return true;
-
-        if (!DateTime.TryParse(orderDateString, out var orderDate) ||
-            !DateTime.TryParse(expectedDateString, out var expectedDate))
-            return false;
-
-        return expectedDate.Date >= orderDate.Date;
     }
 }
 

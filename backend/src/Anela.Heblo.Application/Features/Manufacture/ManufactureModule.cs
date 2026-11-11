@@ -57,6 +57,10 @@ public static class ManufactureModule
         // DI registration is owned by the provider (Manufacture), not the consumer (Catalog).
         services.AddScoped<ICatalogManufactureSource, ManufactureCatalogSourceAdapter>();
 
+        // Cross-module contract: Manufacture implements Logistics' IGiftPackageBomSource via adapter.
+        // DI registration is owned by the provider (Manufacture), not the consumer (Logistics).
+        services.AddScoped<IGiftPackageBomSource, ManufactureGiftPackageBomAdapter>();
+
         // Circuit breaker around synchronous FlexiBee ERP calls (manufacture submit path).
         // Singleton because breaker state must persist across requests.
         services.AddSingleton<IManufactureErpResilienceService, ManufactureErpResilienceService>();

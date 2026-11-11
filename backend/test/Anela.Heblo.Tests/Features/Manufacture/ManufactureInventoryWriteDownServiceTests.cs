@@ -28,7 +28,7 @@ public class ManufactureInventoryWriteDownServiceTests
 
         _catalogRepositoryMock
             .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, CatalogAggregate>());
+            .ReturnsAsync(new Dictionary<string, ProductCatalogSnapshot>());
 
         _inventoryRepositoryMock
             .Setup(r => r.AddRangeAsync(It.IsAny<IEnumerable<ManufacturedProductInventoryItem>>(), It.IsAny<CancellationToken>()))
@@ -272,9 +272,9 @@ public class ManufactureInventoryWriteDownServiceTests
 
         _catalogRepositoryMock
             .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, CatalogAggregate>
+            .ReturnsAsync(new Dictionary<string, ProductCatalogSnapshot>
             {
-                ["SEMI-001"] = new CatalogAggregate { ProductCode = "SEMI-001", Type = ProductType.SemiProduct }
+                ["SEMI-001"] = new ProductCatalogSnapshot { ProductCode = "SEMI-001", Type = ProductKind.SemiProduct }
             });
 
         // Act
@@ -311,9 +311,9 @@ public class ManufactureInventoryWriteDownServiceTests
 
         _catalogRepositoryMock
             .Setup(r => r.GetByIdsAsync(It.IsAny<IEnumerable<string>>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new Dictionary<string, CatalogAggregate>
+            .ReturnsAsync(new Dictionary<string, ProductCatalogSnapshot>
             {
-                ["SEMI-001"] = new CatalogAggregate { ProductCode = "SEMI-001", Type = ProductType.SemiProduct }
+                ["SEMI-001"] = new ProductCatalogSnapshot { ProductCode = "SEMI-001", Type = ProductKind.SemiProduct }
             });
 
         // Act

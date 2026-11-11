@@ -24,4 +24,5 @@ public class CatalogItemDto
     public DateOnly? MinimalExpiration { get; set; }
     public bool HasLots { get; set; }
     public List<LotDto> Lots { get; set; } = new();
+    public List<EshopFlagDto> EshopFlags { get; set; } = new();
 }

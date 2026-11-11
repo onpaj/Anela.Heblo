@@ -66,4 +66,39 @@ public class DownloadExpeditionListHandlerTests
             s => s.DownloadAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task Handle_BlobNotFound_ReturnsBlobNotFoundFailure()
+    {
+        // Arrange
+        var blobPath = "2026-03-25/picking-list-001.pdf";
+        _blobStoreMock
+            .Setup(s => s.DownloadAsync(ContainerName, blobPath, default))
+            .ThrowsAsync(new FileNotFoundException());
+
+        var request = new DownloadExpeditionListRequest { BlobPath = blobPath };
+
+        // Act
+        var result = await _handler.Handle(request, default);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCodes.BlobNotFound, result.ErrorCode);
+        Assert.Null(result.Stream);
+    }
+
+    [Fact]
+    public async Task Handle_UnexpectedBlobException_Propagates()
+    {
+        // Arrange
+        var blobPath = "2026-03-25/picking-list-001.pdf";
+        _blobStoreMock
+            .Setup(s => s.DownloadAsync(ContainerName, blobPath, default))
+            .ThrowsAsync(new IOException("boom"));
+
+        var request = new DownloadExpeditionListRequest { BlobPath = blobPath };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<IOException>(() => _handler.Handle(request, default));
+    }
 }

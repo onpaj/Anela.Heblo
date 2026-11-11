@@ -9,14 +9,14 @@ public class CreatePurchaseOrderRequestValidatorTests
 {
     private readonly CreatePurchaseOrderRequestValidator _validator = new();
 
-    private static string TodayStr => DateTime.UtcNow.ToString("yyyy-MM-dd");
-    private static string FutureStr(int days) => DateTime.UtcNow.AddDays(days).ToString("yyyy-MM-dd");
-    private static string PastStr(int days) => DateTime.UtcNow.AddDays(-days).ToString("yyyy-MM-dd");
+    private static DateTime TodayStr => DateTime.UtcNow.Date;
+    private static DateTime FutureStr(int days) => DateTime.UtcNow.Date.AddDays(days);
+    private static DateTime PastStr(int days) => DateTime.UtcNow.Date.AddDays(-days);
 
     private static CreatePurchaseOrderRequest ValidRequest() => new()
     {
         SupplierId = 1,
-        OrderDate = DateTime.UtcNow.ToString("yyyy-MM-dd"),
+        OrderDate = DateTime.UtcNow.Date,
         Lines = null
     };
 
@@ -54,26 +54,15 @@ public class CreatePurchaseOrderRequestValidatorTests
     // --------------- OrderDate ---------------
 
     [Fact]
-    public void OrderDate_Empty_FailsValidation()
+    public void OrderDate_Default_FailsValidation()
     {
         var request = ValidRequest();
-        request.OrderDate = "";
-
-        var result = _validator.TestValidate(request);
-
-        result.ShouldHaveValidationErrorFor(x => x.OrderDate);
-    }
-
-    [Fact]
-    public void OrderDate_InvalidString_FailsValidation()
-    {
-        var request = ValidRequest();
-        request.OrderDate = "not-a-date";
+        request.OrderDate = default;
 
         var result = _validator.TestValidate(request);
 
         result.ShouldHaveValidationErrorFor(x => x.OrderDate)
-            .WithErrorMessage("Order date must be a valid date");
+            .WithErrorMessage("Order date is required");
     }
 
     [Fact]
@@ -132,29 +121,6 @@ public class CreatePurchaseOrderRequestValidatorTests
         var result = _validator.TestValidate(request);
 
         result.ShouldNotHaveValidationErrorFor(x => x.ExpectedDeliveryDate);
-    }
-
-    [Fact]
-    public void ExpectedDeliveryDate_Empty_PassesValidation()
-    {
-        var request = ValidRequest();
-        request.ExpectedDeliveryDate = "";
-
-        var result = _validator.TestValidate(request);
-
-        result.ShouldNotHaveValidationErrorFor(x => x.ExpectedDeliveryDate);
-    }
-
-    [Fact]
-    public void ExpectedDeliveryDate_InvalidString_FailsValidation()
-    {
-        var request = ValidRequest();
-        request.ExpectedDeliveryDate = "not-a-date";
-
-        var result = _validator.TestValidate(request);
-
-        result.ShouldHaveValidationErrorFor(x => x.ExpectedDeliveryDate)
-            .WithErrorMessage("Expected delivery date must be a valid date");
     }
 
     [Fact]

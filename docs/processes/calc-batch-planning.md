@@ -14,7 +14,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Manufacture/Services/ProductBatch.cs
   - backend/src/Anela.Heblo.Application/Features/Manufacture/Services/ProductVariant.cs
   - backend/src/Anela.Heblo.Application/Features/Manufacture/Validators/CalculateBatchPlanRequestValidator.cs
-verified_at: "5e993f9e2"
+verified_at: "b24ee0e7f"
 related:
   - calc-batch-calculation
   - flow-manufacture-order
@@ -43,11 +43,14 @@ On demand: `POST /api/manufacture-batch/calculate-batch-plan` (permission
    (`FindByIngredientAsync`, kusovník "where used"); for each one found in the catalog read
    `Stock.Total`, `Stock.Planned`, `NetWeight` (grams per piece) and `SalesHistory`.
 4. **Single-phase**: the product itself.
+   Each size also carries `IsNd` (the Flexi "ND" attribute from catalog
+   properties). It is shown as a star and, in multi-phase planning, selects the sizes that
+   `NdCoverageFactor` applies to (see Logic & formulas).
 5. Optimise → per-size recommended pieces, future stock and coverage, summary.
 
 ## Logic & formulas
 - **Daily sales rate** = Σ (B2B + B2C sold pieces in each range) ÷ Σ days of the ranges ×
-  `SalesMultiplier`, rounded to 2 dp, from the catalog sales history (`CatalogAggregate.SalesHistory`, owned by the catalog module).
+  `SalesMultiplier`, rounded to 2 dp, from the catalog sales history (`ProductCatalogSnapshot.SalesHistory`, the Manufacture-owned snapshot mapped from the catalog module's `CatalogAggregate` by `CatalogManufactureCatalogSourceAdapter`).
 - **Stock counted** = `Stock.Total` + `Stock.Planned` (open manufacture orders, added by #4223; the two never overlap — memory note gotcha_stock_planned_disjoint_from_total).
   `CurrentDaysCoverage` = that ÷ daily rate.
 - **Multi-phase volume**: available bulk = `TotalWeightToUse` if given, else
@@ -56,8 +59,11 @@ On demand: `POST /api/manufacture-batch/calculate-batch-plan` (permission
   more than available → error `FixedProductsExceedAvailableVolume` with the deficit.
 - **Optimiser** (`BatchDistributionCalculator`, over sizes with daily sales > 0 and weight > 0):
   binary-search the largest common coverage D (0–1000 days, step 0.1) such that
-  Σ ceil(max(D × dailySales − effectiveStock, 0)) × weight ≤ remaining bulk; then each size gets
-  floor(max(D × dailySales − effectiveStock, 0)) pieces. Leftover bulk is then filled with extra
+  Σ ceil(max(D × w × dailySales − effectiveStock, 0)) × weight ≤ remaining bulk; then each size gets
+  floor(max(D × w × dailySales − effectiveStock, 0)) pieces. `w` is the size's coverage weight:
+  `NdCoverageFactor` for ND sizes, 1.0 for the rest. With factor 1.2 ND sizes aim for 20 % more
+  days of final stock than the others; total bulk is unchanged, so the other sizes get less.
+  Request default is 1.0 (no effect); values ≤ 0 are treated as 1.0. Leftover bulk is then filled with extra
   pieces, **largest pack first**, until less than the smallest pack weight remains.
 - **Single-phase**: pieces = `MmqMultiplier × MMQ` (MMQ in pieces), or `TotalWeightToUse ÷ NetWeight`,
   or `TargetDaysCoverage (default 30) × daily rate`; rounded to whole pieces.
@@ -68,6 +74,7 @@ On demand: `POST /api/manufacture-batch/calculate-batch-plan` (permission
 | Key | Repo default | Meaning |
 |---|---|---|
 | Fallback sales window | 30 days (constant in handler) | When no period and no dates are sent |
+| Request `NdCoverageFactor` | 1.0 | Per-calculation weight of ND sizes' target coverage days (multi-phase only). The page ("Faktor ND") remembers the last value, and the sales multiplier, in the browser's localStorage |
 | Flexi product attribute MMQ | per product | Default bulk amount (multi-phase: grams of semi-product; single-phase: pieces) |
 | Catalog `NetWeight` | per product | Grams of bulk per piece |
 

@@ -21,6 +21,30 @@ env:
   IMAGE_NAME: heblo
 
 jobs:
+  # Opt-out gate: put [skip-tests] in the PR head commit message to skip the
+  # frontend/backend tests and go straight to the Docker build (then deploy via
+  # deploy-staging-manual.yml). Commit message is used instead of a label because
+  # labeling would retrigger the workflow and cancel the in-flight run.
+  gate:
+    name: 🚦 Test Gate
+    runs-on: ubuntu-latest
+    outputs:
+      skip_tests: ${{ steps.check.outputs.skip_tests }}
+    steps:
+      - name: 🔍 Check head commit for [skip-tests]
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # An API hiccup must not block the tests: fall back to an empty message (= run tests).
+          MSG=$(gh api "repos/${{ github.repository }}/commits/${{ github.event.pull_request.head.sha }}" -q .commit.message || true)
+          if printf '%s' "$MSG" | grep -qF '[skip-tests]'; then
+            echo "skip_tests=true" >> "$GITHUB_OUTPUT"
+            echo "## ⚠️ Tests skipped via [skip-tests] in head commit" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "skip_tests=false" >> "$GITHUB_OUTPUT"
+          fi
+
   # Process docs - schema, index, orphans (warn during backfill) + stale-doc PR comment.
   # Fast gate: the test jobs below need it, so a doc failure fails the PR in ~1 min.
   process-docs:
@@ -104,7 +128,8 @@ jobs:
   frontend-tests:
     name: 🎯 Frontend Tests
     runs-on: ubuntu-latest
-    needs: [process-docs]
+    needs: [process-docs, gate]
+    if: needs.gate.outputs.skip_tests != 'true'
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -120,9 +145,11 @@ jobs:
         working-directory: ./frontend
         run: npm install --legacy-peer-deps
 
-      - name: 🧪 Run tests with coverage
+      # No coverage on PRs (Jest/istanbul instrumentation of every file); it runs nightly instead —
+      # see e2e-nightly-regression.yml: frontend-coverage.
+      - name: 🧪 Run tests
         working-directory: ./frontend
-        run: npm test -- --coverage --watchAll=false --reporters=default --reporters=jest-junit
+        run: npm test -- --watchAll=false --reporters=default --reporters=jest-junit
         env:
           REACT_APP_USE_MOCK_AUTH: true
           CI: true
@@ -143,10 +170,6 @@ jobs:
           path: frontend/knip-report.txt
           retention-days: 14
 
-      - name: 📊 Upload coverage reports
-        continue-on-error: true
-        run: echo "Coverage upload skipped (codecov-action unavailable from codeload)"
-
       - name: 📋 Frontend Test Report
         if: success() || failure()
         continue-on-error: true
@@ -156,7 +179,8 @@ jobs:
   backend-tests:
     name: 🎯 Backend Tests
     runs-on: ubuntu-latest
-    needs: [process-docs]
+    needs: [process-docs, gate]
+    if: needs.gate.outputs.skip_tests != 'true'
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
@@ -170,26 +194,17 @@ jobs:
       - name: Guard against managed transactions
         run: ./scripts/check-no-managed-tx.sh
 
-      - name: 🏗️ Build all test projects
-        run: |
-          dotnet build backend/test/Anela.Heblo.Tests --configuration Release --no-restore
-          dotnet build backend/test/Anela.Heblo.Adapters.Shoptet.Tests --configuration Release --no-restore
-          dotnet build backend/test/Anela.Heblo.Adapters.Flexi.Tests --configuration Release --no-restore
+      - name: 🏗️ Build solution (Release, once)
+        run: dotnet build Anela.Heblo.sln --configuration Release --no-restore
 
-      - name: 📊 Count total tests
-        run: |
-          echo "=== Test Discovery ==="
-          ASPNETCORE_ENVIRONMENT=Automation dotnet test Anela.Heblo.sln --list-tests --filter "Category!=Playwright&Category!=Integration" | grep -E "Test Name|^    " | wc -l
-          echo "=== Running Tests (excluding Playwright and Integration tests) ==="
-        env:
-          ASPNETCORE_ENVIRONMENT: Automation
-
-      - name: 🧪 Run tests with coverage (excluding Playwright integration tests)
-        run: dotnet test Anela.Heblo.sln --collect:"XPlat Code Coverage" --logger trx --logger "console;verbosity=normal" --results-directory ./coverage --filter "Category!=Playwright&Category!=Integration" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
+      # No coverage here on purpose: the XPlat coverage collector instruments every referenced
+      # assembly per test project (~100 s each, serially) and turned a ~2 min test run into
+      # ~12 min. Coverage runs nightly instead (see e2e-nightly-regression.yml: backend-coverage).
+      - name: 🧪 Run tests (excluding Playwright and Integration tests)
+        run: dotnet test Anela.Heblo.sln --configuration Release --no-build --logger trx --logger "console;verbosity=normal" --results-directory ./test-results --filter "Category!=Playwright&Category!=Integration"
         env:
           ASPNETCORE_ENVIRONMENT: Automation
           # Shoptet integration test configuration
-          StockClient__Url: ${{ secrets.SHOPTET_STOCK_URL }}
           ProductPriceOptions__ProductExportUrl: ${{ secrets.SHOPTET_PRODUCT_EXPORT_URL }}
           # FlexiBee integration test configuration
           FlexiBeeSettings__Server: ${{ secrets.FLEXIBEE_SERVER_URL }}
@@ -197,57 +212,58 @@ jobs:
           FlexiBeeSettings__Password: ${{ secrets.FLEXIBEE_PASSWORD }}
           FlexiBeeSettings__Company: ${{ secrets.FLEXIBEE_COMPANY }}
 
-      - name: 🔀 Merge coverage reports
-        run: |
-          dotnet tool update --global dotnet-reportgenerator-globaltool --version 5.4.3
-          export PATH="$HOME/.dotnet/tools:$PATH"
-          reportgenerator \
-            -reports:"coverage/**/*.cobertura.xml" \
-            -targetdir:"coverage/merged" \
-            -reporttypes:Cobertura
-
-      - name: 📊 Process coverage files for CodeCov
-        run: |
-          # Verify merged coverage file exists before processing
-          if [ ! -f coverage/merged/Cobertura.xml ]; then
-            echo "❌ ERROR: Merged coverage file not found!"
-            exit 1
-          fi
-
-          # Fix paths in merged file for CodeCov
-          echo "Original paths:"
-          grep -o 'filename="[^"]*"' coverage/merged/Cobertura.xml | head -5
-
-          sed -i 's|filename="|filename="backend/src/|g' coverage/merged/Cobertura.xml
-
-          echo "Processed paths:"
-          grep -o 'filename="[^"]*"' coverage/merged/Cobertura.xml | head -5
-          echo "✅ Merged coverage file ready."
-
-      - name: 📊 Prepare coverage file list
-        id: coverage-files
-        run: |
-          echo "files=coverage/merged/Cobertura.xml" >> $GITHUB_OUTPUT
-          echo "Merged coverage file: coverage/merged/Cobertura.xml"
-
-      - name: 📊 Upload coverage reports
-        continue-on-error: true
-        run: echo "Coverage upload skipped (codecov-action unavailable from codeload)"
-
-      - name: 🏗️ Build solution
-        run: dotnet build Anela.Heblo.sln --configuration Release --no-restore
-
       - name: 📋 Backend Test Report
         if: success() || failure()
         continue-on-error: true
         run: echo "Test report upload skipped (test-reporter unavailable from codeload)"
 
+  # Builds the image in parallel with the test jobs and warms the shared GHA layer cache
+  # (nothing is pushed). build-and-push below waits for the tests AND this job, then re-runs the
+  # same build against the warm cache — so an image is still only pushed once tests are green,
+  # but the ~9 min image build no longer sits behind them.
+  docker-build:
+    name: 🐳 Build Docker Image (cache warm-up)
+    runs-on: ubuntu-latest
+    needs: [process-docs, gate]
+    if: ${{ !cancelled() && !failure() && github.actor != 'dependabot[bot]' }}
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: 🏗️ Build Docker image (no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            REACT_APP_USE_MOCK_AUTH=false
+            REACT_APP_AZURE_CLIENT_ID=${{ secrets.REACT_APP_AZURE_CLIENT_ID }}
+            REACT_APP_AZURE_AUTHORITY=${{ secrets.REACT_APP_AZURE_AUTHORITY }}
+            REACT_APP_AZURE_BACKEND_CLIENT_ID=${{ secrets.REACT_APP_AZURE_BACKEND_CLIENT_ID }}
+            REACT_APP_AZURE_TENANT_ID=${{ secrets.REACT_APP_AZURE_TENANT_ID }}
+
+
   # Build and Push Docker Image (no manual approval needed)
   build-and-push:
     name: 🐳 Build & Push Docker Image
     runs-on: ubuntu-latest
-    needs: [frontend-tests, backend-tests]
-    if: github.actor != 'dependabot[bot]'
+    needs: [process-docs, gate, frontend-tests, backend-tests, docker-build]
+    # Tests passed OR were skipped via [skip-tests]; never after a failure (incl. process-docs).
+    if: ${{ !cancelled() && !failure() && github.actor != 'dependabot[bot]' }}
     outputs:
       image-tag: ${{ steps.meta.outputs.tags }}
       version: ${{ steps.version.outputs.version }}
@@ -257,29 +273,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🔖 Install GitVersion
-        uses: gittools/actions/gitversion/setup@v3.0.0
-        with:
-          versionSpec: '6.0.x'
-
-      - name: 🔖 Determine version with GitVersion
-        id: gitversion
-        uses: gittools/actions/gitversion/execute@v3.0.0
-        with:
-          useConfigFile: true
-
       - name: 🏷️ Generate version tag
         id: version
         run: |
-          # Tag with the PR's branch HEAD SHA (not the merge commit SHA from GitVersion)
+          # Tag with the PR's branch HEAD SHA (not the merge commit SHA)
           # so deploy-staging-manual.yml — which resolves via `gh pr view --json headRefOid` —
           # asks for the same tag this job pushes.
           HEAD_SHA="${{ github.event.pull_request.head.sha }}"
           VERSION="staging-PR${{ github.event.pull_request.number }}-${HEAD_SHA:0:7}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "📌 Version: $VERSION"
-          echo "🔢 GitVersion SemVer: ${{ steps.gitversion.outputs.fullSemVer }}"
-          echo "🔢 GitVersion CommitsSinceVersionSource: ${{ steps.gitversion.outputs.commitsSinceVersionSource }}"
 
       - name: 🐳 Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

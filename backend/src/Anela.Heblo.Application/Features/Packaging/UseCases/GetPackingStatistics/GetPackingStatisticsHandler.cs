@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Packaging;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingStatistics;
@@ -11,11 +12,16 @@ public class GetPackingStatisticsHandler
 
     private readonly IPackageRepository _repo;
     private readonly TimeProvider _timeProvider;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetPackingStatisticsHandler(IPackageRepository repo, TimeProvider timeProvider)
+    public GetPackingStatisticsHandler(
+        IPackageRepository repo,
+        TimeProvider timeProvider,
+        ICurrentUserService currentUserService)
     {
         _repo = repo;
         _timeProvider = timeProvider;
+        _currentUserService = currentUserService;
     }
 
     public async Task<GetPackingStatisticsResponse> Handle(
@@ -41,7 +47,9 @@ public class GetPackingStatisticsHandler
 
         var stats = await _repo.GetPackingStatisticsAsync(fromUtc, toUtc, localZone, cancellationToken);
 
-        return Map(stats, fromDate, toDate);
+        var canViewPackerBreakdown = PackerStatisticsAccess.CanViewBreakdown(_currentUserService);
+
+        return Map(stats, fromDate, toDate, canViewPackerBreakdown);
     }
 
     private static DateTimeOffset ToLocalDayStart(DateOnly day, TimeZoneInfo zone)
@@ -50,8 +58,15 @@ public class GetPackingStatisticsHandler
         return new DateTimeOffset(dayStart, zone.GetUtcOffset(dayStart));
     }
 
-    private static GetPackingStatisticsResponse Map(PackingStatistics stats, DateOnly fromDate, DateOnly toDate)
+    private static GetPackingStatisticsResponse Map(
+        PackingStatistics stats,
+        DateOnly fromDate,
+        DateOnly toDate,
+        bool canViewPackerBreakdown)
     {
+        // Without the permission, everything that identifies or counts individual packers is withheld.
+        var byPacker = canViewPackerBreakdown ? stats.ByPacker : Array.Empty<PackerThroughput>();
+
         var busiestDay = stats.ThroughputDaily
             .OrderByDescending(d => d.PackageCount)
             .FirstOrDefault();
@@ -61,14 +76,17 @@ public class GetPackingStatisticsHandler
 
         return new GetPackingStatisticsResponse
         {
+            CanViewPackerBreakdown = canViewPackerBreakdown,
             FromDate = fromDate.ToDateTime(TimeOnly.MinValue),
             ToDate = toDate.ToDateTime(TimeOnly.MinValue),
-            PackerAttributionSince = stats.PackerAttributionSince?.ToDateTime(TimeOnly.MinValue),
+            PackerAttributionSince = canViewPackerBreakdown
+                ? stats.PackerAttributionSince?.ToDateTime(TimeOnly.MinValue)
+                : null,
             Summary = new PackingStatisticsSummaryDto
             {
                 TotalPackages = stats.TotalPackages,
                 TotalOrders = stats.TotalOrders,
-                DistinctPackers = stats.ByPacker.Count,
+                DistinctPackers = byPacker.Count,
                 AveragePackagesPerOrder = stats.TotalOrders == 0
                     ? 0
                     : Math.Round((double)stats.TotalPackages / stats.TotalOrders, 2),
@@ -80,7 +98,7 @@ public class GetPackingStatisticsHandler
             },
             ThroughputDaily = stats.ThroughputDaily.Select(MapDaily).ToList(),
             HourHeatmap = stats.HourHeatmap.Select(MapHour).ToList(),
-            ByPacker = stats.ByPacker.Select(p => new PackerThroughputDto
+            ByPacker = byPacker.Select(p => new PackerThroughputDto
             {
                 PackerId = p.PackerId,
                 PackerName = p.PackerName ?? "Neznámý",

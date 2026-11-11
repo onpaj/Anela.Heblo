@@ -6,8 +6,8 @@ using MediatR;
 namespace Anela.Heblo.Application.Features.Analytics.UseCases.GetProductMarginSummary;
 
 /// <summary>
-/// 🔒 PERFORMANCE FIX: Refactored handler using streaming architecture
-/// Extracted complex logic to dedicated calculators, reduced memory usage
+/// Handler that consumes products as an async stream; complex logic is extracted to dedicated calculators.
+/// Streaming only avoids a duplicate list during fetch; accepted products are still retained by the calculator.
 /// </summary>
 public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSummaryRequest, GetProductMarginSummaryResponse>
 {
@@ -41,7 +41,7 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
         var productTypes = new[] { AnalyticsProductType.Product, AnalyticsProductType.Goods };
         var productStream = _analyticsRepository.StreamProductsWithSalesAsync(fromDate, toDate, productTypes, cancellationToken);
 
-        // 3. Calculate margin data using streaming approach (reduces memory usage)
+        // 3. Calculate margin data using streaming approach (avoids a duplicate product list during fetch)
         var calculationResult = await _marginCalculator.CalculateAsync(productStream, dateRange, request.GroupingMode, request.MarginLevel, cancellationToken);
 
         // 4. Generate top products list from calculated results
@@ -66,8 +66,7 @@ public class GetProductMarginSummaryHandler : IRequestHandler<GetProductMarginSu
     }
 
     /// <summary>
-    /// 🔒 PERFORMANCE FIX: Simplified top products generation using calculation results
-    /// No longer requires full product list in memory
+    /// Generates top products from the precomputed calculation results.
     /// </summary>
     private List<TopProductDto> GenerateTopProducts(MarginCalculationResult calculationResult, ProductGroupingMode groupingMode, string? sortBy, bool sortDescending, MarginLevel marginLevel)
     {

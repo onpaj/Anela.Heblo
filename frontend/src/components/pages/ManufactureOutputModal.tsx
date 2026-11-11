@@ -5,6 +5,7 @@ import {
   ProductContribution,
   formatMonthDisplay,
 } from "../../api/hooks/useManufactureOutput";
+import NdStar from "../common/NdStar";
 
 interface ManufactureOutputModalProps {
   isOpen: boolean;
@@ -110,8 +111,9 @@ const ManufactureOutputModal: React.FC<ManufactureOutputModalProps> = ({
                     >
                       <td className="px-4 py-3">
                         <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-graphite-text">
-                            {product.productName}
+                          <div className="flex items-center gap-1 text-sm font-medium text-gray-900 dark:text-graphite-text">
+                            <span>{product.productName}</span>
+                            <NdStar isNd={product.isNd} />
                           </div>
                           <div className="text-sm text-gray-500 dark:text-graphite-muted">
                             {product.productCode}
@@ -147,8 +149,9 @@ const ManufactureOutputModal: React.FC<ManufactureOutputModalProps> = ({
                 )}
               </h3>
               {selectedProduct ? (
-                <p className="text-sm text-gray-600 dark:text-graphite-muted mt-1">
-                  {selectedProduct.productName}
+                <p className="flex items-center gap-1 text-sm text-gray-600 dark:text-graphite-muted mt-1">
+                  <span>{selectedProduct.productName}</span>
+                  <NdStar isNd={selectedProduct.isNd} />
                 </p>
               ) : (
                 <p className="text-sm text-gray-600 dark:text-graphite-muted mt-1">

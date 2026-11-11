@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4082",
+  "issue_number": 4082,
+  "created_at": "2026-10-20T23:09:45.181967Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-20T23:10:45.823924Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-20T23:10:48.692412Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-20T23:11:10.786959Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-20T23:11:13.787689Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-20T23:14:36.598511Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-21T02:18:23.762671Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "exception-path-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-20T23:26:23.297355Z"
+    },
+    {
+      "name": "exception-path-middleware",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-21T00:18:16.735552Z"
+    },
+    {
+      "name": "mcp-diagnostics-docs",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-21T01:15:08.108851Z"
+    }
+  ]
+}

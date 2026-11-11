@@ -22,7 +22,16 @@ public class DownloadExpeditionListHandler : IRequestHandler<DownloadExpeditionL
             return DownloadExpeditionListResponse.Fail();
         }
 
-        var stream = await _blobStore.DownloadAsync(_containerName, request.BlobPath, cancellationToken);
+        Stream stream;
+        try
+        {
+            stream = await _blobStore.DownloadAsync(_containerName, request.BlobPath, cancellationToken);
+        }
+        catch (FileNotFoundException)
+        {
+            return DownloadExpeditionListResponse.NotFound();
+        }
+
         var fileName = Path.GetFileName(request.BlobPath);
 
         return new DownloadExpeditionListResponse

@@ -1,6 +1,5 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Common.TimePeriods;
-using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
-using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
@@ -16,7 +15,7 @@ public class ConsumptionRateCalculator : IConsumptionRateCalculator
         _logger = logger;
     }
 
-    public double CalculateDailySalesRate(IEnumerable<CatalogSaleRecord> salesHistory, DateTime fromDate, DateTime toDate)
+    public double CalculateDailySalesRate(IEnumerable<ProductSalesRecordSnapshot> salesHistory, DateTime fromDate, DateTime toDate)
     {
         var daysDiff = (toDate - fromDate).Days;
         if (daysDiff <= 0) daysDiff = 1;
@@ -37,14 +36,14 @@ public class ConsumptionRateCalculator : IConsumptionRateCalculator
         return dailyRate;
     }
 
-    public double CalculateDailySalesRate(IEnumerable<CatalogSaleRecord> salesHistory, IReadOnlyList<DateRange> ranges)
+    public double CalculateDailySalesRate(IEnumerable<ProductSalesRecordSnapshot> salesHistory, IReadOnlyList<DateRange> ranges)
     {
         if (ranges == null || ranges.Count == 0)
         {
             return 0;
         }
 
-        var materializedHistory = salesHistory as IList<CatalogSaleRecord> ?? salesHistory.ToList();
+        var materializedHistory = salesHistory as IList<ProductSalesRecordSnapshot> ?? salesHistory.ToList();
 
         double totalSales = 0;
         int totalDays = 0;
@@ -74,7 +73,7 @@ public class ConsumptionRateCalculator : IConsumptionRateCalculator
         return dailyRate;
     }
 
-    public double CalculateDailyConsumptionRate(IEnumerable<ConsumedMaterialRecord> consumedHistory, DateTime fromDate, DateTime toDate)
+    public double CalculateDailyConsumptionRate(IEnumerable<ProductConsumptionRecordSnapshot> consumedHistory, DateTime fromDate, DateTime toDate)
     {
         var daysDiff = (toDate - fromDate).Days;
         if (daysDiff <= 0) daysDiff = 1;

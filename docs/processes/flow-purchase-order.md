@@ -22,7 +22,7 @@ owns:
   - frontend/src/components/pages/PurchaseOrder*.tsx
   - frontend/src/components/purchase-orders/**
   - frontend/src/api/hooks/usePurchaseOrders.ts
-verified_at: "5e993f9e2"
+verified_at: "ef9fe0a08"
 related:
   - calc-purchase-stock-analysis
 ---
@@ -67,7 +67,8 @@ Any other transition returns `StatusTransitionNotAllowed`. The **invoice-acquire
    list). It generates an order number if none is given, sets the status to Draft and adds the lines. Each line's material name is
    taken from the catalog (`IMaterialCatalogService.GetByIdAsync`), falling back to the name sent by the
    client, then to "Unknown Material". It saves to `public."PurchaseOrders"`, `public."PurchaseOrderLines"` and a
-   history row "Order created" in `public."PurchaseOrderHistory"`.
+   history row "Order created" in `public."PurchaseOrderHistory"`. `OrderDate` and `ExpectedDeliveryDate` in the create
+   request are typed dates (not strings); the handler keeps only the date part and stamps it as UTC.
 3. **Edit** (`PUT /api/purchase-orders/{id}`): changes the order number (logged in history), supplier, expected
    delivery, contact channel and notes. Lines: lines missing from the request are removed, lines with an `id` are
    updated, lines without one are added. Names are re-resolved from the catalog in one batch.

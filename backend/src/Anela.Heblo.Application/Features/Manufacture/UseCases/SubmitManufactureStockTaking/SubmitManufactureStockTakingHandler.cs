@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -43,7 +42,7 @@ public class SubmitManufactureStockTakingHandler : IRequestHandler<SubmitManufac
             }
 
             // Verify this is a material (manufacture inventory only handles materials)
-            if (product.Type != ProductType.Material)
+            if (product.Type != ProductKind.Material)
             {
                 _logger.LogWarning("Product {ProductCode} is not a material (Type: {ProductType}). Manufacture stock taking only supports materials.",
                     request.ProductCode, product.Type);
@@ -85,8 +84,6 @@ public class SubmitManufactureStockTakingHandler : IRequestHandler<SubmitManufac
             _logger.LogInformation("Manufacture stock taking submitted successfully for product code {ProductCode}. Record ID: {RecordId}",
                 request.ProductCode, stockTakingRecord.Id);
 
-            product.SyncStockTaking(stockTakingRecord);
-
             // Write the confirmed stock level and the reloaded lots back into the catalog caches.
             // Without this the merged cache patch above is reverted by the next catalog merge,
             // which rebuilds every aggregate from the (still stale) ERP source data.
@@ -95,6 +92,17 @@ public class SubmitManufactureStockTakingHandler : IRequestHandler<SubmitManufac
                 await _catalogStockSync.SyncErpStockTakingAsync(
                     request.ProductCode,
                     (decimal)stockTakingRecord.AmountNew,
+                    new ProductStockTakingSnapshot
+                    {
+                        Id = stockTakingRecord.Id,
+                        Type = stockTakingRecord.Type == StockTakingType.Eshop ? StockTakingKind.Eshop : StockTakingKind.Erp,
+                        Code = stockTakingRecord.Code,
+                        AmountNew = stockTakingRecord.AmountNew,
+                        AmountOld = stockTakingRecord.AmountOld,
+                        Date = stockTakingRecord.Date,
+                        User = stockTakingRecord.User,
+                        Error = stockTakingRecord.Error,
+                    },
                     cancellationToken);
             }
             catch (Exception ex)
@@ -136,7 +144,7 @@ public class SubmitManufactureStockTakingHandler : IRequestHandler<SubmitManufac
         }
     }
 
-    private List<ErpStockTakingLot> CreateStockTakingItems(SubmitManufactureStockTakingRequest request, CatalogAggregate product)
+    private List<ErpStockTakingLot> CreateStockTakingItems(SubmitManufactureStockTakingRequest request, ProductCatalogSnapshot product)
     {
         // Product with lots (HasLots = true) - must use lot-based stock taking
         if (product.HasLots)

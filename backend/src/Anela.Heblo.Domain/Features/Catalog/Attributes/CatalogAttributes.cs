@@ -21,4 +21,8 @@ public class CatalogAttributes
     public double AllowedResiduePercentage { get; set; } = 0;
 
     public Cooling Cooling { get; set; } = Cooling.None;
+
+    public bool IsNd { get; set; } = false;
+
+    public CatalogAttributes Clone() => (CatalogAttributes)MemberwiseClone();
 }

@@ -35,6 +35,10 @@ function resolvePill(status?: string): PillStyle {
   }
 }
 
+export function statusLabel(status?: string): string {
+  return resolvePill(status).label;
+}
+
 const StatusPill: React.FC<StatusPillProps> = ({ status }) => {
   const { label, className } = resolvePill(status);
   return (

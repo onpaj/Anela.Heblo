@@ -4,7 +4,7 @@ kind: module
 module: file-storage
 summary: Heblo's connection to Azure Blob Storage — downloads a file from a URL into a blob container with retries (used for the nightly Shoptet product export) and gives the expedition-list archive read access to the stored packing-list PDFs.
 owns: []
-verified_at: "f68c439ec"
+verified_at: "788cd4f6"
 related: []
 ---
 
@@ -36,19 +36,19 @@ No process doc of its own — the module has no recurring job. Its download use 
 the Catalog job `product-export-download` (`ProductExportDownloadJob`), owned and documented by
 the Catalog module.
 
-How the download works (`DownloadFromUrlHandler` → `DownloadResilienceService` →
-`AzureBlobStorageService.DownloadFromUrlAsync`):
+How the download works (`DownloadFromUrlHandler` → `DownloadResilienceService` → the handler's
+GET + `IBlobStorageService.UploadAsync`):
 1. Validation (`DownloadFromUrlRequestValidator`): `fileUrl` must be an absolute http/https URL
    (else error `InvalidUrlFormat` 1801); `containerName` must be a valid Azure container name —
    3–63 chars, lowercase letters/digits/hyphens, starts and ends with a letter or digit, no `--`
    (else `InvalidContainerName` 1802).
 2. Best-effort `HEAD` request (timeout `HeadTimeout`, 10 s) to learn the file size; failures are
    ignored and the size is reported as 0.
-3. `GET` the URL with the named HttpClient `FileDownload` (gzip/brotli decompression, sockets
-   recycled every 5 min, no HttpClient-level timeout) and stream the body straight into the blob.
-   The container is created if missing (private access). The blob is **overwritten** if it exists.
+3. Inside the retry delegate the handler itself does the `GET` with the named HttpClient
+   `FileDownload` (gzip/brotli decompression, sockets recycled every 5 min, no HttpClient-level
+   timeout) and streams the body straight into `IBlobStorageService.UploadAsync`. The container is created if missing (private access). The blob is **overwritten** if it exists.
    Blob name = `blobName`, else the file name from the URL path, else
-   `downloaded-file-<guid><ext>` (extension from the content type). Content type = response
+   `downloaded-file-<guid><ext>` (extension from the content type; naming in `BlobNaming`). Content type = response
    header, else guessed from the extension.
 4. Each attempt has a timeout of `DownloadTimeout` (120 s). Retries: up to `MaxRetryAttempts`
    (3) more attempts, exponential backoff from `RetryBaseDelay` (2 s) with jitter, on

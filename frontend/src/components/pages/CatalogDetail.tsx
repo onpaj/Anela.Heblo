@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import EshopFlagChips from "../catalog/detail/EshopFlagChips";
 import { X, Package, Loader2, AlertCircle } from "lucide-react";
 import { CatalogItemDto, useCatalogDetail } from "../../api/hooks/useCatalog";
 import { JournalEntryDto } from "../../api/generated/api-client";
@@ -90,8 +91,9 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({
     refetch: refetchCatalogDetail,
   } = useCatalogDetail(effectiveProductCode, monthsBack);
 
-  // Use item from prop if provided, otherwise use item from API detail data
-  const effectiveItem = item || detailData?.item;
+  // Prefer the fetched detail (refetched after edits such as the Top product toggle); the item prop
+  // is only the list row the modal was opened from, so it is the fallback while detail loads
+  const effectiveItem = detailData?.item || item;
 
   // Fetch journal entries for the product
   const { data: journalData } =
@@ -169,6 +171,7 @@ const CatalogDetail: React.FC<CatalogDetailProps> = ({
               <p className="text-sm text-gray-500 dark:text-graphite-muted">
                 Kód: {effectiveItem.productCode}
               </p>
+              <EshopFlagChips flags={effectiveItem.eshopFlags} />
             </div>
           </div>
           <button

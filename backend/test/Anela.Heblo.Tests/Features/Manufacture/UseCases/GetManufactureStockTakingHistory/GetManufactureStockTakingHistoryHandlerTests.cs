@@ -33,7 +33,7 @@ public class GetManufactureStockTakingHistoryHandlerTests
 
         _catalogSourceMock
             .Setup(s => s.GetByIdAsync("NONEXISTENT", It.IsAny<CancellationToken>()))
-            .ReturnsAsync((CatalogAggregate?)null);
+            .ReturnsAsync((ProductCatalogSnapshot?)null);
 
         // Act
         var result = await _handler.Handle(request, CancellationToken.None);
@@ -58,20 +58,20 @@ public class GetManufactureStockTakingHistoryHandlerTests
         };
 
         var today = new DateTime(2026, 6, 12);
-        var history = new List<StockTakingRecord>
+        var history = new List<ProductStockTakingSnapshot>
         {
-            new() { Id = 1, Date = today.AddDays(-5), AmountOld = 0,  AmountNew = 5,  User = "u1", Code = productCode, Type = StockTakingType.Eshop },
-            new() { Id = 2, Date = today.AddDays(-4), AmountOld = 5,  AmountNew = 12, User = "u3", Code = productCode, Type = StockTakingType.Eshop },
-            new() { Id = 3, Date = today.AddDays(-3), AmountOld = 12, AmountNew = 8,  User = "u1", Code = productCode, Type = StockTakingType.Eshop },
-            new() { Id = 4, Date = today.AddDays(-2), AmountOld = 8,  AmountNew = 10, User = "u2", Code = productCode, Type = StockTakingType.Eshop },
-            new() { Id = 5, Date = today.AddDays(-1), AmountOld = 10, AmountNew = 15, User = "u1", Code = productCode, Type = StockTakingType.Eshop },
+            new() { Id = 1, Date = today.AddDays(-5), AmountOld = 0,  AmountNew = 5,  User = "u1", Code = productCode, Type = StockTakingKind.Eshop },
+            new() { Id = 2, Date = today.AddDays(-4), AmountOld = 5,  AmountNew = 12, User = "u3", Code = productCode, Type = StockTakingKind.Eshop },
+            new() { Id = 3, Date = today.AddDays(-3), AmountOld = 12, AmountNew = 8,  User = "u1", Code = productCode, Type = StockTakingKind.Eshop },
+            new() { Id = 4, Date = today.AddDays(-2), AmountOld = 8,  AmountNew = 10, User = "u2", Code = productCode, Type = StockTakingKind.Eshop },
+            new() { Id = 5, Date = today.AddDays(-1), AmountOld = 10, AmountNew = 15, User = "u1", Code = productCode, Type = StockTakingKind.Eshop },
         };
 
-        var product = new CatalogAggregate
+        var product = new ProductCatalogSnapshot
         {
-            Id = productCode,
+            ProductCode = productCode,
             ProductName = "Test Product",
-            Type = ProductType.Material,
+            Type = ProductKind.Material,
             StockTakingHistory = history,
         };
 
@@ -112,19 +112,19 @@ public class GetManufactureStockTakingHistoryHandlerTests
         // Arrange
         const string productCode = "TEST-PRODUCT";
         var today = new DateTime(2026, 6, 12);
-        var history = new List<StockTakingRecord>
+        var history = new List<ProductStockTakingSnapshot>
         {
-            new() { Id = 1, Date = today.AddDays(-5), AmountOld = 0,  AmountNew = 5,  User = "u1", Code = productCode, Type = StockTakingType.Eshop },
-            new() { Id = 2, Date = today.AddDays(-4), AmountOld = 5,  AmountNew = 12, User = "u3", Code = productCode, Type = StockTakingType.Eshop },
-            new() { Id = 3, Date = today.AddDays(-3), AmountOld = 12, AmountNew = 8,  User = "u1", Code = productCode, Type = StockTakingType.Eshop },
-            new() { Id = 4, Date = today.AddDays(-2), AmountOld = 8,  AmountNew = 10, User = "u2", Code = productCode, Type = StockTakingType.Eshop },
-            new() { Id = 5, Date = today.AddDays(-1), AmountOld = 10, AmountNew = 15, User = "u1", Code = productCode, Type = StockTakingType.Eshop },
+            new() { Id = 1, Date = today.AddDays(-5), AmountOld = 0,  AmountNew = 5,  User = "u1", Code = productCode, Type = StockTakingKind.Eshop },
+            new() { Id = 2, Date = today.AddDays(-4), AmountOld = 5,  AmountNew = 12, User = "u3", Code = productCode, Type = StockTakingKind.Eshop },
+            new() { Id = 3, Date = today.AddDays(-3), AmountOld = 12, AmountNew = 8,  User = "u1", Code = productCode, Type = StockTakingKind.Eshop },
+            new() { Id = 4, Date = today.AddDays(-2), AmountOld = 8,  AmountNew = 10, User = "u2", Code = productCode, Type = StockTakingKind.Eshop },
+            new() { Id = 5, Date = today.AddDays(-1), AmountOld = 10, AmountNew = 15, User = "u1", Code = productCode, Type = StockTakingKind.Eshop },
         };
-        var product = new CatalogAggregate
+        var product = new ProductCatalogSnapshot
         {
-            Id = productCode,
+            ProductCode = productCode,
             ProductName = "Test Product",
-            Type = ProductType.Material,
+            Type = ProductKind.Material,
             StockTakingHistory = history,
         };
         _catalogSourceMock

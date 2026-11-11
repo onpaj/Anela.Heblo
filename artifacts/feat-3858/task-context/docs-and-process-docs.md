@@ -1,0 +1,6 @@
+### task: docs-and-process-docs
+FR-6 and process-doc gate.
+- `docs/integrations/flexi-api.md`: add "Known slow endpoints" section: per-endpoint table from `brief.md` (ucetni-denik/query, sarze-expirace.json, stav-skladu-k-datu/query, uzivatelsky-dotaz/21/call.json), measures taken (FR-1..FR-5), what is FlexiBee-side/not fixable, follow-up option (read from `flexi_raw.ledger_entry`), Application Insights re-measurement query by endpoint, and the decision rule: after one release cycle, if `ucetni-denik/query` p95 > 10 s, close the signal as an accepted third-party ceiling instead of re-filing.
+- Update `docs/processes/calc-margins.md` and `docs/processes/calc-financial-overview.md` (ledger cache semantics: single-flight, closed 6 h / open 15 min TTL, `FlexiLedger` config) and the doc(s) owning `CatalogMetaRefreshService.cs` (`sync-catalog-master-data.md`, plus `calc-dqt-lot-stock.md`/`sync-catalog-prices.md` if `python3 scripts/process-docs/check.py` lists them as owners): lots refresh log event. Bump `verified_at`; add Runtime facts/Known quirks entries.
+- Verify: `python3 scripts/process-docs/check.py index` passes and the check reports no owned-code-without-doc failures for the changed files.
+

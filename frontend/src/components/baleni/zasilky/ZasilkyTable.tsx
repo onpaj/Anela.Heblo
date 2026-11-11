@@ -10,6 +10,8 @@ export type ZasilkySortBy =
 
 interface Props {
   items: PackageDto[];
+  /** Without warehouse.packer_statistics.read the API withholds who packed each package. */
+  canViewPackerBreakdown: boolean;
   sortBy: ZasilkySortBy;
   sortDescending: boolean;
   onSortChange: (sortBy: ZasilkySortBy) => void;
@@ -19,6 +21,7 @@ interface Props {
 
 export function ZasilkyTable({
   items,
+  canViewPackerBreakdown,
   sortBy,
   sortDescending,
   onSortChange,
@@ -48,7 +51,7 @@ export function ZasilkyTable({
           <th className="px-4 py-3 text-left cursor-pointer" onClick={() => onSortChange("PackedAt")}>
             Zabaleno{indicator("PackedAt")}
           </th>
-          <th className="px-4 py-3 text-left">Zabalil</th>
+          {canViewPackerBreakdown && <th className="px-4 py-3 text-left">Zabalil</th>}
           <th className="px-4 py-3 text-right">Akce</th>
         </tr>
       </thead>
@@ -61,7 +64,7 @@ export function ZasilkyTable({
             <td className="px-4 py-3 font-mono text-sm">{p.trackingNumber ?? "—"}</td>
             <td className="px-4 py-3">{p.shippingProviderName ?? p.shippingProviderCode}</td>
             <td className="px-4 py-3">{new Date(p.packedAt).toLocaleString("cs-CZ")}</td>
-            <td className="px-4 py-3">{p.packedBy ?? "—"}</td>
+            {canViewPackerBreakdown && <td className="px-4 py-3">{p.packedBy ?? "—"}</td>}
             <td className="px-4 py-3 text-right">
               <div className="inline-flex gap-2">
                 <button

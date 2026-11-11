@@ -7,12 +7,14 @@ using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices;
 using Anela.Heblo.Adapters.ShoptetApi.IssuedInvoices.Mapping;
 using Anela.Heblo.Adapters.ShoptetApi.Orders;
 using Anela.Heblo.Adapters.ShoptetApi.Pricing;
+using Anela.Heblo.Adapters.ShoptetApi.Products;
 using Anela.Heblo.Adapters.ShoptetApi.Shipments;
 using Anela.Heblo.Adapters.ShoptetApi.Stock;
 using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.ShipmentLabels;
 using Anela.Heblo.Application.Features.ShoptetCustomers;
 using Anela.Heblo.Application.Features.ShoptetOrders;
+using Anela.Heblo.Domain.Features.Catalog.Eshop;
 using Anela.Heblo.Domain.Features.Catalog.EshopUrl;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
@@ -61,11 +63,11 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
             client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
             client.Timeout = Timeout.InfiniteTimeSpan;
         })
-        .AddResilienceHandler("shoptet-stock-csv", (builder, context) =>
+        .AddResilienceHandler("shoptet-stock", (builder, context) =>
         {
             var opts = context.ServiceProvider.GetRequiredService<IOptions<ShoptetStockClientOptions>>().Value;
             var logger = context.ServiceProvider.GetRequiredService<ILoggerFactory>()
-                .CreateLogger("ShoptetStockCsvResilience");
+                .CreateLogger("ShoptetStockResilience");
 
             builder
                 .AddRetry(new HttpRetryStrategyOptions
@@ -90,6 +92,52 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
                             "ShoptetStockClient.ListAsync",
                             args.AttemptNumber + 1,
                             opts.MaxRetryAttempts,
+                            args.Outcome.Exception?.GetType().Name,
+                            args.Outcome.Exception?.Message);
+                        return ValueTask.CompletedTask;
+                    }
+                })
+                .AddTimeout(TimeSpan.FromSeconds(opts.TimeoutSeconds));
+        });
+
+        services.AddHttpClient<IEshopProductClient, ShoptetProductClient>((sp, client) =>
+        {
+            var settings = sp.GetRequiredService<IOptions<ShoptetApiSettings>>().Value;
+            client.BaseAddress = new Uri(settings.BaseUrl);
+            client.DefaultRequestHeaders.Add("Shoptet-Private-API-Token", settings.ApiToken);
+            client.Timeout = Timeout.InfiniteTimeSpan;
+        })
+        .AddResilienceHandler("shoptet-products", (builder, context) =>
+        {
+            var opts = context.ServiceProvider.GetRequiredService<IOptions<ShoptetProductClientOptions>>().Value;
+            var logger = context.ServiceProvider.GetRequiredService<ILoggerFactory>()
+                .CreateLogger("ShoptetProductResilience");
+
+            builder
+                .AddRetry(new HttpRetryStrategyOptions
+                {
+                    MaxRetryAttempts = opts.MaxRetryAttempts,
+                    BackoffType = DelayBackoffType.Exponential,
+                    UseJitter = true,
+                    Delay = TimeSpan.FromSeconds(opts.RetryBaseDelaySeconds),
+                    // IsTransient covers 5xx, 408 and 429 (Shoptet rate limit).
+                    ShouldHandle = args =>
+                    {
+                        if (args.Outcome.Exception is OperationCanceledException oce &&
+                            oce.CancellationToken.IsCancellationRequested)
+                        {
+                            return new ValueTask<bool>(false);
+                        }
+                        return new ValueTask<bool>(HttpClientResiliencePredicates.IsTransient(args.Outcome));
+                    },
+                    OnRetry = args =>
+                    {
+                        logger.LogWarning(
+                            "Retrying {OperationName}. Attempt {AttemptNumber} of {MaxAttempts}. StatusCode={StatusCode} ExceptionType={ExceptionType} ExceptionMessage={ExceptionMessage}",
+                            "ShoptetProductClient.ListAsync",
+                            args.AttemptNumber + 1,
+                            opts.MaxRetryAttempts,
+                            (int?)args.Outcome.Result?.StatusCode,
                             args.Outcome.Exception?.GetType().Name,
                             args.Outcome.Exception?.Message);
                         return ValueTask.CompletedTask;
@@ -131,6 +179,8 @@ public static class ShoptetApiAdapterServiceCollectionExtensions
 
         services.Configure<ShoptetStockClientOptions>(
             configuration.GetSection(ShoptetStockClientOptions.SettingsKey));
+        services.Configure<ShoptetProductClientOptions>(
+            configuration.GetSection(ShoptetProductClientOptions.SettingsKey));
 
         services.AddTransient<IPickingListSource, ShoptetApiExpeditionListSource>();
         services.AddTransient<IPackingOrderClient, ShoptetApiPackingOrderClient>();

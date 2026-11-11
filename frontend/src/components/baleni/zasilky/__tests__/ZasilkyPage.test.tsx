@@ -87,6 +87,33 @@ describe("ZasilkyPage", () => {
     expect(table).toHaveTextContent("PPL");
   });
 
+  it("shows who packed each package to holders of the packer statistics permission", () => {
+    mockUsePackagesQuery.mockReturnValue({
+      data: {
+        items: [{ ...samplePackage, packedBy: "Jana" }],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 20,
+        canViewPackerBreakdown: true,
+      },
+      isLoading: false,
+      isError: false,
+    });
+    render(<ZasilkyPage />);
+    expect(screen.getByRole("columnheader", { name: "Zabalil" })).toBeInTheDocument();
+    expect(screen.getByText("Jana")).toBeInTheDocument();
+  });
+
+  it("hides the Zabalil column without the packer statistics permission", () => {
+    mockUsePackagesQuery.mockReturnValue({
+      data: { items: [samplePackage], totalCount: 1, pageNumber: 1, pageSize: 20, canViewPackerBreakdown: false },
+      isLoading: false,
+      isError: false,
+    });
+    render(<ZasilkyPage />);
+    expect(screen.queryByRole("columnheader", { name: "Zabalil" })).not.toBeInTheDocument();
+  });
+
   it("falls back to packageNumber in Balík column when trackingNumber is absent", () => {
     const packageWithoutTracking: PackageDto = {
       ...samplePackage,

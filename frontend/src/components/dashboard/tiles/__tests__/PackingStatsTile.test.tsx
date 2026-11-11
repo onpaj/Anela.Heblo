@@ -14,6 +14,7 @@ const baseStats = {
   ordersBeingProcessedCount: 7,
   ordersBeingPackedCountLastSync: null,
   totalOrdersPackedToday: 42,
+  canViewPackerBreakdown: true,
   packedByPacker: [{ packerId: 'u1', packerName: 'Jana', orderCount: 20 }],
 };
 
@@ -102,5 +103,16 @@ describe('PackingStatsTile', () => {
     expect(screen.getByText('Jana')).toBeInTheDocument();
     expect(screen.getByText('20')).toBeInTheDocument();
     expect(screen.getByText('42')).toBeInTheDocument();
+  });
+
+  it('hides the per-packer list from users without the packer statistics permission', () => {
+    renderTile({
+      status: 'success',
+      data: { ...baseStats, canViewPackerBreakdown: false, packedByPacker: [] },
+    });
+
+    expect(screen.getByText('42')).toBeInTheDocument();
+    expect(screen.queryByText('Jana')).not.toBeInTheDocument();
+    expect(screen.queryByText(/nikdo nezabalil/)).not.toBeInTheDocument();
   });
 });

@@ -1,6 +1,7 @@
 using Anela.Heblo.Application.Features.Catalog.Infrastructure;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
+using Anela.Heblo.Domain.Features.Catalog.Eshop;
 using Anela.Heblo.Domain.Features.Catalog.Sales;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using FluentAssertions;
@@ -34,6 +35,146 @@ public class CatalogMergeServiceTests
             _timeProviderMock.Object,
             Mock.Of<ILogger<CatalogMergeService>>());
         return (store, service);
+    }
+
+    [Fact]
+    public async Task Merge_ProductInfoPresent_TakesImageWeightAndFlagsFromProductInfo()
+    {
+        var (store, service) = Create();
+        store.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "P1", ProductName = "Product 1", ProductId = 1, Stock = 5 },
+        });
+        store.SetEshopStockData(new List<EshopStock>
+        {
+            new() { Code = "P1", Stock = 7, Location = "A1" },
+        });
+        store.SetEshopProductData(new List<EshopProduct>
+        {
+            new()
+            {
+                Code = "P1", ImageUrl = "variant.jpg", DefaultImageUrl = "main.jpg", WeightGrams = 250,
+                Height = 1, Width = 2, Depth = 3, AtypicalShipping = true,
+                Flags = new[] { new EshopProductFlag { Code = "new", Title = "NOVINKA" } },
+            },
+        });
+
+        var result = await service.ExecutePriorityMergeAsync();
+
+        var product = result.Single(p => p.ProductCode == "P1");
+        product.Stock.Eshop.Should().Be(7);
+        product.Location.Should().Be("A1");
+        product.Image.Should().Be("variant.jpg");
+        product.DefaultImage.Should().Be("main.jpg");
+        product.GrossWeight.Should().Be(250);
+        product.Height.Should().Be(1);
+        product.Width.Should().Be(2);
+        product.Depth.Should().Be(3);
+        product.AtypicalShipping.Should().BeTrue();
+        product.EshopFlags.Should().ContainSingle().Which.Code.Should().Be("new");
+    }
+
+    [Fact]
+    public async Task Merge_StockWithoutProductInfo_KeepsStockAndLeavesInfoEmpty()
+    {
+        var (store, service) = Create();
+        store.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "P1", ProductName = "Product 1", ProductId = 1, Stock = 5 },
+        });
+        store.SetEshopStockData(new List<EshopStock>
+        {
+            new() { Code = "P1", Stock = 7, Location = "A1" },
+        });
+        store.SetEshopProductData(new List<EshopProduct>());
+
+        var result = await service.ExecutePriorityMergeAsync();
+
+        var product = result.Single(p => p.ProductCode == "P1");
+        product.Stock.Eshop.Should().Be(7);
+        product.Location.Should().Be("A1");
+        product.Image.Should().BeNull();
+        product.DefaultImage.Should().BeNull();
+        product.GrossWeight.Should().BeNull();
+        product.EshopFlags.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Merge_ProductLeavesProductCache_ClearsPreviouslyMergedFlags()
+    {
+        var (store, service) = Create();
+        store.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "P1", ProductName = "Product 1", ProductId = 1, Stock = 5 },
+        });
+        store.SetEshopStockData(new List<EshopStock> { new() { Code = "P1", Stock = 7 } });
+        store.SetEshopProductData(new List<EshopProduct>
+        {
+            new() { Code = "P1", Flags = new[] { new EshopProductFlag { Code = "new", Title = "NOVINKA" } } },
+        });
+        var first = await service.ExecutePriorityMergeAsync();
+        first.Single().EshopFlags.Should().HaveCount(1);
+
+        store.SetEshopProductData(new List<EshopProduct>());
+        var second = await service.ExecutePriorityMergeAsync();
+
+        second.Single(p => p.ProductCode == "P1").EshopFlags.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Merge_ProductLeavesProductCache_ClearsPreviouslyMergedInfo()
+    {
+        var (store, service) = Create();
+        store.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "P1", ProductName = "Product 1", ProductId = 1, Stock = 5 },
+        });
+        store.SetEshopStockData(new List<EshopStock> { new() { Code = "P1", Stock = 7, Location = "A1" } });
+        store.SetEshopProductData(new List<EshopProduct>
+        {
+            new()
+            {
+                Code = "P1", ImageUrl = "variant.jpg", DefaultImageUrl = "main.jpg", WeightGrams = 250,
+                Height = 1, Width = 2, Depth = 3, AtypicalShipping = true,
+            },
+        });
+        var first = await service.ExecutePriorityMergeAsync();
+        first.Single().GrossWeight.Should().Be(250);
+
+        store.SetEshopProductData(new List<EshopProduct>());
+        var second = await service.ExecutePriorityMergeAsync();
+
+        var product = second.Single(p => p.ProductCode == "P1");
+        product.Stock.Eshop.Should().Be(7);
+        product.Location.Should().Be("A1");
+        product.Image.Should().BeNull();
+        product.DefaultImage.Should().BeNull();
+        product.GrossWeight.Should().BeNull();
+        product.Height.Should().BeNull();
+        product.Width.Should().BeNull();
+        product.Depth.Should().BeNull();
+        product.AtypicalShipping.Should().BeFalse();
+        product.EshopFlags.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Merge_DuplicateProductCodes_UsesFirstAndDoesNotThrow()
+    {
+        var (store, service) = Create();
+        store.SetErpStockData(new List<ErpStock>
+        {
+            new() { ProductCode = "P1", ProductName = "Product 1", ProductId = 1, Stock = 5 },
+        });
+        store.SetEshopStockData(new List<EshopStock> { new() { Code = "P1", Stock = 7 } });
+        store.SetEshopProductData(new List<EshopProduct>
+        {
+            new() { Code = "P1", ImageUrl = "first.jpg" },
+            new() { Code = "P1", ImageUrl = "second.jpg" },
+        });
+
+        var result = await service.ExecutePriorityMergeAsync();
+
+        result.Single(p => p.ProductCode == "P1").Image.Should().Be("first.jpg");
     }
 
     [Fact]

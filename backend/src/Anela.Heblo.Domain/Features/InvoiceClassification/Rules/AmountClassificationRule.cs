@@ -1,10 +1,12 @@
+using System.Globalization;
+
 namespace Anela.Heblo.Domain.Features.InvoiceClassification.Rules;
 
 public class AmountClassificationRule : IClassificationRule
 {
     public string Identifier => "AMOUNT";
     public string DisplayName => "Částka";
-    public string Description => "Porovnání celkové částky faktury (>=, <=, >, <, =)";
+    public string Description => "Porovnání celkové částky faktury (>=, <=, >, <, =); desetinná tečka, např. >=1000.50";
 
     public bool Evaluate(ReceivedInvoice invoice, string pattern)
     {
@@ -15,30 +17,39 @@ public class AmountClassificationRule : IClassificationRule
         {
             if (pattern.StartsWith(">="))
             {
-                return decimal.TryParse(pattern.Substring(2), out var minValue) && invoice.TotalAmount >= minValue;
+                return TryParseAmount(pattern.Substring(2), out var minValue) && invoice.TotalAmount >= minValue;
             }
             if (pattern.StartsWith("<="))
             {
-                return decimal.TryParse(pattern.Substring(2), out var maxValue) && invoice.TotalAmount <= maxValue;
+                return TryParseAmount(pattern.Substring(2), out var maxValue) && invoice.TotalAmount <= maxValue;
             }
             if (pattern.StartsWith(">"))
             {
-                return decimal.TryParse(pattern.Substring(1), out var minValue) && invoice.TotalAmount > minValue;
+                return TryParseAmount(pattern.Substring(1), out var minValue) && invoice.TotalAmount > minValue;
             }
             if (pattern.StartsWith("<"))
             {
-                return decimal.TryParse(pattern.Substring(1), out var maxValue) && invoice.TotalAmount < maxValue;
+                return TryParseAmount(pattern.Substring(1), out var maxValue) && invoice.TotalAmount < maxValue;
             }
             if (pattern.StartsWith("="))
             {
-                return decimal.TryParse(pattern.Substring(1), out var exactValue) && invoice.TotalAmount == exactValue;
+                return TryParseAmount(pattern.Substring(1), out var exactValue) && invoice.TotalAmount == exactValue;
             }
 
-            return decimal.TryParse(pattern, out var value) && invoice.TotalAmount == value;
+            return TryParseAmount(pattern, out var value) && invoice.TotalAmount == value;
         }
         catch
         {
             return false;
         }
+    }
+
+    private static bool TryParseAmount(string text, out decimal value)
+    {
+        return decimal.TryParse(
+            text,
+            NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite,
+            CultureInfo.InvariantCulture,
+            out value);
     }
 }

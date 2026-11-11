@@ -243,4 +243,171 @@ describe("ChatComposer", () => {
     expect(onDraftChange).toHaveBeenLastCalledWith("");
     expect(clearSent).toHaveBeenCalled();
   });
+
+  it("inserts a picked emoji at the caret through the draft change path", () => {
+    mockHook({});
+    const onDraftChange = jest.fn();
+    render(<ChatComposer conversationId="c1" lastContactMessage="Dobrý den" onDraftChange={onDraftChange} />);
+    const textarea = screen.getByPlaceholderText(/napište odpověď/i) as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: "Dobrý den" } });
+    textarea.setSelectionRange(9, 9);
+    fireEvent.click(screen.getByRole("button", { name: "Vložit emoji" }));
+    fireEvent.click(screen.getByText("😊"));
+    expect(textarea.value).toBe("Dobrý den😊");
+    expect(onDraftChange).toHaveBeenLastCalledWith("Dobrý den😊");
+    expect(screen.getByText("11 / 4000")).toBeInTheDocument();
+  });
+
+  it("disables the emoji button while a message is being sent", () => {
+    mockHook({});
+    mockSendHook({ isPending: true });
+    render(<ChatComposer conversationId="c1" lastContactMessage="Dobrý den" />);
+    expect(screen.getByRole("button", { name: "Vložit emoji" })).toBeDisabled();
+  });
+});
+
+describe("ChatComposer attachments", () => {
+  const createObjectURL = jest.fn();
+  const revokeObjectURL = jest.fn();
+
+  beforeEach(() => {
+    createObjectURL.mockReset().mockImplementation(() => "blob:preview");
+    revokeObjectURL.mockReset();
+    (URL as any).createObjectURL = createObjectURL;
+    (URL as any).revokeObjectURL = revokeObjectURL;
+    mockHook({});
+  });
+
+  const png = () => new File(["x"], "foto.png", { type: "image/png" });
+  const pdf = () => new File(["x"], "faktura.pdf", { type: "application/pdf" });
+
+  const pick = (files: File[]) => {
+    const input = screen.getByTestId("composer-file-input") as HTMLInputElement;
+    fireEvent.change(input, { target: { files } });
+  };
+
+  it("lists a picked file with a remove button and enables Send with empty text", () => {
+    render(<ChatComposer conversationId="c1" lastContactMessage="x" />);
+    expect(screen.getByRole("button", { name: "Přiložit soubor" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /odeslat/i })).toBeDisabled();
+
+    pick([pdf()]);
+
+    expect(screen.getByText("faktura.pdf")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Odebrat faktura.pdf" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /odeslat/i })).toBeEnabled();
+  });
+
+  it("removes a file and revokes its preview URL", () => {
+    render(<ChatComposer conversationId="c1" lastContactMessage="x" />);
+    pick([png()]);
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Odebrat foto.png" }));
+
+    expect(screen.queryByText("foto.png")).not.toBeInTheDocument();
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:preview");
+  });
+
+  it("revokes preview URLs on unmount", () => {
+    const { unmount } = render(<ChatComposer conversationId="c1" lastContactMessage="x" />);
+    pick([png()]);
+    unmount();
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:preview");
+  });
+
+  it("shows a Czech error for an unsupported file and does not list it", () => {
+    render(<ChatComposer conversationId="c1" lastContactMessage="x" />);
+    pick([new File(["x"], "virus.exe", { type: "" })]);
+    expect(screen.getByText("Soubor virus.exe má nepodporovaný typ.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Odebrat virus.exe" })).not.toBeInTheDocument();
+  });
+
+  it("resets the file input value so the same file can be re-picked", () => {
+    render(<ChatComposer conversationId="c1" lastContactMessage="x" />);
+    const input = screen.getByTestId("composer-file-input") as HTMLInputElement;
+    pick([pdf()]);
+    expect(input.value).toBe("");
+  });
+
+  it("sends text and files together", () => {
+    render(<ChatComposer conversationId="c1" lastContactMessage="x" />);
+    const file = pdf();
+    pick([file]);
+    fireEvent.change(screen.getByPlaceholderText(/napište odpověď/i), { target: { value: "Zde" } });
+    fireEvent.click(screen.getByRole("button", { name: /odeslat/i }));
+    expect(sendFn).toHaveBeenCalledWith("Zde", null, [file]);
+  });
+
+  it("keeps text and files when the send failed", () => {
+    const { rerender } = render(<ChatComposer conversationId="c1" lastContactMessage="x" />);
+    const file = pdf();
+    pick([file]);
+    fireEvent.change(screen.getByPlaceholderText(/napište odpověď/i), { target: { value: "Zde" } });
+    fireEvent.click(screen.getByRole("button", { name: /odeslat/i }));
+    expect(sendFn).toHaveBeenCalledWith("Zde", null, [file]);
+
+    mockSendHook({ error: "Nepodařilo se odeslat zprávu.", isPending: false });
+    rerender(<ChatComposer conversationId="c1" lastContactMessage="x" />);
+    expect(screen.getByText("Nepodařilo se odeslat zprávu.")).toBeInTheDocument();
+    expect(screen.getByText("faktura.pdf")).toBeInTheDocument();
+    expect((screen.getByPlaceholderText(/napište odpověď/i) as HTMLTextAreaElement).value).toBe("Zde");
+  });
+
+  it("clears text and files after a successful send", async () => {
+    mockSendHook({});
+    const { rerender } = render(<ChatComposer conversationId="c1" lastContactMessage="x" />);
+    pick([pdf()]);
+    fireEvent.change(screen.getByPlaceholderText(/napište odpověď/i), { target: { value: "Zde" } });
+
+    mockSendHook({ justSent: true, clearSent });
+    rerender(<ChatComposer conversationId="c1" lastContactMessage="x" />);
+
+    await waitFor(() => expect(screen.queryByText("faktura.pdf")).not.toBeInTheDocument());
+    expect((screen.getByPlaceholderText(/napište odpověď/i) as HTMLTextAreaElement).value).toBe("");
+  });
+
+  it("adds an image pasted from the clipboard", () => {
+    render(<ChatComposer conversationId="c1" lastContactMessage="x" />);
+    fireEvent.paste(screen.getByPlaceholderText(/napište odpověď/i), {
+      clipboardData: { files: [png()] },
+    });
+    expect(screen.getByText("foto.png")).toBeInTheDocument();
+  });
+
+  it("does not add a file when the clipboard also carries text", () => {
+    render(<ChatComposer conversationId="c1" lastContactMessage="x" />);
+    fireEvent.paste(screen.getByPlaceholderText(/napište odpověď/i), {
+      clipboardData: {
+        files: [png()],
+        types: ["text/plain", "Files"],
+        getData: () => "buňky z Excelu",
+      },
+    });
+    expect(screen.queryByText("foto.png")).not.toBeInTheDocument();
+  });
+
+  it("adds files dropped on the composer", () => {
+    render(<ChatComposer conversationId="c1" lastContactMessage="x" />);
+    fireEvent.drop(screen.getByTestId("composer-box"), { dataTransfer: { files: [pdf()] } });
+    expect(screen.getByText("faktura.pdf")).toBeInTheDocument();
+  });
+
+  it("sends with Ctrl+Enter when only files are present", () => {
+    render(<ChatComposer conversationId="c1" lastContactMessage="x" />);
+    const file = pdf();
+    pick([file]);
+    fireEvent.keyDown(screen.getByPlaceholderText(/napište odpověď/i), { key: "Enter", ctrlKey: true });
+    expect(sendFn).toHaveBeenCalledWith("", null, [file]);
+  });
+
+  it("clears files when conversationId changes", () => {
+    const { rerender } = render(<ChatComposer conversationId="c1" lastContactMessage="x" />);
+    pick([pdf()]);
+    expect(screen.getByText("faktura.pdf")).toBeInTheDocument();
+
+    rerender(<ChatComposer conversationId="c2" lastContactMessage="x" />);
+
+    expect(screen.queryByText("faktura.pdf")).not.toBeInTheDocument();
+  });
 });

@@ -1,0 +1,4 @@
+# frontend-and-docs-check r1
+- Grepped frontend/src (useTransportBoxes.ts, components/terminal, components/transport): no logic branches on a literal HTTP 400 from the five endpoints. The hook throws on any non-ok status (line 229). The only 400 mention is a LabelIdentification test for a different endpoint. No frontend change.
+- docs/processes/flow-transport-box.md: added a Known quirk noting failures map to HTTP status via ErrorCode/HandleResponse; bumped verified_at; ran `python3 scripts/process-docs/check.py index` (INDEX.md unchanged).
+- Validation: `dotnet build Anela.Heblo.sln` 0 errors; `dotnet format --verify-no-changes --severity error` clean; TransportBox tests 266 pass, 5 fail only because Docker/Testcontainers is unavailable in this sandbox (repository SQL-shape and receive-atomicity integration tests).

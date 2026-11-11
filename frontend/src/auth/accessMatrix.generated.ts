@@ -104,6 +104,7 @@ export const ACCESS_ROLES = [
   "warehouse.gift_packages.read",
   "warehouse.gift_packages.write",
   "warehouse.stock_override.read",
+  "warehouse.packer_statistics.read",
   "marketing.article.read",
   "marketing.article.write",
   "marketing.leaflet.read",

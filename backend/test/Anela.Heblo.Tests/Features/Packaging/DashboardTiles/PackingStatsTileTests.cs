@@ -2,7 +2,9 @@ using System.Net.Http;
 using System.Text.Json;
 using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Application.Features.Packaging.DashboardTiles;
+using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Packaging;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -36,12 +38,23 @@ public sealed class PackingStatsTileTests
 
     private readonly Mock<IPackageRepository> _repo = new();
     private readonly Mock<IPackingOrderCountSource> _packingClient = new();
+    private readonly Mock<ICurrentUserService> _currentUser = new();
+
+    public PackingStatsTileTests()
+    {
+        // Default to the warehouse-manager view; individual tests override for plain packers.
+        GivenPackerBreakdownAccess(true);
+    }
+
+    private void GivenPackerBreakdownAccess(bool canView) =>
+        _currentUser.Setup(u => u.IsInRole(AccessRoles.WarehousePackerStatisticsRead)).Returns(canView);
 
     private PackingStatsTile MakeSut() =>
         new(
             _repo.Object,
             _packingClient.Object,
             new FakeTimeProvider(PragueNow),
+            _currentUser.Object,
             NullLogger<PackingStatsTile>.Instance);
 
     private static JsonDocument ToJsonDoc(object payload) =>
@@ -159,5 +172,52 @@ public sealed class PackingStatsTileTests
         root.GetProperty("error").GetString().Should().Be("Nepodařilo se načíst data balení");
         // The error shape OMITS data entirely (differs from FailedJobsTile's data = null).
         root.TryGetProperty("data", out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task LoadDataAsync_WithoutPackerStatisticsPermission_ReturnsTotalButNoPackers()
+    {
+        // Arrange
+        GivenPackerBreakdownAccess(false);
+        _repo
+            .Setup(r => r.GetPackedTodayByPackerAsync(
+                It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((6, (IReadOnlyList<PackerPackingSummary>)new List<PackerPackingSummary>
+            {
+                new(Guid.NewGuid(), "Alice", 4),
+                new(Guid.NewGuid(), "Bob", 2),
+            }));
+        var sut = MakeSut();
+
+        // Act
+        var result = await sut.LoadDataAsync();
+
+        // Assert
+        var data = ToJsonDoc(result).RootElement.GetProperty("data");
+        data.GetProperty("totalOrdersPackedToday").GetInt32().Should().Be(6);
+        data.GetProperty("canViewPackerBreakdown").GetBoolean().Should().BeFalse();
+        data.GetProperty("packedByPacker").GetArrayLength().Should().Be(0);
+    }
+
+    [Fact]
+    public async Task LoadDataAsync_WithPackerStatisticsPermission_FlagsBreakdownVisible()
+    {
+        // Arrange
+        _repo
+            .Setup(r => r.GetPackedTodayByPackerAsync(
+                It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((4, (IReadOnlyList<PackerPackingSummary>)new List<PackerPackingSummary>
+            {
+                new(Guid.NewGuid(), "Alice", 4),
+            }));
+        var sut = MakeSut();
+
+        // Act
+        var result = await sut.LoadDataAsync();
+
+        // Assert
+        var data = ToJsonDoc(result).RootElement.GetProperty("data");
+        data.GetProperty("canViewPackerBreakdown").GetBoolean().Should().BeTrue();
+        data.GetProperty("packedByPacker").GetArrayLength().Should().Be(1);
     }
 }

@@ -1,7 +1,6 @@
 using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Anela.Heblo.Domain.Features.Users;
 using MediatR;

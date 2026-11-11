@@ -37,6 +37,7 @@ import {
 
 // Import our extracted components
 import StateTransitionControls from "../detail/StateTransitionControls";
+import { deriveStateTransitions, isStateTransitionBackward } from "../detail/stateTransitions";
 import BasicInfoSection from "../detail/BasicInfoSection";
 import SemiProductSection from "../detail/SemiProductSection";
 import ProductsDataGrid from "../detail/ProductsDataGrid";
@@ -196,42 +197,6 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const handleExpandNote = (noteText: string) => {
     setExpandedNoteContent(noteText);
     setShowExpandedNote(true);
-  };
-
-  // State transitions logic
-  const getStateTransitions = (currentState: ManufactureOrderState) => {
-    // For SinglePhase manufacturing, skip SemiProductManufactured state
-    if (order?.manufactureType === ManufactureType.SinglePhase) {
-      const singlePhaseTransitions = {
-        [ManufactureOrderState.Draft]: { next: ManufactureOrderState.Planned, previous: null },
-        [ManufactureOrderState.Planned]: { next: ManufactureOrderState.Completed, previous: ManufactureOrderState.Draft },
-        [ManufactureOrderState.SemiProductManufactured]: { next: ManufactureOrderState.Completed, previous: ManufactureOrderState.Planned }, // Should not be used in single-phase
-        [ManufactureOrderState.Completed]: { next: null, previous: ManufactureOrderState.Planned },
-        [ManufactureOrderState.Cancelled]: { next: null, previous: null },
-      };
-      return singlePhaseTransitions[currentState] || { next: null, previous: null };
-    }
-    
-    // Default MultiPhase transitions
-    const transitions = {
-      [ManufactureOrderState.Draft]: { next: ManufactureOrderState.Planned, previous: null },
-      [ManufactureOrderState.Planned]: { next: ManufactureOrderState.SemiProductManufactured, previous: ManufactureOrderState.Draft },
-      [ManufactureOrderState.SemiProductManufactured]: { next: ManufactureOrderState.Completed, previous: ManufactureOrderState.Planned },
-      [ManufactureOrderState.Completed]: { next: null, previous: ManufactureOrderState.SemiProductManufactured },
-      [ManufactureOrderState.Cancelled]: { next: null, previous: null },
-    };
-    return transitions[currentState] || { next: null, previous: null };
-  };
-
-  const isStateTransitionBackward = (currentState: ManufactureOrderState, newState: ManufactureOrderState): boolean => {
-    const stateOrder = {
-      [ManufactureOrderState.Draft]: 0,
-      [ManufactureOrderState.Planned]: 1,
-      [ManufactureOrderState.SemiProductManufactured]: 2,
-      [ManufactureOrderState.Completed]: 3,
-      [ManufactureOrderState.Cancelled]: 4,
-    };
-    return stateOrder[newState] < stateOrder[currentState];
   };
 
   const handleStateChange = async (newState: ManufactureOrderState) => {
@@ -541,7 +506,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   };
 
   const canEditFields = order?.state === ManufactureOrderState.Draft || order?.state === ManufactureOrderState.Planned;
-  const currentStateTransitions = order?.state !== undefined ? getStateTransitions(order.state) : { next: null, previous: null };
+  const currentStateTransitions = order?.state !== undefined ? deriveStateTransitions(order.state, orderData?.availableTransitions, order.manufactureType) : { next: null, previous: null };
 
   // Predefined label count for lot label printing: the total number of manufactured
   // product items (sum of product quantities), excluding the semi-product.

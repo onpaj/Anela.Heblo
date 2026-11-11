@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4002",
+  "issue_number": 4002,
+  "created_at": "2026-10-20T12:18:04.417536Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-20T12:19:25.306816Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-20T12:19:28.510891Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-20T12:19:31.121272Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-20T12:19:33.833754Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-20T20:14:33.051145Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-20T21:14:53.522285Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "upstream-exception-and-detection",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-20T12:24:43.030237Z"
+    },
+    {
+      "name": "polling-job-tolerance-and-tracker",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-20T13:31:56.390331Z"
+    },
+    {
+      "name": "process-docs-update",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-20T20:14:51.297831Z"
+    }
+  ]
+}

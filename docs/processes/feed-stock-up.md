@@ -15,7 +15,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Logistics/Services/TransportBoxCompletionService.cs
   - backend/src/Anela.Heblo.Application/Features/Logistics/UseCases/GiftPackageManufacture/Services/GiftPackageManufactureService.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/ShoptetApiAdapterServiceCollectionExtensions.cs
-verified_at: "a008e2306"
+verified_at: "0b7b902c9"
 related: []
 ---
 
@@ -95,7 +95,7 @@ None.
   returns false (it is not called). Retrying an operation whose PATCH actually landed — e.g.
   one stuck in Submitted after a crash, or Failed because the post-PATCH save failed — applies
   the stock change **twice**. Check Shoptet stock history before retrying a Submitted row.
-- **The Shoptet stock HttpClient retries transient failures** (`shoptet-stock-csv` resilience
+- **The Shoptet stock HttpClient retries transient failures** (`shoptet-stock` resilience
   handler, `MaxRetryAttempts` 3 = up to 4 attempts, 8 s per attempt) and that handler also wraps the PATCH. A PATCH that
   timed out after Shoptet applied it can be re-sent by the retry. (Read from code, not observed.)
 - **`docs/features/stock-up-process.md` is outdated**: it describes Playwright browser

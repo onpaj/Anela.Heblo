@@ -1,5 +1,5 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
-using Anela.Heblo.Domain.Features.Catalog;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
 
@@ -17,7 +17,7 @@ public interface IManufactureAnalysisMapper
     /// <param name="isInProduction">Whether the item is in active production</param>
     /// <returns>Manufacturing stock item DTO</returns>
     ManufacturingStockItemDto MapToDto(
-        CatalogAggregate catalogItem,
+        ProductCatalogSnapshot catalogItem,
         ManufacturingStockSeverity severity,
         double dailySalesRate,
         double salesInPeriod,

@@ -21,6 +21,11 @@ jest.mock("../../../api/hooks/useJournal", () => ({
   useCreateJournalTag: jest.fn(),
 }));
 
+// The ND toggle reads the user's permissions; a plain function survives CRA's resetMocks
+jest.mock("../../../auth/PermissionsContext", () => ({
+  usePermissionsContext: () => ({ hasPermission: () => true }),
+}));
+
 // Mock the chart components to avoid canvas issues in tests
 jest.mock("react-chartjs-2", () => ({
   Line: ({ data, options }: any) => (
@@ -346,6 +351,35 @@ describe("CatalogDetail", () => {
     expect(screen.getByText("123.46")).toBeInTheDocument(); // available stock
     expect(screen.getByText("51")).toBeInTheDocument(); // eshop stock (50.999 -> 51)
     expect(screen.getByText("40")).toBeInTheDocument(); // erp stock (40.001 -> 40)
+  });
+
+  it("should show the refetched detail item instead of the stale item prop", () => {
+    // Arrange - the modal was opened from a list row; the detail query has since refetched with new data
+    const staleItem = { ...mockCatalogItem, productName: "Stale Name" };
+    const freshItem = { ...mockCatalogItem, productName: "Fresh Name" };
+
+    mockUseCatalogDetail.mockReturnValue({
+      data: {
+        item: freshItem,
+        historicalData: {
+          salesHistory: [],
+          purchaseHistory: [],
+          consumedHistory: [],
+          manufactureHistory: [],
+        },
+      },
+      isLoading: false,
+      error: null,
+    } as any);
+
+    // Act
+    renderWithQueryClient(
+      <CatalogDetail item={staleItem} isOpen={true} onClose={() => {}} />,
+    );
+
+    // Assert
+    expect(screen.getByText("Fresh Name")).toBeInTheDocument();
+    expect(screen.queryByText("Stale Name")).not.toBeInTheDocument();
   });
 
   it("should not render when modal is closed", () => {

@@ -36,8 +36,8 @@ public class MarketingActionDtoTests
         action.ProductAssociations.Add(new MarketingActionProduct { ProductCodePrefix = "PROD-A" });
         action.ProductAssociations.Add(new MarketingActionProduct { ProductCodePrefix = "PROD-B" });
         action.ProductAssociations.Add(new MarketingActionProduct { ProductCodePrefix = "PROD-A" }); // duplicate — must be de-duplicated
-        action.FolderLinks.Add(new MarketingActionFolderLink { FolderKey = "folder-1", FolderType = MarketingFolderType.Seasonal });
-        action.FolderLinks.Add(new MarketingActionFolderLink { FolderKey = "folder-2", FolderType = MarketingFolderType.Campaign });
+        action.FolderLinks.Add(new MarketingActionFolderLink { FolderKey = "folder-1", FolderType = MarketingFolderType.Texts });
+        action.FolderLinks.Add(new MarketingActionFolderLink { FolderKey = "folder-2", FolderType = MarketingFolderType.Graphics });
 
         // Act
         var dto = MarketingActionDto.FromEntity(action);
@@ -62,8 +62,8 @@ public class MarketingActionDtoTests
 
         dto.FolderLinks.Should().HaveCount(2);
         dto.FolderLinks[0].FolderKey.Should().Be("folder-1");
-        dto.FolderLinks[0].FolderType.Should().Be(MarketingFolderType.Seasonal.ToString());
+        dto.FolderLinks[0].FolderType.Should().Be(MarketingFolderType.Texts.ToString());
         dto.FolderLinks[1].FolderKey.Should().Be("folder-2");
-        dto.FolderLinks[1].FolderType.Should().Be(MarketingFolderType.Campaign.ToString());
+        dto.FolderLinks[1].FolderType.Should().Be(MarketingFolderType.Graphics.ToString());
     }
 }

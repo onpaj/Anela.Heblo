@@ -11,6 +11,8 @@ public class SendMessageValidator : AbstractValidator<SendMessageRequest>
         RuleFor(r => r.ConversationId).NotEmpty();
         RuleFor(r => r.Content)
             .NotEmpty()
+            .When(r => r.Files.Count == 0);
+        RuleFor(r => r.Content)
             .MaximumLength(MaxContentLength);
     }
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { usePersistedNumber } from "../../hooks/usePersistedNumber";
 import {
   Calculator,
   Package,
@@ -22,9 +23,13 @@ import { QUERY_KEYS } from "../../api/client";
 import ManufactureOrderDetail from "../manufacture/pages/ManufactureOrderDetail";
 import { usePlanningList } from "../../contexts/PlanningListContext";
 import { useCatalogAutocomplete } from "../../api/hooks/useCatalogAutocomplete";
+import NdStar from "../common/NdStar";
 import { TimePeriod, resolveTimePeriod, getTimePeriodDisplayText } from '../../utils/timePeriod';
 import { calculateTimePeriodRange } from '../../api/hooks/useManufacturingStockAnalysis';
 import { useScreenView } from '../../telemetry/useScreenView';
+
+const SALES_MULTIPLIER_STORAGE_KEY = "batchPlanning.salesMultiplier";
+const ND_COVERAGE_FACTOR_STORAGE_KEY = "batchPlanning.ndCoverageFactor";
 
 const BatchPlanningCalculator: React.FC = () => {
   useScreenView('Manufacturing', 'ManufactureBatchPlanning');
@@ -50,7 +55,9 @@ const BatchPlanningCalculator: React.FC = () => {
   const [controlMode, setControlMode] = useState<BatchPlanControlMode>(BatchPlanControlMode.MmqMultiplier);
   
   // Sales settings state
-  const [salesMultiplier, setSalesMultiplier] = useState<number>(1.3);
+  const [salesMultiplier, setSalesMultiplier] = usePersistedNumber(SALES_MULTIPLIER_STORAGE_KEY, 1.3, { min: 0.1, max: 9.9 });
+  // Weight of ND (star) sizes' target coverage: 1.2 = ND sizes end with 20 % more days of stock.
+  const [ndCoverageFactor, setNdCoverageFactor] = usePersistedNumber(ND_COVERAGE_FACTOR_STORAGE_KEY, 1.0, { min: 0.1, max: 5 });
   const [selectedTimePeriod, setSelectedTimePeriod] = useState<TimePeriod>(TimePeriod.Q9M);
   // Only used when selectedTimePeriod === TimePeriod.CustomPeriod.
   // Seeded from Q9M's primary range so the Custom pickers open with a sensible default.
@@ -160,6 +167,7 @@ const BatchPlanningCalculator: React.FC = () => {
           fromDate: fromDate,
           toDate: toDate,
           salesMultiplier: salesMultiplier,
+          ndCoverageFactor: ndCoverageFactor,
           totalWeightToUse: parseFloat(batchSize),
         };
 
@@ -199,6 +207,7 @@ const BatchPlanningCalculator: React.FC = () => {
         fromDate: fromDate,
         toDate: toDate,
         salesMultiplier: salesMultiplier,
+          ndCoverageFactor: ndCoverageFactor,
         mmqMultiplier: 1.0,
       };
 
@@ -209,7 +218,7 @@ const BatchPlanningCalculator: React.FC = () => {
       // Set flag to prevent re-triggering
       setHasAutoTriggered(true);
     }
-  }, [selectedSemiproduct, hasAutoTriggered, fromDate, toDate, salesMultiplier, batchPlanMutation, searchParams]);
+  }, [selectedSemiproduct, hasAutoTriggered, fromDate, toDate, salesMultiplier, ndCoverageFactor, batchPlanMutation, searchParams]);
 
   // Update local state when API response changes
   useEffect(() => {
@@ -235,7 +244,8 @@ const BatchPlanningCalculator: React.FC = () => {
     currentCoverage: product.currentDaysCoverage || 0,
     recommendedQuantity: product.recommendedUnitsToProduceHumanReadable || 0,
     futureCoverage: product.futureDaysCoverage || 0,
-    enabled: product.enabled ?? true // Add enabled field from API
+    enabled: product.enabled ?? true, // Add enabled field from API
+    isNd: product.isNd ?? false
   }));
 
   // Show loading state or actual data
@@ -285,6 +295,7 @@ const BatchPlanningCalculator: React.FC = () => {
       controlMode: controlMode,
       ...buildPeriodPayload(),
       salesMultiplier: salesMultiplier,
+          ndCoverageFactor: ndCoverageFactor,
       directSemiproductAmount: directSemiproductAmount > 0 ? directSemiproductAmount : undefined,
     };
 
@@ -321,6 +332,7 @@ const BatchPlanningCalculator: React.FC = () => {
       controlMode: controlMode,
       ...buildPeriodPayload(),
       salesMultiplier: salesMultiplier,
+          ndCoverageFactor: ndCoverageFactor,
       productConstraints: constraints,
       directSemiproductAmount: directSemiproductAmount > 0 ? directSemiproductAmount : undefined,
     };
@@ -363,6 +375,7 @@ const BatchPlanningCalculator: React.FC = () => {
         controlMode: BatchPlanControlMode.MmqMultiplier,
         ...buildPeriodPayload(),
         salesMultiplier: salesMultiplier,
+          ndCoverageFactor: ndCoverageFactor,
         mmqMultiplier: 1.0, // Use reset value
       };
 
@@ -562,11 +575,32 @@ const BatchPlanningCalculator: React.FC = () => {
                           max="9.9"
                           value={salesMultiplier.toFixed(1)}
                           onChange={(e) => {
-                            setSalesMultiplier(Number(e.target.value));
+                            const next = Number(e.target.value);
+                            if (!Number.isFinite(next) || next < 0.1 || next > 9.9) return;
+                            setSalesMultiplier(next);
                             setNeedsRecalculation(true);
                           }}
                           className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
                           title="Sales Multiplier (1.0-9.9)"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label htmlFor="nd-coverage-factor" className="text-xs text-gray-600 dark:text-graphite-muted whitespace-nowrap">Faktor ND:</label>
+                        <input
+                          id="nd-coverage-factor"
+                          type="number"
+                          step="0.1"
+                          min="0.1"
+                          max="5"
+                          value={ndCoverageFactor}
+                          onChange={(e) => {
+                            const next = Number(e.target.value);
+                            if (!Number.isFinite(next) || next < 0.1 || next > 5) return;
+                            setNdCoverageFactor(next);
+                            setNeedsRecalculation(true);
+                          }}
+                          className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text rounded text-center focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          title="ND factor: 1.2 = ND (star) sizes end with 20 % more days of stock than the others"
                         />
                       </div>
                       <div className="flex items-center gap-2">
@@ -880,6 +914,7 @@ const BatchPlanningCalculator: React.FC = () => {
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-900 dark:text-graphite-text">
                                 {product.productName}
+                                <NdStar isNd={product.isNd} className="ml-1.5" />
                               </td>
                               <td className="px-4 py-3 text-sm text-gray-900 dark:text-graphite-text">
                                 {product.netWeight.toFixed(0)} g

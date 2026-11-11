@@ -1,4 +1,4 @@
-using Anela.Heblo.Domain.Features.Catalog.ManufactureHistory;
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Microsoft.Extensions.Logging;
 
 namespace Anela.Heblo.Application.Features.Manufacture.Services;
@@ -16,7 +16,7 @@ public class ProductionActivityAnalyzer : IProductionActivityAnalyzer
         _timeProvider = timeProvider;
     }
 
-    public bool IsInActiveProduction(IEnumerable<CatalogManufactureRecord> manufactureHistory, int dayThreshold = 30)
+    public bool IsInActiveProduction(IEnumerable<ProductManufactureRecordSnapshot> manufactureHistory, int dayThreshold = 30)
     {
         var cutoffDate = _timeProvider.GetUtcNow().DateTime.AddDays(-dayThreshold);
 
@@ -29,7 +29,7 @@ public class ProductionActivityAnalyzer : IProductionActivityAnalyzer
         return recentProduction;
     }
 
-    public DateTime? GetLastProductionDate(IEnumerable<CatalogManufactureRecord> manufactureHistory)
+    public DateTime? GetLastProductionDate(IEnumerable<ProductManufactureRecordSnapshot> manufactureHistory)
     {
         var lastProduction = manufactureHistory
             .Where(m => m.Amount > 0)
@@ -44,7 +44,7 @@ public class ProductionActivityAnalyzer : IProductionActivityAnalyzer
         return lastDate;
     }
 
-    public double CalculateAverageProductionFrequency(IEnumerable<CatalogManufactureRecord> manufactureHistory, int analysisMonths = 12)
+    public double CalculateAverageProductionFrequency(IEnumerable<ProductManufactureRecordSnapshot> manufactureHistory, int analysisMonths = 12)
     {
         var analysisStartDate = _timeProvider.GetUtcNow().DateTime.AddMonths(-analysisMonths);
 

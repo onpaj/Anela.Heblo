@@ -14,6 +14,7 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
     Task RefreshAttributesData(CancellationToken ct);
     Task RefreshErpStockData(CancellationToken ct);
     Task RefreshEshopStockData(CancellationToken ct);
+    Task RefreshEshopProductData(CancellationToken ct);
     Task RefreshPurchaseHistoryData(CancellationToken ct);
     Task RefreshManufactureHistoryData(CancellationToken ct);
     Task RefreshConsumedHistoryData(CancellationToken ct);
@@ -24,6 +25,12 @@ public interface ICatalogRepository : IReadOnlyRepository<CatalogAggregate, stri
     Task RefreshEshopUrlData(CancellationToken ct);
     Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct);
     Task RefreshMarginData(CancellationToken ct);
+
+    /// <summary>
+    /// Applies a Top product flag the ERP has just accepted to the cached catalog for one product,
+    /// without waiting for a catalog-wide merge.
+    /// </summary>
+    Task ApplyNdFlagAsync(string productCode, bool isNd);
 
     // Data load timestamps - stored in cache with same expiration as data
     DateTime? TransportLoadDate { get; }

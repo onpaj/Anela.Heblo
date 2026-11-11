@@ -1,6 +1,8 @@
 using Anela.Heblo.Application.Features.Packaging.UseCases.GetPackingStatistics;
 using Anela.Heblo.Application.Shared;
+using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Packaging;
+using Anela.Heblo.Domain.Features.Users;
 using FluentAssertions;
 using Moq;
 using Xunit;
@@ -38,14 +40,20 @@ public class GetPackingStatisticsHandlerTests
         ByCarrier: new List<CarrierThroughput>(),
         PackagesPerOrder: new List<PackagesPerOrderBucket>());
 
-    private static GetPackingStatisticsHandler MakeSut(out Mock<IPackageRepository> repo, PackingStatistics result)
+    private static GetPackingStatisticsHandler MakeSut(
+        out Mock<IPackageRepository> repo,
+        PackingStatistics result,
+        bool canViewPackerBreakdown = true)
     {
         repo = new Mock<IPackageRepository>();
         repo.Setup(r => r.GetPackingStatisticsAsync(
                 It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>(),
                 It.IsAny<TimeZoneInfo>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(result);
-        return new GetPackingStatisticsHandler(repo.Object, new FakeTimeProvider(PragueNow));
+        var currentUser = new Mock<ICurrentUserService>();
+        currentUser.Setup(u => u.IsInRole(AccessRoles.WarehousePackerStatisticsRead))
+            .Returns(canViewPackerBreakdown);
+        return new GetPackingStatisticsHandler(repo.Object, new FakeTimeProvider(PragueNow), currentUser.Object);
     }
 
     [Fact]
@@ -125,5 +133,46 @@ public class GetPackingStatisticsHandlerTests
         response.Summary.AveragePackagesPerOrder.Should().Be(0);
         response.Summary.TrackingCoveragePercent.Should().Be(0);
         response.Summary.BusiestDay.Should().BeNull();
+    }
+
+    private static PackingStatistics StatsWithTwoPackers() => EmptyStats() with
+    {
+        TotalPackages = 10,
+        TotalOrders = 4,
+        PackerAttributionSince = new DateOnly(2026, 6, 9),
+        ByPacker = new List<PackerThroughput>
+        {
+            new(Guid.NewGuid(), "Alice", 3, 7),
+            new(Guid.NewGuid(), "Bob", 1, 3),
+        },
+    };
+
+    [Fact]
+    public async Task WithPackerStatisticsPermission_ReturnsPackerBreakdown()
+    {
+        var sut = MakeSut(out _, StatsWithTwoPackers(), canViewPackerBreakdown: true);
+
+        var response = await sut.Handle(new GetPackingStatisticsRequest(), CancellationToken.None);
+
+        response.CanViewPackerBreakdown.Should().BeTrue();
+        response.ByPacker.Should().HaveCount(2);
+        response.Summary.DistinctPackers.Should().Be(2);
+        response.PackerAttributionSince.Should().Be(new DateTime(2026, 6, 9));
+    }
+
+    [Fact]
+    public async Task WithoutPackerStatisticsPermission_KeepsTotalsButHidesPackerData()
+    {
+        var sut = MakeSut(out _, StatsWithTwoPackers(), canViewPackerBreakdown: false);
+
+        var response = await sut.Handle(new GetPackingStatisticsRequest(), CancellationToken.None);
+
+        response.Success.Should().BeTrue();
+        response.Summary.TotalPackages.Should().Be(10);
+        response.Summary.TotalOrders.Should().Be(4);
+        response.CanViewPackerBreakdown.Should().BeFalse();
+        response.ByPacker.Should().BeEmpty();
+        response.Summary.DistinctPackers.Should().Be(0);
+        response.PackerAttributionSince.Should().BeNull();
     }
 }

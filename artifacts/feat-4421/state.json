@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4421",
+  "issue_number": 4421,
+  "created_at": "2026-10-21T21:11:45.026866Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-21T21:12:08.221513Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-21T21:12:22.409174Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-21T21:12:41.295887Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-21T21:12:44.438866Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-21T22:15:53.276998Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-21T23:15:28.573687Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "fix-comments",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-21T21:19:53.504232Z"
+    },
+    {
+      "name": "update-process-doc",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-21T22:16:06.105361Z"
+    }
+  ]
+}

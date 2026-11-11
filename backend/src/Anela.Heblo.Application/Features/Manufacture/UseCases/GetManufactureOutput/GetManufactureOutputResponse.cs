@@ -22,6 +22,7 @@ public class ProductContribution
     public double Quantity { get; set; } // How many units were manufactured
     public double Difficulty { get; set; } // ManufactureDifficulty from catalog
     public double WeightedValue { get; set; } // Quantity * Difficulty
+    public bool IsNd { get; set; } // ND (Nesmí dojít) flag from catalog
 }
 
 public class ProductionDetail

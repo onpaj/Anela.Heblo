@@ -2,7 +2,6 @@ using Anela.Heblo.Application.Common.TimePeriods;
 using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.CalculateBatchPlan;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using Microsoft.Extensions.Logging;
 
@@ -45,7 +44,7 @@ public class BatchPlanningService : IBatchPlanningService
         }
     }
 
-    private double CalculateDailySalesRate(CatalogAggregate product, IReadOnlyList<DateRange> salesRanges, double salesMultiplier = 1.0)
+    private double CalculateDailySalesRate(ProductCatalogSnapshot product, IReadOnlyList<DateRange> salesRanges, double salesMultiplier = 1.0)
     {
         var baseDailySalesRate = _consumptionRateCalculator.CalculateDailySalesRate(product.SalesHistory, salesRanges);
         return Math.Round(baseDailySalesRate * salesMultiplier, 2);
@@ -55,7 +54,7 @@ public class BatchPlanningService : IBatchPlanningService
         List<BatchPlanItemDto> batchPlanItems,
         CalculateBatchPlanRequest request,
         double availableVolume,
-        CatalogAggregate semiproduct,
+        ProductCatalogSnapshot semiproduct,
         double directSemiproductAmount = 0)
     {
         // First, handle fixed products
@@ -114,7 +113,7 @@ public class BatchPlanningService : IBatchPlanningService
         // Convert flexible products to ProductBatch format for BatchDistributionCalculator
         if (flexibleProducts.Count > 0)
         {
-            var batch = CreateProductBatch(flexibleProducts, semiproduct, availableVolume, remainingVolume);
+            var batch = CreateProductBatch(flexibleProducts, semiproduct, remainingVolume, request.NdCoverageFactor);
 
             // Use BatchDistributionCalculator for optimization
             _batchDistributionCalculator.OptimizeBatch(batch, minimizeResidue: true);
@@ -145,8 +144,10 @@ public class BatchPlanningService : IBatchPlanningService
         };
     }
 
-    private ProductBatch CreateProductBatch(List<BatchPlanItemDto> flexibleProducts, CatalogAggregate semiproduct, double availableVolume, double remainingVolume)
+    private ProductBatch CreateProductBatch(List<BatchPlanItemDto> flexibleProducts, ProductCatalogSnapshot semiproduct, double remainingVolume, double? ndCoverageFactor)
     {
+        var ndWeight = ndCoverageFactor is > 0 ? ndCoverageFactor.Value : 1.0;
+
         var variants = flexibleProducts.Select(product => new ProductVariant
         {
             ProductCode = product.ProductCode,
@@ -154,6 +155,7 @@ public class BatchPlanningService : IBatchPlanningService
             Weight = product.WeightPerUnit, // Volume per unit is the weight in the batch context
             DailySales = product.DailySalesRate,
             EffectiveStock = product.CurrentStock + product.PlannedQuantity,
+            CoverageWeight = product.IsNd ? ndWeight : 1.0,
             SuggestedAmount = 0 // Will be set by optimizer
         }).ToList();
 
@@ -222,7 +224,7 @@ public class BatchPlanningService : IBatchPlanningService
     }
 
     private BatchPlanItemDto CreateBatchPlanItem(
-        CatalogAggregate product,
+        ProductCatalogSnapshot product,
         CalculateBatchPlanRequest request,
         IReadOnlyList<DateRange> salesRanges,
         string? productName = null)
@@ -246,12 +248,13 @@ public class BatchPlanningService : IBatchPlanningService
             IsFixed = constraint?.IsFixed ?? false,
             UserFixedQuantity = constraint?.FixedQuantity,
             WasOptimized = false,
-            OptimizationNote = ""
+            OptimizationNote = "",
+            IsNd = product.Properties.IsNd
         };
     }
 
     private (double targetProduction, double availableVolume) CalculateTargetProductionAndVolume(
-        CatalogAggregate product,
+        ProductCatalogSnapshot product,
         CalculateBatchPlanRequest request,
         double dailySalesRate)
     {
@@ -278,7 +281,7 @@ public class BatchPlanningService : IBatchPlanningService
     }
 
     private (double targetProductionUnits, double totalWeight) CalculateSinglePhaseTargetProduction(
-        CatalogAggregate product,
+        ProductCatalogSnapshot product,
         CalculateBatchPlanRequest request,
         double dailySalesRate)
     {

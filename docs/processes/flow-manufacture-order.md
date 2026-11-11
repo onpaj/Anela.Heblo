@@ -30,7 +30,7 @@ owns:
   - backend/src/Anela.Heblo.API/Controllers/ManufactureOrderController.cs
   - backend/src/Anela.Heblo.API/Controllers/ManufactureSettingsController.cs
   - backend/src/Anela.Heblo.API/MCP/Tools/ManufactureOrderMcpTools.cs
-verified_at: "5e993f9e2"
+verified_at: "9053a6343"
 related:
   - feed-manufacture-to-flexi
   - flow-manufactured-inventory
@@ -100,6 +100,9 @@ States (`ManufactureOrderState`): Draft(1) → Planned(2) → SemiProductManufac
   Draft → Planned, Cancelled · Planned → Draft, SemiProductManufactured, Completed, Cancelled ·
   SemiProductManufactured → Planned, Completed, Cancelled · Completed → SemiProductManufactured,
   Planned, Cancelled · Cancelled → nothing.
+  `GetManufactureOrderHandler` exposes this list as `availableTransitions` (computed via `CanTransitionTo`,
+  empty for Cancelled or when the order is not found); the frontend derives its controls from it instead of
+  duplicating the state machine.
 - **UI path**: multi-phase Draft → Planned → (confirm semi-product) → SemiProductManufactured →
   (confirm products) → Completed; back arrow one step (Completed → SemiProductManufactured).
   Single-phase Planned → (confirm products) → Completed, back arrow Completed → Planned.

@@ -12,8 +12,8 @@ import ManufacturingStockAnalysis from "../ManufacturingStockAnalysis";
 // Mock the hook
 const mockUseManufacturingStockAnalysisQuery = jest.fn();
 jest.mock("../../../api/hooks/useManufacturingStockAnalysis", () => ({
-  useManufacturingStockAnalysisQuery: () =>
-    mockUseManufacturingStockAnalysisQuery(),
+  useManufacturingStockAnalysisQuery: (...args: any[]) =>
+    mockUseManufacturingStockAnalysisQuery(...args),
   TimePeriodFilter: {
     PreviousQuarter: "PreviousQuarter",
     FutureQuarter: "FutureQuarter",
@@ -547,6 +547,106 @@ describe("ManufacturingStockAnalysis", () => {
     render(<ManufacturingStockAnalysis />, { wrapper: createWrapper() });
 
     expect(screen.getByText("1.5x")).toBeInTheDocument();
+  });
+
+  describe("sales multiplier cookie validation", () => {
+    const COOKIE = "manufacturing-stock-sales-multiplier";
+
+    const setCookieRaw = (value: string) => {
+      document.cookie = `${COOKIE}=${value}; path=/; max-age=31536000`;
+    };
+
+    const clearAll = () => {
+      [COOKIE, "a", "b", `x-${COOKIE}`, "1.5"].forEach((name) => {
+        document.cookie = `${name}=; max-age=0; path=/`;
+      });
+    };
+
+    const renderPage = () => {
+      mockUseManufacturingStockAnalysisQuery.mockReturnValue({
+        data: mockData,
+        isLoading: false,
+        error: null,
+        refetch: jest.fn(),
+      });
+      return render(<ManufacturingStockAnalysis />, {
+        wrapper: createWrapper(),
+      });
+    };
+
+    beforeEach(() => clearAll());
+    afterEach(() => clearAll());
+
+    it("falls back to 1.0x when no cookie is set", () => {
+      renderPage();
+      expect(screen.getByText("1.0x")).toBeInTheDocument();
+    });
+
+    it.each([
+      ["0.1", "0.1x"],
+      ["3.0", "3.0x"],
+      ["1.5", "1.5x"],
+    ])("accepts in-range cookie value %s (inclusive boundaries)", (raw, label) => {
+      setCookieRaw(raw);
+      renderPage();
+      expect(screen.getByText(label)).toBeInTheDocument();
+    });
+
+    it.each(["0.09", "3.01", "0", "-1", "100"])(
+      "falls back to 1.0x for out-of-range cookie value %s",
+      (raw) => {
+        setCookieRaw(raw);
+        renderPage();
+        expect(screen.getByText("1.0x")).toBeInTheDocument();
+      },
+    );
+
+    it.each(["abc", "NaN", ""])(
+      "falls back to 1.0x for non-numeric cookie value '%s'",
+      (raw) => {
+        setCookieRaw(raw);
+        renderPage();
+        expect(screen.getByText("1.0x")).toBeInTheDocument();
+      },
+    );
+
+    it("finds the cookie among multiple cookies", () => {
+      document.cookie = "a=1; path=/";
+      setCookieRaw("2.5");
+      document.cookie = "b=2; path=/";
+      renderPage();
+      expect(screen.getByText("2.5x")).toBeInTheDocument();
+    });
+
+    it("does not match a cookie whose name merely contains the target name", () => {
+      document.cookie = `x-${COOKIE}=2.5; path=/`;
+      renderPage();
+      expect(screen.getByText("1.0x")).toBeInTheDocument();
+    });
+
+    it("passes a valid cookie multiplier to the data hook", () => {
+      setCookieRaw("2.5");
+      renderPage();
+      expect(mockUseManufacturingStockAnalysisQuery).toHaveBeenCalledWith(
+        expect.objectContaining({ salesMultiplier: 2.5 }),
+      );
+    });
+
+    it("passes the 1.0 fallback to the data hook for an invalid cookie", () => {
+      setCookieRaw("3.01");
+      renderPage();
+      expect(mockUseManufacturingStockAnalysisQuery).toHaveBeenCalledWith(
+        expect.objectContaining({ salesMultiplier: 1 }),
+      );
+    });
+
+    // Documents current behaviour: the value is taken from the first "=" split,
+    // so trailing "=junk" is ignored rather than rejected.
+    it("documents that a value containing '=' keeps only the part before it", () => {
+      setCookieRaw("1.5=junk");
+      renderPage();
+      expect(screen.getByText("1.5x")).toBeInTheDocument();
+    });
   });
 
   it("renders the Vyrobeno column with the manufactured stock value", () => {

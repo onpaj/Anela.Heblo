@@ -1,6 +1,5 @@
 using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Shared;
-using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Manufacture;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -70,11 +69,13 @@ public class GetManufactureOutputHandler : IRequestHandler<GetManufactureOutputR
                         // Get product info from catalog
                         double difficulty = Anela.Heblo.Application.Features.Manufacture.ManufactureConstants.DEFAULT_MANUFACTURE_DIFFICULTY;
                         string productName = productCode;
+                        var isNd = false;
 
                         if (catalogDict.TryGetValue(productCode, out var catalogItem))
                         {
                             difficulty = catalogItem.ManufactureDifficulty!.Value;
                             productName = catalogItem.ProductName ?? productCode;
+                            isNd = catalogItem.Properties.IsNd;
                         }
 
                         var weightedValue = quantity * difficulty;
@@ -85,7 +86,8 @@ public class GetManufactureOutputHandler : IRequestHandler<GetManufactureOutputR
                             ProductName = productName,
                             Quantity = quantity,
                             Difficulty = difficulty,
-                            WeightedValue = weightedValue
+                            WeightedValue = weightedValue,
+                            IsNd = isNd
                         };
                     })
                     .Where(p => p.Quantity > 0) // Filter out zero quantities

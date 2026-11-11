@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4428",
+  "issue_number": 4428,
+  "created_at": "2026-10-22T01:11:23.892472Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-22T01:11:38.277767Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-22T01:11:41.885417Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-22T01:11:44.514528Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-22T01:11:47.494002Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-22T01:19:08.460733Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-22T02:15:11.320962Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "use-consumed-quantity-helper",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-22T01:19:08.886220Z"
+    }
+  ]
+}

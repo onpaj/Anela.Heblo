@@ -2,7 +2,7 @@
 process: calc-dqt-product-pairing
 kind: calculation
 module: data-quality
-summary: Every morning checks that each Shoptet product resolves to a sellable Flexi product (by pair code or code) and that each sellable Flexi product exists in Shoptet, storing every unpaired product as a drift result.
+summary: Every morning checks that each Shoptet product resolves to a sellable Flexi product (by code) and that each sellable Flexi product exists in Shoptet, storing every unpaired product as a drift result.
 owns:
   - backend/src/Anela.Heblo.Application/Features/DataQuality/Infrastructure/Jobs/ProductPairingDqtJob.cs
   - backend/src/Anela.Heblo.Application/Features/DataQuality/Services/ProductPairingDqtComparer.cs
@@ -18,7 +18,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/DataQuality/Services/DriftDqtJobRunner.cs
   - backend/src/Anela.Heblo.Application/Features/DataQuality/Services/DriftComparisonResult.cs
   - backend/src/Anela.Heblo.Domain/Features/DataQuality/DqtDriftResult.cs
-verified_at: "5e993f9e2"
+verified_at: "0b7b902c9"
 related: []
 ---
 
@@ -40,9 +40,11 @@ dashboard tile for it.
 
 ## Data flow
 1. Create a `DqtRun` (`TestType` 2, Running) in `public."DqtRuns"`.
-2. **Shoptet**: download the products CSV export at `StockClient:Url`
-   (`ShoptetStockClient.ListAsync`; `;`-separated, windows-1250; column 0 = code, 1 = pair
-   code (*párovací kód*), 2 = name). Fresh download, not the catalog cache.
+2. **Shoptet**: `ShoptetStockClient.ListAsync` — the live Shoptet supplies list
+   (`GET /api/stocks/{id}/supplies`), codes only. Names (display-only, shown as the Shoptet value)
+   are joined by code from the catalog's hourly product cache (`sync-catalog-eshop-products`,
+   name + variant name); while that cache is empty (until the first successful product sweep after boot) names are blank
+   but all codes are still checked.
 3. **Flexi**: `FlexiStockClient.ListAsync` — Flexi stock-to-date (`stav-skladu-k-datu`) for
    today, warehouses 5 (materials), 20 (semi-products) and 4 (products + goods); items whose
    name contains "archiv" are dropped. Only items of type **Product or Goods** count as
@@ -54,26 +56,26 @@ dashboard tile for it.
 
 ## Logic & formulas
 All code comparisons are case-insensitive.
-- **Check A — Shoptet → Flexi**: for each Shoptet row, the resolved code is the pair code if
-  set, otherwise the Shoptet code. If it is not among sellable Flexi codes → finding.
-- **Check B — Flexi → Shoptet**: for each sellable Flexi code, if it is neither a Shoptet code
-  nor a Shoptet pair code → finding.
-- `TotalChecked` = number of distinct identifiers across all Shoptet codes, Shoptet pair
-  codes and sellable Flexi codes.
+- **Check A — Shoptet → Flexi**: each Shoptet code must be among the sellable Flexi codes,
+  else finding.
+- **Check B — Flexi → Shoptet**: each sellable Flexi code must be a Shoptet code, else finding.
+- `TotalChecked` = number of distinct codes across Shoptet and sellable Flexi.
+- The former pair-code (*párovací kód*) logic was removed: the Shoptet API has no such field, and
+  the old CSV column held numeric Shoptet group ids that were wrongly looked up as ERP codes
+  (335 of 388 findings in the 2026-11-01 production run).
 - **Mismatch codes** (`ProductPairingMismatch`, bit flags):
 
   | Code | Label (UI) | Meaning | Row content |
   |---|---|---|---|
   | 1 `MissingInErp` | Chybí v ERP | Shoptet product has no sellable Flexi match | key = Shoptet code, Shoptet = product name |
-  | 5 = 1+4 `PairCodeUnresolved` | Chybí v ERP + Nespárovaný párový kód | Same, and the product has a pair code that doesn't exist in Flexi | as above, `Details` names the pair code |
+  | 5 = 1+4 `PairCodeUnresolved` | Chybí v ERP + Nespárovaný párový kód | **Legacy, no longer produced.** Kept so results stored before the pair-code removal still decode | as above |
   | 2 `MissingInShoptet` | Chybí v Shoptet | Sellable Flexi product absent from Shoptet | key = Flexi code, Heblo = Flexi name |
 
 ## Configuration
 | Key | Repo default | Meaning |
 |---|---|---|
 | Recurring job `daily-product-pairing-dqt` | `0 6 * * *`, enabled | Schedule |
-| `StockClient:Url` | placeholder (`https://www.anela.cz/export/products.csv-xxxxxxxxxx`) — real URL is a secret | Shoptet products CSV export |
-| `StockClient:TimeoutSeconds`, `StockClient:MaxRetryAttempts` | 8, 3 | HttpClient timeout/retries of that download |
+| `StockClient:TimeoutSeconds`, `StockClient:MaxRetryAttempts` | 8, 3 | HttpClient timeout/retries of the supplies calls |
 | Flexi connection (`FlexiBeeSettings`) | secrets | Flexi API access |
 
 Warehouse ids 4/5/20 are constants in `FlexiStockClient`.
@@ -89,7 +91,7 @@ None.
   decided by Flexi.)
 - **Only Product and Goods types are sellable.** A Shoptet product paired to a Flexi item of
   any other type (material, semi-product, …) is reported `MissingInErp`.
-- **Every Shoptet variant row is checked**, so one unpaired product with several variants
+- **Every Shoptet variant is checked**, so one unpaired product with several variants
   produces several findings.
 - The job description in Recurring Jobs says "for the current day", but nothing in the check
   is date-bound.
@@ -99,6 +101,6 @@ None.
 - `backend/src/Anela.Heblo.Application/Features/DataQuality/Infrastructure/Jobs/ProductPairingDqtJob.cs` — schedule
 - `backend/src/Anela.Heblo.Application/Features/DataQuality/Services/DriftDqtJobRunner.cs` — run lifecycle (shared by all drift tests)
 - `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/DataQualityErpStockSourceAdapter.cs` — "sellable" rule
-- `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Stock/ShoptetStockClient.cs` — CSV download and column map
+- `backend/src/Adapters/Anela.Heblo.Adapters.ShoptetApi/Stock/ShoptetStockClient.cs` — supplies listing
 - `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Stock/FlexiStockClient.cs` — warehouses, "archiv" filter
 - `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogResilienceService.cs` — retry/timeout/circuit breaker

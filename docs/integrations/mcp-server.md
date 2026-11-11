@@ -42,7 +42,7 @@ The application exposes MCP tools for AI assistants to query catalog data, manuf
 - `GenerateLeaflet` — generates a marketing leaflet in Czech Markdown using the knowledge base and historical leaflets as style references
 
 **Meeting Notes (4)** — read-only; all require the `anela.meetings.read` permission. Per-meeting visibility (Public / Private / Restricted) is enforced per caller, same as the web UI.
-- `ListMeetings` — list meetings (summary level: subject, summary, status, task counts; no raw transcript) with search, status filter, and pagination
+- `ListMeetings` — list meetings (summary level: subject, summary, status, task counts; no raw transcript) with search, status filter, and pagination. Optional `includeSummary` (default `true`): set it to `false` for a compact list where `Summary` is `null` on every item, because full summaries can push a 20-item page past a client's tool-output limit. It changes the output only; `searchText` still matches the summary, and all other fields, paging, ordering and visibility stay the same
 - `GetMeetingSummary` — summary and metadata of a single meeting (no raw transcript, no task detail)
 - `GetMeetingTranscript` — full raw transcript text of a single meeting
 - `GetMeetingTasks` — proposed task list extracted from a single meeting
@@ -142,6 +142,7 @@ For local development use `https://localhost:5001/mcp`.
 **Event identity**
 - `EventName`: `McpBadRequest` (shared by both channels)
 - `EventId`: `5931` (GET) / `5932` (POST)
+- Exception path: `EventName` `McpRequestException`, `EventId` `5933` (see **Exception-path telemetry** below)
 - Log category: `Anela.Heblo.API.MCP.McpBadRequestMiddleware`
 - Log level: `Warning`
 
@@ -191,6 +192,30 @@ traces
 | where UA == "(missing)" and SidPres == false
 | summarize probe_count = count() by bin(timestamp, 1h), IP
 | order by probe_count desc
+```
+
+## Exception-path telemetry (EventId 5933)
+
+`EventId` `5932` fires only when the pipeline returns 400 *normally*. Requests that throw inside the `/mcp` pipeline and are later mapped to 400 by `ArgumentExceptionHandler` / `ValidationExceptionHandler` never reach that code path, so the middleware logs them separately as `McpRequestException` (`EventId` `5933`, `Warning`) and rethrows the same exception instance.
+
+`customDimensions` match the table above (`HTTPMethod`, `Path`, `UserAgent`, `Origin`, `Accept`, `ContentType`, `McpSessionIdPresent`, `McpSessionIdPrefix`, `RemoteIp`, `ElapsedMs`) with one addition:
+
+| Key | Type | Notes |
+|---|---|---|
+| `ExceptionType` | string | Type name of the exception thrown in the pipeline |
+
+`StatusCode` is not recorded, because the final status is decided by the exception handler after the middleware has logged.
+
+**Runbook: a 400 rate on `/mcp` with no matching 5932 entries**
+
+1. Confirm Production runs a build containing #4052 (`11091d4`).
+2. POST a malformed body to `/mcp` on Staging and expect a 5932 or 5933 entry.
+3. Query both events and correlate with `exceptions` by `operation_Id`:
+
+```kusto
+traces
+| where customDimensions.EventId in ("5932", "5933")
+| summarize count() by tostring(customDimensions.UserAgent), tostring(customDimensions.McpSessionIdPresent)
 ```
 
 ## Tests

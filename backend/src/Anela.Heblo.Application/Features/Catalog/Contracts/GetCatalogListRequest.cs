@@ -28,4 +28,9 @@ public class GetCatalogListRequest : IRequest<GetCatalogListResponse>
     /// Inclusive upper bound (ISO "yyyy-MM-dd") for a material's nearest lot expiration.
     /// </summary>
     public string? ExpirationTo { get; set; }
+
+    /// <summary>
+    /// ND ("Nesmí dojít") flag filter. true = only ND products, false = only non-ND, null = no filtering.
+    /// </summary>
+    public bool? IsNd { get; set; }
 }

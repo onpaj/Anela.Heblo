@@ -16,9 +16,6 @@ dotnet user-secrets set "Shoptet:Url" "https://your-test-shoptet.myshoptet.com"
 dotnet user-secrets set "Shoptet:Username" "your-test-username"
 dotnet user-secrets set "Shoptet:Password" "your-test-password"
 
-# Stock export URL
-dotnet user-secrets set "ShoptetStockClient:Url" "https://your-test-shoptet.myshoptet.com/action/ExportManager/export/stock"
-
 # Product export URL
 dotnet user-secrets set "ProductPriceOptions:ProductExportUrl" "https://your-test-shoptet.myshoptet.com/action/ExportManager/export/products"
 ```
@@ -53,7 +50,7 @@ dotnet test --filter Category=Integration
 - **Utility Classes**: Helper methods and extensions
 
 ### Integration Tests
-- **ShoptetStockClient**: CSV stock data import from Shoptet
+- **ShoptetStockClient**: e-shop stock and location from the Shoptet supplies API
 - **ShoptetPriceClient**: CSV price data import/export to Shoptet
 - **Playwright Services**: Browser Test for Shoptet operations
 

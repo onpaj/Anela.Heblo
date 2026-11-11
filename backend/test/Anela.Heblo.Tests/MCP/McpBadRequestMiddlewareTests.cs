@@ -605,6 +605,97 @@ public class McpBadRequestMiddlewareTests
             Times.Never);
     }
 
+    // ── exception-path diagnostics (5933) ────────────────────────────────────
+
+    private static bool IsRequestExceptionWarning(EventId e) => e.Id == 5933 && e.Name == "McpRequestException";
+
+    private void VerifyRequestExceptionWarning(Times times, Func<string, bool>? messagePredicate = null)
+    {
+        _loggerMock.Verify(l => l.Log(
+            LogLevel.Warning,
+            It.Is<EventId>(e => IsRequestExceptionWarning(e)),
+            It.Is<It.IsAnyType>((state, _) => messagePredicate == null || messagePredicate(state.ToString()!)),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            times);
+    }
+
+    [Fact]
+    public async Task PostThrows_LogsOneWarning5933WithExceptionType_AndRethrowsSameInstance()
+    {
+        var thrown = new ArgumentException("x");
+        var middleware = CreateMiddleware(_ => throw thrown);
+        var context = CreateContext("POST", "/mcp");
+
+        var caught = await Assert.ThrowsAsync<ArgumentException>(() => middleware.InvokeAsync(context));
+
+        Assert.Same(thrown, caught);
+        VerifyRequestExceptionWarning(Times.Once(), m =>
+            m.Contains("ExceptionType=ArgumentException") && m.Contains("McpSessionIdPresent="));
+        _loggerMock.Verify(l => l.Log(
+            It.IsAny<LogLevel>(),
+            It.Is<EventId>(e => e.Id == 5932),
+            It.IsAny<It.IsAnyType>(),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task PostThrows_WithSessionHeader_LogsEightCharPrefixOnly()
+    {
+        var middleware = CreateMiddleware(_ => throw new InvalidOperationException("boom"));
+        var context = CreateContext("POST", "/mcp");
+        context.Request.Headers["Mcp-Session-Id"] = "1234567890abcdef";
+        context.Request.Headers["Authorization"] = "Bearer secret";
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => middleware.InvokeAsync(context));
+
+        VerifyRequestExceptionWarning(Times.Once(), m =>
+            m.Contains("McpSessionIdPresent=True") &&
+            m.Contains("McpSessionIdPrefix=12345678") &&
+            !m.Contains("1234567890abcdef") &&
+            !m.Contains("secret") &&
+            !m.Contains("boom"));
+    }
+
+    [Fact]
+    public async Task GetThrows_WithEventStreamAccept_LogsWarning5933AndRethrows()
+    {
+        var middleware = CreateMiddleware(_ => throw new InvalidOperationException("sse"));
+        var context = CreateContext("GET", "/mcp", acceptHeader: "text/event-stream");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => middleware.InvokeAsync(context));
+
+        VerifyRequestExceptionWarning(Times.Once(), m =>
+            m.Contains("ExceptionType=InvalidOperationException") && m.Contains("GET"));
+    }
+
+    [Fact]
+    public async Task PostThrows_OperationCanceledWithAbortedRequest_DoesNotLog()
+    {
+        var middleware = CreateMiddleware(_ => throw new OperationCanceledException());
+        var context = CreateContext("POST", "/mcp");
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+        context.RequestAborted = cts.Token;
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => middleware.InvokeAsync(context));
+
+        VerifyRequestExceptionWarning(Times.Never());
+    }
+
+    [Fact]
+    public async Task PostThrowsOperationCanceled_WithoutAbort_Logs()
+    {
+        var middleware = CreateMiddleware(_ => throw new OperationCanceledException());
+        var context = CreateContext("POST", "/mcp");
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => middleware.InvokeAsync(context));
+
+        VerifyRequestExceptionWarning(Times.Once(), m => m.Contains("ExceptionType=OperationCanceledException"));
+    }
+
     // ── HasValidMcpAcceptHeader static helper ────────────────────────────────
 
     [Theory]

@@ -72,8 +72,8 @@ Nothing is ever deleted or archived; rows accumulate indefinitely.
 ## External systems
 Through other modules' adapters only (consumer-owned contracts in
 `DataQuality/Contracts`, implemented by Invoices, Catalog and ProductPricing):
-- **Shoptet** (read): `GET /api/invoices` + `/api/invoices/{code}` (invoices), the products CSV
-  export at `StockClient:Url` (product pairing), `GET /api/pricelists/{id}` (prices).
+- **Shoptet** (read): `GET /api/invoices` + `/api/invoices/{code}` (invoices), `GET /api/stocks/{id}/supplies`
+  (product pairing codes; names from the catalog product cache), `GET /api/pricelists/{id}` (prices).
 - **Flexi** (read): issued invoices via the FlexiBee SDK, stock-to-date (`stav-skladu-k-datu`)
   for warehouse 4, user query 41 (ceník prices). Lot stock reads Flexi indirectly via the
   catalog cache.

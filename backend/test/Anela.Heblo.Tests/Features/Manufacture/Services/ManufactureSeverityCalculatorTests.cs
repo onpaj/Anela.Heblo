@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
 using Anela.Heblo.Domain.Features.Catalog;
@@ -20,21 +21,21 @@ public class ManufactureSeverityCalculatorTests
         _calculator = new ManufactureSeverityCalculator(_loggerMock.Object);
     }
 
-    private CatalogAggregate CreateTestCatalogItem(
+    private ProductCatalogSnapshot CreateTestCatalogItem(
         int optimalStockDaysSetup = 30,
         decimal stockMinSetup = 10,
         decimal availableStock = 50)
     {
-        return new CatalogAggregate
+        return new ProductCatalogSnapshot
         {
             ProductCode = "TEST001",
             ProductName = "Test Product",
-            Properties = new CatalogProperties
+            Properties = new ProductPropertiesSnapshot
             {
                 OptimalStockDaysSetup = optimalStockDaysSetup,
                 StockMinSetup = stockMinSetup
             },
-            Stock = new StockData
+            Stock = new ProductStockSnapshot
             {
                 Erp = availableStock, // Available is calculated as Erp + Transport when PrimaryStockSource is Erp
                 Transport = 0

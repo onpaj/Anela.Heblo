@@ -152,4 +152,27 @@ describe('LeafletUploadTab', () => {
     // No comboboxes for document type selection
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
+
+  describe('dark mode classes', () => {
+    it('drop zone has dark variants in default state', () => {
+      render(<LeafletUploadTab />);
+      const dropZone = getDropZone();
+      expect(dropZone).toHaveClass('dark:border-graphite-border');
+      expect(dropZone).toHaveClass('dark:bg-graphite-surface');
+    });
+
+    it('drop zone has dark variants in dragOver state', () => {
+      render(<LeafletUploadTab />);
+      const dropZone = getDropZone();
+      fireEvent.dragOver(dropZone);
+      expect(dropZone).toHaveClass('dark:border-graphite-accent');
+      expect(dropZone).toHaveClass('dark:bg-graphite-accent/10');
+    });
+
+    it('status label has dark variant', () => {
+      render(<LeafletUploadTab />);
+      simulateDrop(getDropZone(), [makeFile('a.pdf')]);
+      expect(screen.getByText('Čeká')).toHaveClass('dark:text-graphite-faint');
+    });
+  });
 });

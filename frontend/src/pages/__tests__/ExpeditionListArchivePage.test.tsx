@@ -12,7 +12,7 @@ jest.mock("../../api/hooks/useExpeditionListArchive", () => ({
   getExpeditionListDownloadUrl: jest.fn(),
 }));
 
-jest.mock("../../components/pages/ExpeditionListArchive/ExpeditionJobControlsBar", () => ({
+jest.mock("../../components/pages/Expedition/ExpeditionJobControlsBar", () => ({
   __esModule: true,
   default: ({ refreshButton }: { refreshButton?: React.ReactNode }) => <>{refreshButton}</>,
 }));

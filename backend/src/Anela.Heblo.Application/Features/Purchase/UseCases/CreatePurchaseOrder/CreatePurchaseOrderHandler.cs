@@ -1,4 +1,3 @@
-using Anela.Heblo.Application.Common.Extensions;
 using Anela.Heblo.Application.Features.Purchase.Contracts;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.Purchase;
@@ -51,8 +50,10 @@ public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderReq
         _logger.LogInformation("Creating new purchase order for supplier {SupplierName}", supplier.Name);
 
         // Parse dates from string format and ensure UTC for PostgreSQL compatibility
-        var orderDate = request.OrderDate.ToUtcDateTime();
-        var expectedDeliveryDate = request.ExpectedDeliveryDate.ToUtcDateTimeOrNull();
+        var orderDate = DateTime.SpecifyKind(request.OrderDate.Date, DateTimeKind.Utc);
+        var expectedDeliveryDate = request.ExpectedDeliveryDate.HasValue
+            ? DateTime.SpecifyKind(request.ExpectedDeliveryDate.Value.Date, DateTimeKind.Utc)
+            : (DateTime?)null;
 
         string orderNumber;
         if (!string.IsNullOrEmpty(request.OrderNumber))

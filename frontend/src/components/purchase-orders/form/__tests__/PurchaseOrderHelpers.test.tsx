@@ -4,6 +4,7 @@ import {
   calculateTotal,
   getValidLines,
   generateDefaultOrderNumber,
+  createPurchaseOrderRequest,
 } from "../PurchaseOrderHelpers";
 import { PurchaseOrderLineDto } from "../../../../api/generated/api-client";
 import { MaterialForPurchaseDto } from "../../../../api/hooks/useMaterials";
@@ -140,6 +141,38 @@ describe("PurchaseOrderHelpers", () => {
       // Should be a 4-digit number (timestamp in hours and minutes)
       expect(timestampPart).toMatch(/^\d{4}$/);
       expect(timestampPart.length).toBe(4);
+    });
+  });
+
+  describe("createPurchaseOrderRequest dates", () => {
+    it("serializes calendar dates unchanged regardless of timezone", () => {
+      const request = createPurchaseOrderRequest({
+        orderNumber: "PO1",
+        selectedSupplier: { id: 1, name: "S", code: "S" } as any,
+        orderDate: "2026-03-05",
+        expectedDeliveryDate: "2026-03-20",
+        contactVia: null,
+        notes: "",
+        lines: [],
+      } as any);
+
+      const json = request.toJSON();
+      expect(json.orderDate).toBe("2026-03-05T00:00:00.000Z");
+      expect(json.expectedDeliveryDate).toBe("2026-03-20T00:00:00.000Z");
+    });
+
+    it("leaves expectedDeliveryDate undefined when empty", () => {
+      const request = createPurchaseOrderRequest({
+        orderNumber: "PO1",
+        selectedSupplier: null,
+        orderDate: "2026-03-05",
+        expectedDeliveryDate: "",
+        contactVia: null,
+        notes: "",
+        lines: [],
+      } as any);
+
+      expect(request.expectedDeliveryDate).toBeUndefined();
     });
   });
 });

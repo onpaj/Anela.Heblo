@@ -28,14 +28,14 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             var fixedNow = new DateTime(2026, 3, 15, 12, 0, 0, DateTimeKind.Utc);
 
             // Act
-            action.LinkToFolder("inbox/marketing", MarketingFolderType.General, fixedNow);
+            action.LinkToFolder("inbox/marketing", MarketingFolderType.Images, fixedNow);
 
             // Assert
             action.FolderLinks.Should().HaveCount(1);
             var link = action.FolderLinks.Single();
             link.CreatedAt.Should().Be(fixedNow);
             link.FolderKey.Should().Be("inbox/marketing");
-            link.FolderType.Should().Be(MarketingFolderType.General);
+            link.FolderType.Should().Be(MarketingFolderType.Images);
         }
 
         [Fact]
@@ -43,10 +43,10 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         {
             // Arrange
             var action = CreateAction();
-            action.LinkToFolder("inbox/marketing", MarketingFolderType.General, FixedUtcNow);
+            action.LinkToFolder("inbox/marketing", MarketingFolderType.Images, FixedUtcNow);
 
             // Act
-            action.LinkToFolder("inbox/marketing", MarketingFolderType.General, FixedUtcNow.AddHours(1));
+            action.LinkToFolder("inbox/marketing", MarketingFolderType.Images, FixedUtcNow.AddHours(1));
 
             // Assert
             action.FolderLinks.Should().HaveCount(1);
@@ -60,7 +60,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             var action = CreateAction();
 
             // Act
-            action.LinkToFolder("  inbox/marketing  ", MarketingFolderType.General, FixedUtcNow);
+            action.LinkToFolder("  inbox/marketing  ", MarketingFolderType.Images, FixedUtcNow);
 
             // Assert
             action.FolderLinks.Single().FolderKey.Should().Be("inbox/marketing");
@@ -76,7 +76,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             var action = CreateAction();
 
             // Act
-            Action act = () => action.LinkToFolder(input!, MarketingFolderType.General, FixedUtcNow);
+            Action act = () => action.LinkToFolder(input!, MarketingFolderType.Images, FixedUtcNow);
 
             // Assert
             act.Should().Throw<ArgumentException>()

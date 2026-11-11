@@ -165,6 +165,41 @@ public class GetManufactureOrderHandlerTests
             Times.Never);
     }
 
+    [Theory]
+    [InlineData(ManufactureOrderState.Draft, new[] { ManufactureOrderState.Planned, ManufactureOrderState.Cancelled })]
+    [InlineData(ManufactureOrderState.Planned, new[] { ManufactureOrderState.Draft, ManufactureOrderState.SemiProductManufactured, ManufactureOrderState.Completed, ManufactureOrderState.Cancelled })]
+    [InlineData(ManufactureOrderState.SemiProductManufactured, new[] { ManufactureOrderState.Planned, ManufactureOrderState.Completed, ManufactureOrderState.Cancelled })]
+    [InlineData(ManufactureOrderState.Completed, new[] { ManufactureOrderState.Planned, ManufactureOrderState.SemiProductManufactured, ManufactureOrderState.Cancelled })]
+    [InlineData(ManufactureOrderState.Cancelled, new ManufactureOrderState[0])]
+    public async Task Handle_ShouldReturnLegalAvailableTransitions(ManufactureOrderState state, ManufactureOrderState[] expected)
+    {
+        var order = CreateSampleOrder();
+        order.InitializeState(state, DateTime.UtcNow, "Test User");
+
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(order);
+        _mapperMock
+            .Setup(x => x.Map<ManufactureOrderDto>(order))
+            .Returns(CreateSampleOrderDto());
+
+        var result = await _handler.Handle(new GetManufactureOrderRequest { Id = ValidOrderId }, CancellationToken.None);
+
+        result.AvailableTransitions.Should().BeEquivalentTo(expected);
+    }
+
+    [Fact]
+    public async Task Handle_WithNonExistentOrder_ShouldReturnEmptyAvailableTransitions()
+    {
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(NonExistentOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder?)null);
+
+        var result = await _handler.Handle(new GetManufactureOrderRequest { Id = NonExistentOrderId }, CancellationToken.None);
+
+        result.AvailableTransitions.Should().BeEmpty();
+    }
+
     private static ManufactureOrder CreateSampleOrder()
     {
         var order = new ManufactureOrder

@@ -38,13 +38,17 @@ public interface IMarginCalculator
 }
 
 /// <summary>
-/// 🔒 PERFORMANCE FIX: Extracted margin calculation logic from handler
-/// Implements single responsibility principle and improves testability
+/// Margin calculation logic extracted from the handler (single responsibility, testability).
 /// </summary>
 public class MarginCalculator : IMarginCalculator
 {
     /// <summary>
-    /// Calculates margin data using streaming approach to minimize memory usage
+    /// Consumes products from an async stream and aggregates margin per group.
+    /// Streaming avoids materialising a second full copy of the product list during fetch,
+    /// but every accepted product (including its SalesHistory) is retained in
+    /// <c>GroupProducts</c> because GetProductMarginSummaryHandler and MonthlyBreakdownGenerator
+    /// need them. Peak memory is therefore O(products x sales history), not O(groups).
+    /// Reducing it would require accumulating GroupMarginData inline instead.
     /// </summary>
     public async Task<MarginCalculationResult> CalculateAsync(
         IAsyncEnumerable<AnalyticsProduct> products,

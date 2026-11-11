@@ -37,3 +37,45 @@ No sandbox — every call hits the live company. Record verified behaviour here 
   only when both are positive; otherwise it falls back to the rounded `prumCena`, so the Σ `tuz` equivalence
   does not hold for rows with zero or negative quantity or value.
 - `skladova-karta` holds one card per accounting year (`ucetObdobi`); `prumCenaTuz` there is unrounded.
+
+## Known slow endpoints
+
+Application Insights dependency `petra-tesarikova.flexibee.eu` (P7D, 2026-07-28 to 2026-08-04, issue #3858; earlier
+filings #2987, #3759 treated it as one aggregate and did not move p95/p99):
+
+| Endpoint | Calls | p50 | p95 | p99 |
+|---|---|---|---|---|
+| `POST .../ucetni-denik/query` (accounting journal) | 2,954 | 2.6 s | 24.0 s | 28.7 s |
+| `GET .../sarze-expirace.json` (batch/expiration) | 171 | 6.0 s | 19.2 s | 31.5 s |
+| `POST .../stav-skladu-k-datu/query` (stock to date, highest volume) | 10,409 | 0.5 s | 3.0 s | 6.3 s |
+| `GET .../uzivatelsky-dotaz/21/call.json` | 171 | 4.1 s | 10.3 s | 18.7 s |
+
+`ucetni-denik/query` alone drives the dependency's overall p95/p99.
+
+**Measures taken (#3858)**
+- `LedgerService` single-flights identical `ucetni-denik` queries, so concurrent callers share one FlexiBee call.
+- Ledger cache TTL is 6 h for ranges ending before the current month and 15 min otherwise
+  (`FlexiLedger:ClosedPeriodCacheMinutes` / `FlexiLedger:OpenPeriodCacheMinutes`).
+- The shared ledger call is no longer cancelled when one caller aborts.
+- New log events: `FlexiLedger.QueryCompleted` (from, to, spanDays, debit, credit, dept, rows, elapsedMs) and
+  `Catalog.LotsRefreshCompleted` (rows, elapsedMs); timeout/cancel warnings carry `elapsedMs`.
+
+**FlexiBee-side, not fixable from Heblo:** the per-request cost of `ucetni-denik/query` over a wide date span and of
+`sarze-expirace.json`. Heblo can only call them less often or with narrower ranges.
+
+**Follow-up option:** read ledger rows from the nightly `flexi_raw.ledger_entry` copy (see
+`docs/processes/sync-flexi-analytics.md`) instead of the live API for closed periods.
+
+**Re-measure** (Application Insights, per endpoint):
+
+```kusto
+dependencies
+| where timestamp > ago(7d) and target has "flexibee.eu"
+| summarize calls=count(), failed=countif(success == false),
+            p50=percentile(duration, 50), p95=percentile(duration, 95), p99=percentile(duration, 99)
+  by name
+| order by p95 desc
+```
+
+**Decision rule:** after one release cycle, if `ucetni-denik/query` p95 is still above 10 s, close the signal as an
+accepted third-party latency ceiling instead of re-filing a fourth time.

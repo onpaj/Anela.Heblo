@@ -1,0 +1,2 @@
+# success-path-tests r1
+Added four [Fact] tests to PollyExecutionStrategyTests.cs: Execute/ExecuteAsync _SucceedsFirstAttempt_RecordsNoRetryMetrics (result, single call, no db.retry.success/failure) and Execute/ExecuteAsync _SucceedsOnSecondAttempt_RecordsRetrySuccessWithAttempts2 (TimeoutException on first call; exactly one db.retry.success of value 1 with total_attempts == 2; no failure metric). Filtered run: 5 passed, 0 failed. dotnet format clean apart from the pre-existing EF1001 warning.

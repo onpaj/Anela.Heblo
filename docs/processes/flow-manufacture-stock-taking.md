@@ -10,7 +10,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Catalog/Stock/IErpStockDomainService.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Stock/FlexiStockTakingDomainService.cs
   - backend/src/Anela.Heblo.API/Controllers/ManufactureStockTakingController.cs
-verified_at: "5e993f9e2"
+verified_at: "8161c408c"
 related:
   - feed-manufacture-to-flexi
   - calc-batch-calculation

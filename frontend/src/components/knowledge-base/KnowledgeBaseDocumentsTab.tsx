@@ -8,6 +8,7 @@ import {
   DocumentSummary,
 } from '../../api/hooks/useKnowledgeBase';
 import ChunkDetailModal from './ChunkDetailModal';
+import { getPageWindow } from './pageWindow';
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
   const colorMap: Record<string, string> = {
@@ -437,17 +438,7 @@ const KnowledgeBaseDocumentsTab: React.FC<Props> = ({ canDelete }) => {
                     <ChevronLeft className="h-3 w-3" />
                   </button>
 
-                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                    let pageNum: number;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (pageNumber <= 3) {
-                      pageNum = i + 1;
-                    } else if (pageNumber >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = pageNumber - 2 + i;
-                    }
+                  {getPageWindow(totalPages, pageNumber).map((pageNum) => {
                     return (
                       <button
                         key={pageNum}

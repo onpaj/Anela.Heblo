@@ -183,6 +183,7 @@ public class TestCatalogRepository : ICatalogRepository
     public Task RefreshAttributesData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshErpStockData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshEshopStockData(CancellationToken ct) => Task.CompletedTask;
+    public Task RefreshEshopProductData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshPurchaseHistoryData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshManufactureHistoryData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshConsumedHistoryData(CancellationToken ct) => Task.CompletedTask;
@@ -193,6 +194,7 @@ public class TestCatalogRepository : ICatalogRepository
     public Task RefreshEshopUrlData(CancellationToken ct) => Task.CompletedTask;
     public Task RefreshManufactureDifficultySettingsData(string? product, CancellationToken ct) => Task.CompletedTask;
     public Task RefreshMarginData(CancellationToken ct) => Task.CompletedTask;
+    public Task ApplyNdFlagAsync(string productCode, bool isNd) => Task.CompletedTask;
     public Task WaitForCurrentMergeAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     public Task<List<CatalogAggregate>> GetProductsWithSalesInPeriod(DateTime fromDate, DateTime toDate, ProductType[] productTypes,

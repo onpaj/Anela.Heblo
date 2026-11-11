@@ -1,0 +1,2 @@
+# add-blob-naming-helper r1
+Added `internal static class BlobNaming` (Application/Features/FileStorage/Infrastructure/BlobNaming.cs) with `ResolveBlobName`, `GetExtensionFromContentType`, `GetContentTypeFromExtension` (switch arms copied verbatim from AzureBlobStorageService). Added BlobNamingTests (32 cases, written first). `dotnet test --filter BlobNamingTests`: 32 passed. Whitespace format verified clean. AzureBlobStorageService untouched (later tasks).

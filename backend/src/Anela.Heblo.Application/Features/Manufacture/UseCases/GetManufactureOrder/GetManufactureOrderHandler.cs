@@ -30,7 +30,11 @@ public class GetManufactureOrderHandler : IRequestHandler<GetManufactureOrderReq
 
         return new GetManufactureOrderResponse
         {
-            Order = orderDto
+            Order = orderDto,
+            AvailableTransitions = Enum.GetValues<ManufactureOrderState>()
+                .Where(s => s != order.State && order.CanTransitionTo(s))
+                .OrderBy(s => (int)s)
+                .ToList()
         };
     }
 }

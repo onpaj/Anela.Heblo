@@ -3,8 +3,7 @@ using Anela.Heblo.Domain.Features.Analytics;
 namespace Anela.Heblo.Application.Features.Analytics;
 
 /// <summary>
-/// 🔒 PERFORMANCE FIX: Analytics repository with streaming capabilities
-/// Prevents memory overload by delegating to IAnalyticsProductSource
+/// Analytics repository that delegates product streaming to IAnalyticsProductSource.
 /// </summary>
 public sealed class AnalyticsRepository : IAnalyticsRepository
 {
@@ -23,8 +22,8 @@ public sealed class AnalyticsRepository : IAnalyticsRepository
     }
 
     /// <summary>
-    /// Streams products with sales to avoid memory overload
-    /// Delegates to the product source implementation
+    /// Exposes products with sales as an async stream.
+    /// Delegates to the product source implementation.
     /// </summary>
     public IAsyncEnumerable<AnalyticsProduct> StreamProductsWithSalesAsync(
         DateTime fromDate,

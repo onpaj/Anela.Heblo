@@ -2445,6 +2445,47 @@ export class ApiClient {
         return Promise.resolve<RecalculateProductWeightResponse>(null as any);
     }
 
+    catalog_SetNd(productCode: string, request: SetNdRequest): Promise<SetNdResponse> {
+        let url_ = this.baseUrl + "/api/Catalog/{productCode}/nd";
+        if (productCode === undefined || productCode === null)
+            throw new Error("The parameter 'productCode' must be defined.");
+        url_ = url_.replace("{productCode}", encodeURIComponent("" + productCode));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(request);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processCatalog_SetNd(_response);
+        });
+    }
+
+    protected processCatalog_SetNd(response: Response): Promise<SetNdResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SetNdResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SetNdResponse>(null as any);
+    }
+
     catalog_RecalculateProductWeight2(productCode: string): Promise<RecalculateProductWeightResponse> {
         let url_ = this.baseUrl + "/api/Catalog/recalculate-product-weight/{productCode}";
         if (productCode === undefined || productCode === null)
@@ -2519,7 +2560,7 @@ export class ApiClient {
         return Promise.resolve<ListCatalogDocumentsResponse>(null as any);
     }
 
-    catalogDocuments_UploadMaterialDocument(productCode: string, file: FileParameter | null | undefined, documentTypeCode: string | null | undefined, lot: string | null | undefined, commonName: string | null | undefined, uploadAsIs: boolean | undefined): Promise<UploadDocumentResponse> {
+    catalogDocuments_UploadMaterialDocument(productCode: string, file: FileParameter | null | undefined, documentTypeCode: string | null | undefined, lot: string | null | undefined, commonName: string | null | undefined, uploadAsIs: boolean | undefined): Promise<CatalogDocumentsUploadDocumentResponse> {
         let url_ = this.baseUrl + "/api/catalog-documents/materials/{productCode}";
         if (productCode === undefined || productCode === null)
             throw new Error("The parameter 'productCode' must be defined.");
@@ -2553,14 +2594,14 @@ export class ApiClient {
         });
     }
 
-    protected processCatalogDocuments_UploadMaterialDocument(response: Response): Promise<UploadDocumentResponse> {
+    protected processCatalogDocuments_UploadMaterialDocument(response: Response): Promise<CatalogDocumentsUploadDocumentResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = UploadDocumentResponse.fromJS(resultData200);
+            result200 = CatalogDocumentsUploadDocumentResponse.fromJS(resultData200);
             return result200;
             });
         } else if (status !== 200 && status !== 204) {
@@ -2568,7 +2609,7 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<UploadDocumentResponse>(null as any);
+        return Promise.resolve<CatalogDocumentsUploadDocumentResponse>(null as any);
     }
 
     catalogDocuments_ListPifDocuments(productCode: string): Promise<ListCatalogDocumentsResponse> {
@@ -2608,7 +2649,7 @@ export class ApiClient {
         return Promise.resolve<ListCatalogDocumentsResponse>(null as any);
     }
 
-    catalogDocuments_UploadPifDocument(productCode: string, file: FileParameter | null | undefined): Promise<UploadDocumentResponse> {
+    catalogDocuments_UploadPifDocument(productCode: string, file: FileParameter | null | undefined): Promise<CatalogDocumentsUploadDocumentResponse> {
         let url_ = this.baseUrl + "/api/catalog-documents/pif/{productCode}";
         if (productCode === undefined || productCode === null)
             throw new Error("The parameter 'productCode' must be defined.");
@@ -2632,14 +2673,14 @@ export class ApiClient {
         });
     }
 
-    protected processCatalogDocuments_UploadPifDocument(response: Response): Promise<UploadDocumentResponse> {
+    protected processCatalogDocuments_UploadPifDocument(response: Response): Promise<CatalogDocumentsUploadDocumentResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = UploadDocumentResponse.fromJS(resultData200);
+            result200 = CatalogDocumentsUploadDocumentResponse.fromJS(resultData200);
             return result200;
             });
         } else if (status !== 200 && status !== 204) {
@@ -2647,7 +2688,7 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<UploadDocumentResponse>(null as any);
+        return Promise.resolve<CatalogDocumentsUploadDocumentResponse>(null as any);
     }
 
     catalogDocuments_GetMaterialDocumentTypes(): Promise<GetMaterialDocumentTypesResponse> {
@@ -2878,7 +2919,7 @@ export class ApiClient {
         return Promise.resolve<DashboardTileDto[]>(null as any);
     }
 
-    dashboard_EnableTile(tileId: string): Promise<FileResponse> {
+    dashboard_EnableTile(tileId: string): Promise<EnableTileResponse> {
         let url_ = this.baseUrl + "/api/Dashboard/tiles/{tileId}/enable";
         if (tileId === undefined || tileId === null)
             throw new Error("The parameter 'tileId' must be defined.");
@@ -2888,7 +2929,7 @@ export class ApiClient {
         let options_: RequestInit = {
             method: "POST",
             headers: {
-                "Accept": "application/octet-stream"
+                "Accept": "application/json"
             }
         };
 
@@ -2897,29 +2938,25 @@ export class ApiClient {
         });
     }
 
-    protected processDashboard_EnableTile(response: Response): Promise<FileResponse> {
+    protected processDashboard_EnableTile(response: Response): Promise<EnableTileResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = EnableTileResponse.fromJS(resultData200);
+            return result200;
+            });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<FileResponse>(null as any);
+        return Promise.resolve<EnableTileResponse>(null as any);
     }
 
-    dashboard_DisableTile(tileId: string): Promise<FileResponse> {
+    dashboard_DisableTile(tileId: string): Promise<DisableTileResponse> {
         let url_ = this.baseUrl + "/api/Dashboard/tiles/{tileId}/disable";
         if (tileId === undefined || tileId === null)
             throw new Error("The parameter 'tileId' must be defined.");
@@ -2929,7 +2966,7 @@ export class ApiClient {
         let options_: RequestInit = {
             method: "POST",
             headers: {
-                "Accept": "application/octet-stream"
+                "Accept": "application/json"
             }
         };
 
@@ -2938,26 +2975,22 @@ export class ApiClient {
         });
     }
 
-    protected processDashboard_DisableTile(response: Response): Promise<FileResponse> {
+    protected processDashboard_DisableTile(response: Response): Promise<DisableTileResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
-        if (status === 200 || status === 206) {
-            const contentDisposition = response.headers ? response.headers.get("content-disposition") : undefined;
-            let fileNameMatch = contentDisposition ? /filename\*=(?:(\\?['"])(.*?)\1|(?:[^\s]+'.*?')?([^;\n]*))/g.exec(contentDisposition) : undefined;
-            let fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[3] || fileNameMatch[2] : undefined;
-            if (fileName) {
-                fileName = decodeURIComponent(fileName);
-            } else {
-                fileNameMatch = contentDisposition ? /filename="?([^"]*?)"?(;|$)/g.exec(contentDisposition) : undefined;
-                fileName = fileNameMatch && fileNameMatch.length > 1 ? fileNameMatch[1] : undefined;
-            }
-            return response.blob().then(blob => { return { fileName: fileName, data: blob, status: status, headers: _headers }; });
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = DisableTileResponse.fromJS(resultData200);
+            return result200;
+            });
         } else if (status !== 200 && status !== 204) {
             return response.text().then((_responseText) => {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<FileResponse>(null as any);
+        return Promise.resolve<DisableTileResponse>(null as any);
     }
 
     dataQuality_GetRuns(testType: DqtTestType | null | undefined, status: DqtRunStatus | null | undefined, pageNumber: number | undefined, pageSize: number | undefined): Promise<GetDqtRunsResponse> {
@@ -5691,7 +5724,7 @@ export class ApiClient {
         return Promise.resolve<SubmitFeedbackResponse>(null as any);
     }
 
-    knowledgeBase_UploadDocument(file: FileParameter | null | undefined, documentType: string | null | undefined): Promise<UploadDocumentResponse2> {
+    knowledgeBase_UploadDocument(file: FileParameter | null | undefined, documentType: string | null | undefined): Promise<KnowledgeBaseUploadDocumentResponse> {
         let url_ = this.baseUrl + "/api/KnowledgeBase/documents/upload";
         url_ = url_.replace(/[?&]$/, "");
 
@@ -5714,14 +5747,14 @@ export class ApiClient {
         });
     }
 
-    protected processKnowledgeBase_UploadDocument(response: Response): Promise<UploadDocumentResponse2> {
+    protected processKnowledgeBase_UploadDocument(response: Response): Promise<KnowledgeBaseUploadDocumentResponse> {
         const status = response.status;
         let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
         if (status === 200) {
             return response.text().then((_responseText) => {
             let result200: any = null;
             let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            result200 = UploadDocumentResponse2.fromJS(resultData200);
+            result200 = KnowledgeBaseUploadDocumentResponse.fromJS(resultData200);
             return result200;
             });
         } else if (status !== 200 && status !== 204) {
@@ -5729,7 +5762,7 @@ export class ApiClient {
             return throwException("An unexpected server error occurred.", status, _responseText, _headers);
             });
         }
-        return Promise.resolve<UploadDocumentResponse2>(null as any);
+        return Promise.resolve<KnowledgeBaseUploadDocumentResponse>(null as any);
     }
 
     labelIdentification_Identify(photo: FileParameter | null | undefined): Promise<IdentifyLabelResponse> {
@@ -14372,6 +14405,70 @@ export class ApiClient {
         return Promise.resolve<SendMessageResponse>(null as any);
     }
 
+    smartsupp_SendMessageWithAttachments(conversationId: string, content: string | null | undefined, draftLogId: string | null | undefined, files: FileParameter[] | null | undefined): Promise<SendMessageResponse> {
+        let url_ = this.baseUrl + "/api/smartsupp/conversations/{conversationId}/messages/with-attachments";
+        if (conversationId === undefined || conversationId === null)
+            throw new Error("The parameter 'conversationId' must be defined.");
+        url_ = url_.replace("{conversationId}", encodeURIComponent("" + conversationId));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = new FormData();
+        if (content !== null && content !== undefined)
+            content_.append("content", content.toString());
+        if (draftLogId !== null && draftLogId !== undefined)
+            content_.append("draftLogId", draftLogId.toString());
+        if (files !== null && files !== undefined)
+            files.forEach(item_ => content_.append("files", item_.data, item_.fileName ? item_.fileName : "files") );
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processSmartsupp_SendMessageWithAttachments(_response);
+        });
+    }
+
+    protected processSmartsupp_SendMessageWithAttachments(response: Response): Promise<SendMessageResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = SendMessageResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status === 400) {
+            return response.text().then((_responseText) => {
+            let result400: any = null;
+            let resultData400 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result400 = ProblemDetails.fromJS(resultData400);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result400);
+            });
+        } else if (status === 404) {
+            return response.text().then((_responseText) => {
+            let result404: any = null;
+            let resultData404 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result404 = ProblemDetails.fromJS(resultData404);
+            return throwException("A server side error occurred.", status, _responseText, _headers, result404);
+            });
+        } else if (status === 503) {
+            return response.text().then((_responseText) => {
+            return throwException("A server side error occurred.", status, _responseText, _headers);
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<SendMessageResponse>(null as any);
+    }
+
     smartsupp_SubmitDraftReplyFeedback(request: SubmitDraftReplyFeedbackRequest): Promise<SubmitDraftReplyFeedbackResponse> {
         let url_ = this.baseUrl + "/api/smartsupp/draft-reply/feedback";
         url_ = url_.replace(/[?&]$/, "");
@@ -16034,6 +16131,7 @@ export enum ErrorCodes {
     AbraIntegrationFailed = "AbraIntegrationFailed",
     ShoptetSyncFailed = "ShoptetSyncFailed",
     StockTakingFailed = "StockTakingFailed",
+    NdWriteFailed = "NdWriteFailed",
     TransportBoxNotFound = "TransportBoxNotFound",
     TransportBoxStateChangeError = "TransportBoxStateChangeError",
     TransportBoxCreationError = "TransportBoxCreationError",
@@ -16124,6 +16222,9 @@ export enum ErrorCodes {
     SmartsuppCloseConversationUnavailable = "SmartsuppCloseConversationUnavailable",
     SmartsuppDraftReplyFeedbackLogNotFound = "SmartsuppDraftReplyFeedbackLogNotFound",
     SmartsuppDraftReplyFeedbackAlreadySubmitted = "SmartsuppDraftReplyFeedbackAlreadySubmitted",
+    SmartsuppAttachmentInvalid = "SmartsuppAttachmentInvalid",
+    SmartsuppAttachmentTooLarge = "SmartsuppAttachmentTooLarge",
+    SmartsuppAttachmentUploadFailed = "SmartsuppAttachmentUploadFailed",
     LotNotFound = "LotNotFound",
     MaterialContainerNotFound = "MaterialContainerNotFound",
     LotAlreadyExists = "LotAlreadyExists",
@@ -19925,6 +20026,7 @@ export class CatalogItemDto implements ICatalogItemDto {
     minimalExpiration?: Date | undefined;
     hasLots?: boolean;
     lots?: LotDto[];
+    eshopFlags?: EshopFlagDto[];
 
     constructor(data?: ICatalogItemDto) {
         if (data) {
@@ -19960,6 +20062,11 @@ export class CatalogItemDto implements ICatalogItemDto {
                 this.lots = [] as any;
                 for (let item of _data["lots"])
                     this.lots!.push(LotDto.fromJS(item));
+            }
+            if (Array.isArray(_data["eshopFlags"])) {
+                this.eshopFlags = [] as any;
+                for (let item of _data["eshopFlags"])
+                    this.eshopFlags!.push(EshopFlagDto.fromJS(item));
             }
         }
     }
@@ -19997,6 +20104,11 @@ export class CatalogItemDto implements ICatalogItemDto {
             for (let item of this.lots)
                 data["lots"].push(item.toJSON());
         }
+        if (Array.isArray(this.eshopFlags)) {
+            data["eshopFlags"] = [];
+            for (let item of this.eshopFlags)
+                data["eshopFlags"].push(item.toJSON());
+        }
         return data;
     }
 }
@@ -20022,6 +20134,7 @@ export interface ICatalogItemDto {
     minimalExpiration?: Date | undefined;
     hasLots?: boolean;
     lots?: LotDto[];
+    eshopFlags?: EshopFlagDto[];
 }
 
 export enum ProductType {
@@ -20271,6 +20384,7 @@ export class PropertiesDto implements IPropertiesDto {
     batchSize?: number;
     seasonMonths?: number[];
     cooling?: Cooling;
+    isNd?: boolean;
 
     constructor(data?: IPropertiesDto) {
         if (data) {
@@ -20292,6 +20406,7 @@ export class PropertiesDto implements IPropertiesDto {
                     this.seasonMonths!.push(item);
             }
             this.cooling = _data["cooling"];
+            this.isNd = _data["isNd"];
         }
     }
 
@@ -20313,6 +20428,7 @@ export class PropertiesDto implements IPropertiesDto {
                 data["seasonMonths"].push(item);
         }
         data["cooling"] = this.cooling;
+        data["isNd"] = this.isNd;
         return data;
     }
 }
@@ -20323,6 +20439,7 @@ export interface IPropertiesDto {
     batchSize?: number;
     seasonMonths?: number[];
     cooling?: Cooling;
+    isNd?: boolean;
 }
 
 export class LotDto implements ILotDto {
@@ -20367,6 +20484,46 @@ export interface ILotDto {
     lotCode?: string | undefined;
     amount?: number;
     expiration?: Date | undefined;
+}
+
+export class EshopFlagDto implements IEshopFlagDto {
+    code?: string;
+    title?: string;
+
+    constructor(data?: IEshopFlagDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.code = _data["code"];
+            this.title = _data["title"];
+        }
+    }
+
+    static fromJS(data: any): EshopFlagDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new EshopFlagDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["code"] = this.code;
+        data["title"] = this.title;
+        return data;
+    }
+}
+
+export interface IEshopFlagDto {
+    code?: string;
+    title?: string;
 }
 
 export class GetCatalogDetailResponse extends BaseResponse implements IGetCatalogDetailResponse {
@@ -21990,6 +22147,83 @@ export interface IRecalculateProductWeightRequest {
     productCode?: string | undefined;
 }
 
+export class SetNdResponse extends BaseResponse implements ISetNdResponse {
+    productCode?: string;
+    isNd?: boolean;
+
+    constructor(data?: ISetNdResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.isNd = _data["isNd"];
+        }
+    }
+
+    static override fromJS(data: any): SetNdResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetNdResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["isNd"] = this.isNd;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface ISetNdResponse extends IBaseResponse {
+    productCode?: string;
+    isNd?: boolean;
+}
+
+export class SetNdRequest implements ISetNdRequest {
+    productCode?: string;
+    isNd?: boolean;
+
+    constructor(data?: ISetNdRequest) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.productCode = _data["productCode"];
+            this.isNd = _data["isNd"];
+        }
+    }
+
+    static fromJS(data: any): SetNdRequest {
+        data = typeof data === 'object' ? data : {};
+        let result = new SetNdRequest();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["productCode"] = this.productCode;
+        data["isNd"] = this.isNd;
+        return data;
+    }
+}
+
+export interface ISetNdRequest {
+    productCode?: string;
+    isNd?: boolean;
+}
+
 export class ListCatalogDocumentsResponse extends BaseResponse implements IListCatalogDocumentsResponse {
     folderStatus?: FolderStatus;
     expectedPrefix?: string;
@@ -22182,10 +22416,10 @@ export interface IMaterialDocumentTypeDto {
     lotRequired?: boolean;
 }
 
-export class UploadDocumentResponse extends BaseResponse implements IUploadDocumentResponse {
+export class CatalogDocumentsUploadDocumentResponse extends BaseResponse implements ICatalogDocumentsUploadDocumentResponse {
     uploadedFilename?: string;
 
-    constructor(data?: IUploadDocumentResponse) {
+    constructor(data?: ICatalogDocumentsUploadDocumentResponse) {
         super(data);
     }
 
@@ -22196,9 +22430,9 @@ export class UploadDocumentResponse extends BaseResponse implements IUploadDocum
         }
     }
 
-    static override fromJS(data: any): UploadDocumentResponse {
+    static override fromJS(data: any): CatalogDocumentsUploadDocumentResponse {
         data = typeof data === 'object' ? data : {};
-        let result = new UploadDocumentResponse();
+        let result = new CatalogDocumentsUploadDocumentResponse();
         result.init(data);
         return result;
     }
@@ -22211,7 +22445,7 @@ export class UploadDocumentResponse extends BaseResponse implements IUploadDocum
     }
 }
 
-export interface IUploadDocumentResponse extends IBaseResponse {
+export interface ICatalogDocumentsUploadDocumentResponse extends IBaseResponse {
     uploadedFilename?: string;
 }
 
@@ -22470,6 +22704,60 @@ export class SaveUserSettingsRequest implements ISaveUserSettingsRequest {
 
 export interface ISaveUserSettingsRequest {
     tiles?: UserDashboardTileDto[];
+}
+
+export class EnableTileResponse extends BaseResponse implements IEnableTileResponse {
+
+    constructor(data?: IEnableTileResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): EnableTileResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new EnableTileResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IEnableTileResponse extends IBaseResponse {
+}
+
+export class DisableTileResponse extends BaseResponse implements IDisableTileResponse {
+
+    constructor(data?: IDisableTileResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+    }
+
+    static override fromJS(data: any): DisableTileResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new DisableTileResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IDisableTileResponse extends IBaseResponse {
 }
 
 export class GetDqtRunsResponse extends BaseResponse implements IGetDqtRunsResponse {
@@ -27588,10 +27876,10 @@ export interface ISubmitFeedbackRequest {
     comment?: string | undefined;
 }
 
-export class UploadDocumentResponse2 extends BaseResponse implements IUploadDocumentResponse2 {
+export class KnowledgeBaseUploadDocumentResponse extends BaseResponse implements IKnowledgeBaseUploadDocumentResponse {
     document?: DocumentSummary | undefined;
 
-    constructor(data?: IUploadDocumentResponse2) {
+    constructor(data?: IKnowledgeBaseUploadDocumentResponse) {
         super(data);
     }
 
@@ -27602,9 +27890,9 @@ export class UploadDocumentResponse2 extends BaseResponse implements IUploadDocu
         }
     }
 
-    static override fromJS(data: any): UploadDocumentResponse2 {
+    static override fromJS(data: any): KnowledgeBaseUploadDocumentResponse {
         data = typeof data === 'object' ? data : {};
-        let result = new UploadDocumentResponse2();
+        let result = new KnowledgeBaseUploadDocumentResponse();
         result.init(data);
         return result;
     }
@@ -27617,7 +27905,7 @@ export class UploadDocumentResponse2 extends BaseResponse implements IUploadDocu
     }
 }
 
-export interface IUploadDocumentResponse2 extends IBaseResponse {
+export interface IKnowledgeBaseUploadDocumentResponse extends IBaseResponse {
     document?: DocumentSummary | undefined;
 }
 
@@ -30423,6 +30711,7 @@ export class BatchPlanItemDto implements IBatchPlanItemDto {
     wasOptimized?: boolean;
     optimizationNote?: string;
     enabled?: boolean;
+    isNd?: boolean;
 
     constructor(data?: IBatchPlanItemDto) {
         if (data) {
@@ -30452,6 +30741,7 @@ export class BatchPlanItemDto implements IBatchPlanItemDto {
             this.wasOptimized = _data["wasOptimized"];
             this.optimizationNote = _data["optimizationNote"];
             this.enabled = _data["enabled"];
+            this.isNd = _data["isNd"];
         }
     }
 
@@ -30481,6 +30771,7 @@ export class BatchPlanItemDto implements IBatchPlanItemDto {
         data["wasOptimized"] = this.wasOptimized;
         data["optimizationNote"] = this.optimizationNote;
         data["enabled"] = this.enabled;
+        data["isNd"] = this.isNd;
         return data;
     }
 }
@@ -30503,6 +30794,7 @@ export interface IBatchPlanItemDto {
     wasOptimized?: boolean;
     optimizationNote?: string;
     enabled?: boolean;
+    isNd?: boolean;
 }
 
 export class BatchPlanSummaryDto implements IBatchPlanSummaryDto {
@@ -30589,6 +30881,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
     toDate?: Date | undefined;
     timePeriod?: TimePeriod | undefined;
     salesMultiplier?: number | undefined;
+    ndCoverageFactor?: number | undefined;
     controlMode?: BatchPlanControlMode;
     mmqMultiplier?: number | undefined;
     totalWeightToUse?: number | undefined;
@@ -30613,6 +30906,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
             this.toDate = _data["toDate"] ? new Date(_data["toDate"].toString()) : <any>undefined;
             this.timePeriod = _data["timePeriod"];
             this.salesMultiplier = _data["salesMultiplier"];
+            this.ndCoverageFactor = _data["ndCoverageFactor"];
             this.controlMode = _data["controlMode"];
             this.mmqMultiplier = _data["mmqMultiplier"];
             this.totalWeightToUse = _data["totalWeightToUse"];
@@ -30641,6 +30935,7 @@ export class CalculateBatchPlanRequest implements ICalculateBatchPlanRequest {
         data["toDate"] = this.toDate ? this.toDate.toISOString() : <any>undefined;
         data["timePeriod"] = this.timePeriod;
         data["salesMultiplier"] = this.salesMultiplier;
+        data["ndCoverageFactor"] = this.ndCoverageFactor;
         data["controlMode"] = this.controlMode;
         data["mmqMultiplier"] = this.mmqMultiplier;
         data["totalWeightToUse"] = this.totalWeightToUse;
@@ -30662,6 +30957,7 @@ export interface ICalculateBatchPlanRequest {
     toDate?: Date | undefined;
     timePeriod?: TimePeriod | undefined;
     salesMultiplier?: number | undefined;
+    ndCoverageFactor?: number | undefined;
     controlMode?: BatchPlanControlMode;
     mmqMultiplier?: number | undefined;
     totalWeightToUse?: number | undefined;
@@ -31618,6 +31914,7 @@ export interface IManufactureOrderConditionsReadingDto {
 
 export class GetManufactureOrderResponse extends BaseResponse implements IGetManufactureOrderResponse {
     order?: ManufactureOrderDto | undefined;
+    availableTransitions?: ManufactureOrderState[];
 
     constructor(data?: IGetManufactureOrderResponse) {
         super(data);
@@ -31627,6 +31924,11 @@ export class GetManufactureOrderResponse extends BaseResponse implements IGetMan
         super.init(_data);
         if (_data) {
             this.order = _data["order"] ? ManufactureOrderDto.fromJS(_data["order"]) : <any>undefined;
+            if (Array.isArray(_data["availableTransitions"])) {
+                this.availableTransitions = [] as any;
+                for (let item of _data["availableTransitions"])
+                    this.availableTransitions!.push(item);
+            }
         }
     }
 
@@ -31640,6 +31942,11 @@ export class GetManufactureOrderResponse extends BaseResponse implements IGetMan
     override toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["order"] = this.order ? this.order.toJSON() : <any>undefined;
+        if (Array.isArray(this.availableTransitions)) {
+            data["availableTransitions"] = [];
+            for (let item of this.availableTransitions)
+                data["availableTransitions"].push(item);
+        }
         super.toJSON(data);
         return data;
     }
@@ -31647,6 +31954,7 @@ export class GetManufactureOrderResponse extends BaseResponse implements IGetMan
 
 export interface IGetManufactureOrderResponse extends IBaseResponse {
     order?: ManufactureOrderDto | undefined;
+    availableTransitions?: ManufactureOrderState[];
 }
 
 export class CreateManufactureOrderResponse extends BaseResponse implements ICreateManufactureOrderResponse {
@@ -33359,6 +33667,7 @@ export class ProductContribution implements IProductContribution {
     quantity?: number;
     difficulty?: number;
     weightedValue?: number;
+    isNd?: boolean;
 
     constructor(data?: IProductContribution) {
         if (data) {
@@ -33376,6 +33685,7 @@ export class ProductContribution implements IProductContribution {
             this.quantity = _data["quantity"];
             this.difficulty = _data["difficulty"];
             this.weightedValue = _data["weightedValue"];
+            this.isNd = _data["isNd"];
         }
     }
 
@@ -33393,6 +33703,7 @@ export class ProductContribution implements IProductContribution {
         data["quantity"] = this.quantity;
         data["difficulty"] = this.difficulty;
         data["weightedValue"] = this.weightedValue;
+        data["isNd"] = this.isNd;
         return data;
     }
 }
@@ -33403,6 +33714,7 @@ export interface IProductContribution {
     quantity?: number;
     difficulty?: number;
     weightedValue?: number;
+    isNd?: boolean;
 }
 
 export class ProductionDetail implements IProductionDetail {
@@ -33873,6 +34185,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
     productFamily?: string | undefined;
     severity?: ManufacturingStockSeverity;
     isConfigured?: boolean;
+    isNd?: boolean;
 
     constructor(data?: IManufacturingStockItemDto) {
         if (data) {
@@ -33907,6 +34220,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
             this.productFamily = _data["productFamily"];
             this.severity = _data["severity"];
             this.isConfigured = _data["isConfigured"];
+            this.isNd = _data["isNd"];
         }
     }
 
@@ -33941,6 +34255,7 @@ export class ManufacturingStockItemDto implements IManufacturingStockItemDto {
         data["productFamily"] = this.productFamily;
         data["severity"] = this.severity;
         data["isConfigured"] = this.isConfigured;
+        data["isNd"] = this.isNd;
         return data;
     }
 }
@@ -33968,6 +34283,7 @@ export interface IManufacturingStockItemDto {
     productFamily?: string | undefined;
     severity?: ManufacturingStockSeverity;
     isConfigured?: boolean;
+    isNd?: boolean;
 }
 
 export enum ManufacturingStockSeverity {
@@ -36616,10 +36932,10 @@ export interface IMarketingFolderLinkRequest {
 }
 
 export enum MarketingFolderType {
-    General = "General",
-    Seasonal = "Seasonal",
-    ProductLine = "ProductLine",
-    Campaign = "Campaign",
+    Images = "Images",
+    Texts = "Texts",
+    Videos = "Videos",
+    Graphics = "Graphics",
     Other = "Other",
 }
 
@@ -37989,7 +38305,7 @@ export class MeetingTranscriptDto implements IMeetingTranscriptDto {
     plaudRecordingId?: string;
     plaudCreatedAt?: Date;
     subject?: string;
-    summary?: string;
+    summary?: string | undefined;
     rawTranscript?: string;
     status?: string;
     receivedAt?: Date;
@@ -38093,7 +38409,7 @@ export interface IMeetingTranscriptDto {
     plaudRecordingId?: string;
     plaudCreatedAt?: Date;
     subject?: string;
-    summary?: string;
+    summary?: string | undefined;
     rawTranscript?: string;
     status?: string;
     receivedAt?: Date;
@@ -41072,6 +41388,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
     ordersBeingProcessedCount?: number | undefined;
     ordersBeingPackedCountLastSync?: Date | undefined;
     totalOrdersPackedToday?: number;
+    canViewPackerBreakdown?: boolean;
     packedByPacker?: PackerStatsDto[];
 
     constructor(data?: IGetPackingDashboardResponse) {
@@ -41085,6 +41402,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
             this.ordersBeingProcessedCount = _data["ordersBeingProcessedCount"];
             this.ordersBeingPackedCountLastSync = _data["ordersBeingPackedCountLastSync"] ? new Date(_data["ordersBeingPackedCountLastSync"].toString()) : <any>undefined;
             this.totalOrdersPackedToday = _data["totalOrdersPackedToday"];
+            this.canViewPackerBreakdown = _data["canViewPackerBreakdown"];
             if (Array.isArray(_data["packedByPacker"])) {
                 this.packedByPacker = [] as any;
                 for (let item of _data["packedByPacker"])
@@ -41106,6 +41424,7 @@ export class GetPackingDashboardResponse extends BaseResponse implements IGetPac
         data["ordersBeingProcessedCount"] = this.ordersBeingProcessedCount;
         data["ordersBeingPackedCountLastSync"] = this.ordersBeingPackedCountLastSync ? this.ordersBeingPackedCountLastSync.toISOString() : <any>undefined;
         data["totalOrdersPackedToday"] = this.totalOrdersPackedToday;
+        data["canViewPackerBreakdown"] = this.canViewPackerBreakdown;
         if (Array.isArray(this.packedByPacker)) {
             data["packedByPacker"] = [];
             for (let item of this.packedByPacker)
@@ -41121,6 +41440,7 @@ export interface IGetPackingDashboardResponse extends IBaseResponse {
     ordersBeingProcessedCount?: number | undefined;
     ordersBeingPackedCountLastSync?: Date | undefined;
     totalOrdersPackedToday?: number;
+    canViewPackerBreakdown?: boolean;
     packedByPacker?: PackerStatsDto[];
 }
 
@@ -41172,6 +41492,7 @@ export class GetPackingStatisticsResponse extends BaseResponse implements IGetPa
     fromDate?: Date;
     toDate?: Date;
     packerAttributionSince?: Date | undefined;
+    canViewPackerBreakdown?: boolean;
     summary?: PackingStatisticsSummaryDto;
     throughputDaily?: DailyThroughputDto[];
     hourHeatmap?: HourBucketDto[];
@@ -41189,6 +41510,7 @@ export class GetPackingStatisticsResponse extends BaseResponse implements IGetPa
             this.fromDate = _data["fromDate"] ? new Date(_data["fromDate"].toString()) : <any>undefined;
             this.toDate = _data["toDate"] ? new Date(_data["toDate"].toString()) : <any>undefined;
             this.packerAttributionSince = _data["packerAttributionSince"] ? new Date(_data["packerAttributionSince"].toString()) : <any>undefined;
+            this.canViewPackerBreakdown = _data["canViewPackerBreakdown"];
             this.summary = _data["summary"] ? PackingStatisticsSummaryDto.fromJS(_data["summary"]) : <any>undefined;
             if (Array.isArray(_data["throughputDaily"])) {
                 this.throughputDaily = [] as any;
@@ -41230,6 +41552,7 @@ export class GetPackingStatisticsResponse extends BaseResponse implements IGetPa
         data["fromDate"] = this.fromDate ? this.fromDate.toISOString() : <any>undefined;
         data["toDate"] = this.toDate ? this.toDate.toISOString() : <any>undefined;
         data["packerAttributionSince"] = this.packerAttributionSince ? this.packerAttributionSince.toISOString() : <any>undefined;
+        data["canViewPackerBreakdown"] = this.canViewPackerBreakdown;
         data["summary"] = this.summary ? this.summary.toJSON() : <any>undefined;
         if (Array.isArray(this.throughputDaily)) {
             data["throughputDaily"] = [];
@@ -41265,6 +41588,7 @@ export interface IGetPackingStatisticsResponse extends IBaseResponse {
     fromDate?: Date;
     toDate?: Date;
     packerAttributionSince?: Date | undefined;
+    canViewPackerBreakdown?: boolean;
     summary?: PackingStatisticsSummaryDto;
     throughputDaily?: DailyThroughputDto[];
     hourHeatmap?: HourBucketDto[];
@@ -41558,6 +41882,7 @@ export class GetPackagesResponse extends BaseResponse implements IGetPackagesRes
     totalCount?: number;
     pageNumber?: number;
     pageSize?: number;
+    canViewPackerBreakdown?: boolean;
 
     constructor(data?: IGetPackagesResponse) {
         super(data);
@@ -41574,6 +41899,7 @@ export class GetPackagesResponse extends BaseResponse implements IGetPackagesRes
             this.totalCount = _data["totalCount"];
             this.pageNumber = _data["pageNumber"];
             this.pageSize = _data["pageSize"];
+            this.canViewPackerBreakdown = _data["canViewPackerBreakdown"];
         }
     }
 
@@ -41594,6 +41920,7 @@ export class GetPackagesResponse extends BaseResponse implements IGetPackagesRes
         data["totalCount"] = this.totalCount;
         data["pageNumber"] = this.pageNumber;
         data["pageSize"] = this.pageSize;
+        data["canViewPackerBreakdown"] = this.canViewPackerBreakdown;
         super.toJSON(data);
         return data;
     }
@@ -41604,6 +41931,7 @@ export interface IGetPackagesResponse extends IBaseResponse {
     totalCount?: number;
     pageNumber?: number;
     pageSize?: number;
+    canViewPackerBreakdown?: boolean;
 }
 
 export class PackageDto implements IPackageDto {
@@ -45921,8 +46249,8 @@ export interface IPurchaseOrderHistoryDto {
 
 export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
     supplierId!: number;
-    orderDate!: string;
-    expectedDeliveryDate?: string | undefined;
+    orderDate?: Date;
+    expectedDeliveryDate?: Date | undefined;
     contactVia?: ContactVia | undefined;
     notes?: string | undefined;
     orderNumber?: string | undefined;
@@ -45940,8 +46268,8 @@ export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
     init(_data?: any) {
         if (_data) {
             this.supplierId = _data["supplierId"];
-            this.orderDate = _data["orderDate"];
-            this.expectedDeliveryDate = _data["expectedDeliveryDate"];
+            this.orderDate = _data["orderDate"] ? new Date(_data["orderDate"].toString()) : <any>undefined;
+            this.expectedDeliveryDate = _data["expectedDeliveryDate"] ? new Date(_data["expectedDeliveryDate"].toString()) : <any>undefined;
             this.contactVia = _data["contactVia"];
             this.notes = _data["notes"];
             this.orderNumber = _data["orderNumber"];
@@ -45963,8 +46291,8 @@ export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
         data["supplierId"] = this.supplierId;
-        data["orderDate"] = this.orderDate;
-        data["expectedDeliveryDate"] = this.expectedDeliveryDate;
+        data["orderDate"] = this.orderDate ? this.orderDate.toISOString() : <any>undefined;
+        data["expectedDeliveryDate"] = this.expectedDeliveryDate ? this.expectedDeliveryDate.toISOString() : <any>undefined;
         data["contactVia"] = this.contactVia;
         data["notes"] = this.notes;
         data["orderNumber"] = this.orderNumber;
@@ -45979,8 +46307,8 @@ export class CreatePurchaseOrderRequest implements ICreatePurchaseOrderRequest {
 
 export interface ICreatePurchaseOrderRequest {
     supplierId: number;
-    orderDate: string;
-    expectedDeliveryDate?: string | undefined;
+    orderDate?: Date;
+    expectedDeliveryDate?: Date | undefined;
     contactVia?: ContactVia | undefined;
     notes?: string | undefined;
     orderNumber?: string | undefined;
@@ -48433,6 +48761,7 @@ export class MessageDto implements IMessageDto {
     responseTime?: number | undefined;
     isFirstReply?: boolean;
     pageUrl?: string | undefined;
+    attachments?: MessageAttachmentDto[];
 
     constructor(data?: IMessageDto) {
         if (data) {
@@ -48457,6 +48786,11 @@ export class MessageDto implements IMessageDto {
             this.responseTime = _data["responseTime"];
             this.isFirstReply = _data["isFirstReply"];
             this.pageUrl = _data["pageUrl"];
+            if (Array.isArray(_data["attachments"])) {
+                this.attachments = [] as any;
+                for (let item of _data["attachments"])
+                    this.attachments!.push(MessageAttachmentDto.fromJS(item));
+            }
         }
     }
 
@@ -48481,6 +48815,11 @@ export class MessageDto implements IMessageDto {
         data["responseTime"] = this.responseTime;
         data["isFirstReply"] = this.isFirstReply;
         data["pageUrl"] = this.pageUrl;
+        if (Array.isArray(this.attachments)) {
+            data["attachments"] = [];
+            for (let item of this.attachments)
+                data["attachments"].push(item.toJSON());
+        }
         return data;
     }
 }
@@ -48498,6 +48837,63 @@ export interface IMessageDto {
     responseTime?: number | undefined;
     isFirstReply?: boolean;
     pageUrl?: string | undefined;
+    attachments?: MessageAttachmentDto[];
+}
+
+export class MessageAttachmentDto implements IMessageAttachmentDto {
+    type?: string;
+    fileName?: string;
+    fileType?: string | undefined;
+    url?: string;
+    size?: number | undefined;
+    thumbUrl?: string | undefined;
+
+    constructor(data?: IMessageAttachmentDto) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.type = _data["type"];
+            this.fileName = _data["fileName"];
+            this.fileType = _data["fileType"];
+            this.url = _data["url"];
+            this.size = _data["size"];
+            this.thumbUrl = _data["thumbUrl"];
+        }
+    }
+
+    static fromJS(data: any): MessageAttachmentDto {
+        data = typeof data === 'object' ? data : {};
+        let result = new MessageAttachmentDto();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["type"] = this.type;
+        data["fileName"] = this.fileName;
+        data["fileType"] = this.fileType;
+        data["url"] = this.url;
+        data["size"] = this.size;
+        data["thumbUrl"] = this.thumbUrl;
+        return data;
+    }
+}
+
+export interface IMessageAttachmentDto {
+    type?: string;
+    fileName?: string;
+    fileType?: string | undefined;
+    url?: string;
+    size?: number | undefined;
+    thumbUrl?: string | undefined;
 }
 
 export class GenerateDraftReplyResponse extends BaseResponse implements IGenerateDraftReplyResponse {

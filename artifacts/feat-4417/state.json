@@ -1,0 +1,46 @@
+{
+  "feature_id": "feat-4417",
+  "issue_number": 4417,
+  "created_at": "2026-10-21T11:15:54.976693Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-21T11:16:46.669749Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-21T11:16:47.214304Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-21T11:16:47.719316Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-24T09:10:03.723977Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-24T09:44:55.045365Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-24T12:14:06.394234Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "handler-propagate-exceptions",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-24T09:44:55.212382Z"
+    },
+    {
+      "name": "process-docs-check",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-24T11:14:10.377702Z"
+    }
+  ]
+}

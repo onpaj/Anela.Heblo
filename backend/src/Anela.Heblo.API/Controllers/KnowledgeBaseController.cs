@@ -148,16 +148,16 @@ public class KnowledgeBaseController : BaseApiController
 
     [HttpPost("documents/upload")]
     [FeatureAuthorize(Feature.Customer_KnowledgeBase, AccessLevel.Write)]
-    public async Task<ActionResult<UploadDocumentResponse>> UploadDocument(
+    public async Task<ActionResult<KnowledgeBaseUploadDocumentResponse>> UploadDocument(
         IFormFile file,
         [FromForm] string documentType = "KnowledgeBase",
         CancellationToken ct = default)
     {
         if (file is null)
-            return BadRequest(new UploadDocumentResponse { Success = false });
+            return BadRequest(new KnowledgeBaseUploadDocumentResponse { Success = false });
 
         if (!Enum.TryParse<DocumentType>(documentType, ignoreCase: true, out var parsedDocumentType))
-            return BadRequest(new UploadDocumentResponse { Success = false });
+            return BadRequest(new KnowledgeBaseUploadDocumentResponse { Success = false });
 
         await using var stream = file.OpenReadStream();
         using var ms = new MemoryStream();

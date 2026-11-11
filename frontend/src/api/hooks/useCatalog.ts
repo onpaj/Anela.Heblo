@@ -43,6 +43,7 @@ export interface GetCatalogListRequest {
   sortDescending?: boolean;
   productName?: string;
   productCode?: string;
+  isNd?: boolean;
 }
 
 export interface GetCatalogListResponse {
@@ -82,6 +83,9 @@ const fetchCatalogList = async (
   }
   if (params.productCode) {
     searchParams.append("productCode", params.productCode);
+  }
+  if (params.isNd !== undefined) {
+    searchParams.append("isNd", params.isNd.toString());
   }
 
   const relativeUrl = `/api/catalog${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
@@ -128,6 +132,7 @@ export const useCatalogQuery = (
   pageSize: number = 20,
   sortBy?: string,
   sortDescending: boolean = false,
+  isNdFilter: boolean = false,
 ) => {
   const params: GetCatalogListRequest = {
     pageNumber,
@@ -140,6 +145,7 @@ export const useCatalogQuery = (
     sortDescending,
     productName: productNameFilter || undefined,
     productCode: productCodeFilter || undefined,
+    isNd: isNdFilter ? true : undefined,
   };
 
   return useQuery({
@@ -150,6 +156,7 @@ export const useCatalogQuery = (
         productNameFilter,
         productCodeFilter,
         productTypeFilter,
+        isNdFilter,
         pageNumber,
         pageSize,
         sortBy,

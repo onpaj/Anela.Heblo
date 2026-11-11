@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 using Anela.Heblo.Application.Features.Dashboard.Contracts;
-using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
+using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
 using Anela.Heblo.Domain.Features.Authorization;
 using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Xcc.Services.Dashboard;
@@ -12,7 +12,7 @@ namespace Anela.Heblo.Application.Features.Dashboard.UseCases.GetTileData;
 
 public class GetTileDataHandler : IRequestHandler<GetTileDataRequest, GetTileDataResponse>
 {
-    private readonly IMediator _mediator;
+    private readonly IUserDashboardSettingsReader _settingsReader;
     private readonly ITileRegistry _tileRegistry;
     private readonly DashboardOptions _dashboardOptions;
     private readonly ILogger<GetTileDataHandler> _logger;
@@ -20,14 +20,14 @@ public class GetTileDataHandler : IRequestHandler<GetTileDataRequest, GetTileDat
     private readonly IPermissionResolver _permissionResolver;
 
     public GetTileDataHandler(
-        IMediator mediator,
+        IUserDashboardSettingsReader settingsReader,
         ITileRegistry tileRegistry,
         IOptions<DashboardOptions> dashboardOptions,
         ILogger<GetTileDataHandler> logger,
         ICurrentUserService currentUserService,
         IPermissionResolver permissionResolver)
     {
-        _mediator = mediator;
+        _settingsReader = settingsReader;
         _tileRegistry = tileRegistry;
         _dashboardOptions = dashboardOptions.Value;
         _logger = logger;
@@ -37,11 +37,11 @@ public class GetTileDataHandler : IRequestHandler<GetTileDataRequest, GetTileDat
 
     public async Task<GetTileDataResponse> Handle(GetTileDataRequest request, CancellationToken cancellationToken)
     {
-        var settingsResponse = await _mediator.Send(
-            new GetUserSettingsRequest(),
-            cancellationToken);
+        var currentUserId = _currentUserService.GetCurrentUser().Id;
+        var settingsUserId = string.IsNullOrEmpty(currentUserId) ? "anonymous" : currentUserId;
+        var settings = await _settingsReader.GetEffectiveSettingsAsync(settingsUserId, cancellationToken);
 
-        var visibleTiles = settingsResponse.Settings.Tiles
+        var visibleTiles = settings.Tiles
             .Where(t => t.IsVisible)
             .OrderBy(t => t.DisplayOrder)
             .ToList();

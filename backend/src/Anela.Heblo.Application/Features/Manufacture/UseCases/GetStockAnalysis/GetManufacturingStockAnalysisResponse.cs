@@ -60,6 +60,8 @@ public class ManufacturingStockItemDto
     public ManufacturingStockSeverity Severity { get; set; }
 
     public bool IsConfigured { get; set; }
+
+    public bool IsNd { get; set; }
 }
 
 public class ManufacturingStockSummaryDto

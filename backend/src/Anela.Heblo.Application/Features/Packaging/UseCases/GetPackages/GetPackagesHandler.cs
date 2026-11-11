@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.Logistics;
 using Anela.Heblo.Domain.Features.Packaging;
+using Anela.Heblo.Domain.Features.Users;
 using MediatR;
 
 namespace Anela.Heblo.Application.Features.Packaging.UseCases.GetPackages;
@@ -8,11 +9,16 @@ public class GetPackagesHandler : IRequestHandler<GetPackagesRequest, GetPackage
 {
     private readonly IPackageRepository _repo;
     private readonly IShippingMethodCatalog _shippingCatalog;
+    private readonly ICurrentUserService _currentUserService;
 
-    public GetPackagesHandler(IPackageRepository repo, IShippingMethodCatalog shippingCatalog)
+    public GetPackagesHandler(
+        IPackageRepository repo,
+        IShippingMethodCatalog shippingCatalog,
+        ICurrentUserService currentUserService)
     {
         _repo = repo;
         _shippingCatalog = shippingCatalog;
+        _currentUserService = currentUserService;
     }
 
     public async Task<GetPackagesResponse> Handle(GetPackagesRequest request, CancellationToken cancellationToken)
@@ -39,8 +45,12 @@ public class GetPackagesHandler : IRequestHandler<GetPackagesRequest, GetPackage
             request.SortDescending,
             cancellationToken);
 
+        // Who packed each package would let anyone rebuild the per-packer counts, so it is gated too.
+        var canViewPackerBreakdown = PackerStatisticsAccess.CanViewBreakdown(_currentUserService);
+
         return new GetPackagesResponse
         {
+            CanViewPackerBreakdown = canViewPackerBreakdown,
             Items = items.Select(p => new PackageDto
             {
                 Id = p.Id,
@@ -52,8 +62,8 @@ public class GetPackagesHandler : IRequestHandler<GetPackagesRequest, GetPackage
                 ShippingProviderName = _shippingCatalog.ResolveCarrier(p.ShippingProviderCode)?.GetDisplayName()
                     ?? p.ShippingProviderName,
                 PackedAt = p.PackedAt,
-                PackedBy = p.PackedBy,
-                PackedByUserId = p.PackedByUserId,
+                PackedBy = canViewPackerBreakdown ? p.PackedBy : null,
+                PackedByUserId = canViewPackerBreakdown ? p.PackedByUserId : null,
             }).ToList(),
             TotalCount = total,
             PageNumber = request.PageNumber,

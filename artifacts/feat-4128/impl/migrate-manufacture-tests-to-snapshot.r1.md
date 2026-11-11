@@ -1,0 +1,8 @@
+# Implementation: migrate-manufacture-tests-to-snapshot (r1)
+
+- Migrated Manufacture tests (BatchPlanningService, CalculateBatchBy{Ingredient,Size,Plan}, CalculatedBatchSize LastStockTaking, CreateManufactureOrder x2, GetManufactureOutput, GetManufacturingStockAnalysis, GetSemiproductRecipePdf, ManufactureInventoryWriteDown, SubmitManufactureStockTaking, GetManufactureStockTakingHistory, ResidueDistributionCalculator, ConsumptionRateCalculator, ManufactureAnalysisMapper, ManufactureSeverityCalculator, ProductionActivityAnalyzer) from CatalogAggregate and Catalog record types to ProductCatalogSnapshot and the snapshot record types / ProductKind / StockTakingKind / StockSourceKind. Assertions unchanged.
+- Fixtures use direct snapshot object initializers (same shape as the former aggregate initializers); ProductCatalogSnapshotBuilder extended with ManufactureDifficulty and ManufactureHistory.
+- GetManufactureOutput: ManufactureDifficultySettings.Assign replaced by ManufactureDifficulty = 3 / 1 (same values the aggregate resolved).
+- BatchPlanning: Stock.Planned mutation replaced by WithPlanned/ReplaceStock helpers (init-only DTO).
+- CatalogManufactureCatalogSourceAdapterTests now assert mapped snapshots instead of same-instance passthrough.
+- Verification: test project builds; Manufacture + Catalog tests pass (1724) except 4 Docker/Testcontainers integration tests (environment) and ModuleBoundariesTests Catalog->Manufacture, which now reports the intended Catalog-side references to Manufacture.Contracts; the allowlist/rule update belongs to task shrink-module-boundaries-allowlist-and-docs.

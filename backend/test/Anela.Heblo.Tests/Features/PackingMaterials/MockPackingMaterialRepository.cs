@@ -184,8 +184,13 @@ public class MockPackingMaterialRepository : IPackingMaterialRepository
     public Dictionary<DateOnly, List<PackingMaterialConsumption>> ConsumptionRowsByDate { get; } = new();
     public List<PackingMaterialDailyRun> AddedDailyRuns { get; } = new();
 
+    public int GetAllWithAllocationsCallCount { get; private set; }
+
     public Task<IEnumerable<PackingMaterial>> GetAllWithAllocationsAsync(CancellationToken cancellationToken = default)
-        => Task.FromResult<IEnumerable<PackingMaterial>>(_materials);
+    {
+        GetAllWithAllocationsCallCount++;
+        return Task.FromResult<IEnumerable<PackingMaterial>>(_materials);
+    }
 
     public Task<PackingMaterial?> GetByIdWithAllocationsAsync(int id, CancellationToken cancellationToken = default)
         => Task.FromResult(_materials.FirstOrDefault(m => m.Id == id));

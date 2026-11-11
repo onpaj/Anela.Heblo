@@ -63,6 +63,7 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddScoped<IErpStockDomainService, FlexiStockTakingDomainService>();
 
         services.AddSingleton<ICatalogAttributesClient, FlexiProductAttributesQueryClient>();
+        services.AddSingleton<ICatalogNdWriter, FlexiNdWriter>();
         services.AddSingleton<ICatalogSalesClient, FlexiCatalogSalesClient>();
         services.AddSingleton<ICatalogSetPartsClient, FlexiCatalogSetPartsClient>();
         services.AddSingleton<IConsumedMaterialsClient, FlexiConsumedMaterialsQueryClient>();
@@ -82,6 +83,7 @@ public static class FlexiAdapterServiceCollectionExtensions
         services.AddSingleton<ISeasonalDataParser, SeasonalDataParser>();
 
         services.AddSingleton<ILedgerService, LedgerService>();
+        services.Configure<FlexiLedgerOptions>(configuration.GetSection(FlexiLedgerOptions.SectionName));
         services.AddSingleton<IManufactureTemplateCache, ManufactureTemplateCache>();
         services.AddScoped<IFlexiManufactureTemplateService, FlexiManufactureTemplateService>();
         services.AddScoped<IFefoConsumptionAllocator, FefoConsumptionAllocator>();

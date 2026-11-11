@@ -46,6 +46,17 @@ public class RunDqtHandlerTests
             NullLogger<RunDqtHandler>.Instance);
     }
 
+    // Polls instead of a fixed delay: the fire-and-forget Task.Run can be scheduled late on a loaded CI host.
+    private static async Task WaitForInvocationAsync(Mock<IDqtJobRunner> runnerMock)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        while (DateTime.UtcNow < deadline
+               && !runnerMock.Invocations.Any(i => i.Method.Name == nameof(IDqtJobRunner.RunAsync)))
+        {
+            await Task.Delay(10);
+        }
+    }
+
     [Fact]
     public async Task Handle_ValidRequest_SavesRunAndReturnsId()
     {
@@ -158,7 +169,7 @@ public class RunDqtHandlerTests
 
         // Act
         await _sut.Handle(request, CancellationToken.None);
-        await Task.Delay(100); // allow the fire-and-forget Task.Run to execute
+        await WaitForInvocationAsync(_invoiceJobRunnerMock); // allow the fire-and-forget Task.Run to execute
 
         // Assert
         _invoiceJobRunnerMock.Verify(j => j.RunAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Once);
@@ -183,7 +194,7 @@ public class RunDqtHandlerTests
 
         // Act
         await _sut.Handle(request, CancellationToken.None);
-        await Task.Delay(100); // allow the fire-and-forget Task.Run to execute
+        await WaitForInvocationAsync(_driftJobRunnerMock); // allow the fire-and-forget Task.Run to execute
 
         // Assert
         _driftJobRunnerMock.Verify(j => j.RunAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Once);

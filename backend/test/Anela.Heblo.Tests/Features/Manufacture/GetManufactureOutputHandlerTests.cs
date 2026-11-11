@@ -99,6 +99,35 @@ public class GetManufactureOutputHandlerTests
     }
 
     [Fact]
+    public async Task Handle_ProductFlaggedAsTop_MarksOnlyThatProductAsTop()
+    {
+        // Arrange
+        var request = new GetManufactureOutputRequest { MonthsBack = 3 };
+        var catalogItems = CreateTestCatalogItems();
+        catalogItems[0] = new ProductCatalogSnapshot
+        {
+            ProductCode = catalogItems[0].ProductCode,
+            ProductName = catalogItems[0].ProductName,
+            Type = ProductKind.Product,
+            ManufactureDifficulty = 3,
+            Properties = new ProductPropertiesSnapshot { IsNd = true }
+        };
+
+        _manufactureHistoryClientMock.Setup(x => x.GetHistoryAsync(It.IsAny<DateTime>(), It.IsAny<DateTime>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTestManufactureHistory());
+        _catalogRepositoryMock.Setup(x => x.GetAllAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(catalogItems);
+
+        // Act
+        var response = await _handler.Handle(request, CancellationToken.None);
+
+        // Assert
+        var products = response.Months.SelectMany(m => m.Products).ToList();
+        products.Should().Contain(p => p.ProductCode == "PRD001" && p.IsNd);
+        products.Where(p => p.ProductCode == "PRD002").Should().OnlyContain(p => !p.IsNd);
+    }
+
+    [Fact]
     public async Task Handle_NullHistoryFromClient_ReturnsSuccessfulResponseWithEmptyData()
     {
         // Arrange
@@ -179,37 +208,25 @@ public class GetManufactureOutputHandlerTests
         response.Months.Select(m => m.Month).Should().ContainInOrder("2026-01", "2026-02", "2026-03");
     }
 
-    private List<CatalogAggregate> CreateTestCatalogItems()
+    private List<ProductCatalogSnapshot> CreateTestCatalogItems()
     {
-        var product1 = new CatalogAggregate
+        var product1 = new ProductCatalogSnapshot
         {
             ProductCode = "PRD001",
             ProductName = "Product 1",
-            Type = ProductType.Product
+            Type = ProductKind.Product,
+            ManufactureDifficulty = 3
         };
 
-        // Set manufacture difficulty through the configuration
-        var difficulty1Settings = new List<ManufactureDifficultySetting>
-        {
-            new ManufactureDifficultySetting { DifficultyValue = 3, ValidFrom = DateTime.MinValue }
-        };
-        product1.ManufactureDifficultySettings.Assign(difficulty1Settings, DateTime.Now);
-
-        var product2 = new CatalogAggregate
+        var product2 = new ProductCatalogSnapshot
         {
             ProductCode = "PRD002",
             ProductName = "Product 2",
-            Type = ProductType.Product
+            Type = ProductKind.Product,
+            ManufactureDifficulty = 1
         };
 
-        // Set manufacture difficulty through the configuration
-        var difficulty2Settings = new List<ManufactureDifficultySetting>
-        {
-            new ManufactureDifficultySetting { DifficultyValue = 1, ValidFrom = DateTime.MinValue }
-        };
-        product2.ManufactureDifficultySettings.Assign(difficulty2Settings, DateTime.Now);
-
-        return new List<CatalogAggregate> { product1, product2 };
+        return new List<ProductCatalogSnapshot> { product1, product2 };
     }
 
     private List<ManufactureHistoryRecord> CreateTestManufactureHistory()

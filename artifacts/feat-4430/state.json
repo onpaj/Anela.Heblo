@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4430",
+  "issue_number": 4430,
+  "created_at": "2026-10-22T03:16:35.597063Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-22T03:17:04.437928Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-22T03:17:04.823259Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-22T03:17:05.219276Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-22T03:17:15.724163Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-22T04:51:27.651752Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-22T07:45:17.182764Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "feedback-filter-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-22T04:51:28.270453Z"
+    },
+    {
+      "name": "feedback-sort-paging-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-22T06:01:38.582821Z"
+    },
+    {
+      "name": "feedback-stats-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-22T06:34:44.249389Z"
+    }
+  ]
+}

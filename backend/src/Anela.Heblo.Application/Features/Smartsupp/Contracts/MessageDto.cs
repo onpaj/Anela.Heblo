@@ -15,4 +15,5 @@ public class MessageDto
     public int? ResponseTime { get; set; }
     public bool IsFirstReply { get; set; }
     public string? PageUrl { get; set; }
+    public List<MessageAttachmentDto> Attachments { get; set; } = new();
 }

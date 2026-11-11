@@ -33,6 +33,7 @@ public static class AccessMatrix
         new FeatureDefinition(Feature.Warehouse_StockUp, "Naskladnění", HasWrite: true),
         new FeatureDefinition(Feature.Warehouse_GiftPackages, "Dárkové balíčky", HasWrite: true),
         new FeatureDefinition(Feature.Warehouse_StockOverride, "Přepsání kontroly zásob"),
+        new FeatureDefinition(Feature.Warehouse_PackerStatistics, "Statistiky baličů"),
         new FeatureDefinition(Feature.Marketing_Article, "Články", HasWrite: true),
         new FeatureDefinition(Feature.Marketing_Leaflet, "Generátor letáků", HasWrite: true),
         new FeatureDefinition(Feature.Marketing_Photobank, "Fotobanka", HasWrite: true, HasAdmin: true),

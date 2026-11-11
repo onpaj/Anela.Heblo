@@ -11,7 +11,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Manufacture/ManufactureHistoryRecord.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Manufacture/FlexiManufactureHistoryClient.cs
   - backend/src/Anela.Heblo.API/Controllers/ManufactureOutputController.cs
-verified_at: "5e993f9e2"
+verified_at: "3513e7829"
 related:
   - feed-manufacture-to-flexi
   - calc-margins
@@ -39,7 +39,8 @@ On demand: `GET /api/manufacture-output?monthsBack=N` (permission
    for `[now − N months, now]`; up to 2 retries on 502/503/504.
 2. Group lines by (calendar day, product code without Flexi prefix): Σ amount, average unit
    price, Σ total price → `ManufactureHistoryRecord`.
-3. Catalog cache → products that have a `ManufactureDifficulty` (product name + difficulty).
+3. Catalog cache → products that have a `ManufactureDifficulty` (product name + difficulty +
+   the ND "Nesmí dojít" flag, `IsNd`, which the Souhrn výroby month modal shows as a star).
 4. Per month: per product Σ amount × difficulty (default 1.0 when the product has none);
    month `TotalOutput` = Σ of those; zero-amount products dropped; empty months filled with 0.
 
@@ -70,6 +71,7 @@ On demand: `GET /api/manufacture-output?monthsBack=N` (permission
   2026-09-21 the monthly total is mostly bulk weight, not pieces. The same effect hit the M1
   manufacturing cost rate (`calc-margins`).
 - **Products without a difficulty show their code as name** — the name lookup uses only products that have a difficulty.
+  The same lookup supplies `IsNd`, so such products never show the ND star (`IsNd` is false).
 - **`DocumentNumber` is always empty** in the detail list: records are grouped per day and product, and the grouping does not carry a document number.
 - Config arrays merge index-wise, so an environment override with fewer elements duplicates ids;
   the client de-duplicates them — memory note gotcha_config_binder_appends_arrays.

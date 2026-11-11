@@ -105,6 +105,30 @@ public class SmartsuppRepositoryUpsertIntegrationTests : IAsyncLifetime
 
             CREATE INDEX IF NOT EXISTS "IX_SmartsuppConversations_ContactId"
                 ON public."SmartsuppConversations" ("ContactId");
+
+            CREATE TABLE IF NOT EXISTS public."SmartsuppMessages" (
+                "Id"             character varying(100)       PRIMARY KEY,
+                "ConversationId" character varying(100)       NOT NULL REFERENCES public."SmartsuppConversations" ("Id") ON DELETE CASCADE,
+                "AuthorType"     character varying(20)        NOT NULL,
+                "SubType"        character varying(20),
+                "MessageType"    character varying(20),
+                "AuthorName"     character varying(200),
+                "Content"        text,
+                "TriggerName"    character varying(200),
+                "TriggerId"      character varying(100),
+                "PageUrl"        text,
+                "AgentId"        character varying(100),
+                "VisitorId"      character varying(100),
+                "DeliveryStatus" character varying(50),
+                "DeliveredAt"    timestamp without time zone,
+                "IsOffline"      boolean                      NOT NULL DEFAULT false,
+                "IsReply"        boolean                      NOT NULL DEFAULT false,
+                "IsFirstReply"   boolean                      NOT NULL DEFAULT false,
+                "ResponseTime"   integer,
+                "CreatedAt"      timestamp without time zone  NOT NULL,
+                "UpdatedAt"      timestamp without time zone  NOT NULL,
+                "AttachmentsJson" text
+            );
             """;
 
         await cmd.ExecuteNonQueryAsync();
@@ -397,4 +421,57 @@ public class SmartsuppRepositoryUpsertIntegrationTests : IAsyncLifetime
             "COALESCE must keep the stored ContactName when the incoming event carries null");
         row.UpdatedAt.Should().Be(t2, "UpdatedAt must still reflect the newer event");
     }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // Message tests
+    // ──────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task UpsertMessagesAsync_EmptyIncomingAttachments_KeepsStoredAttachments()
+    {
+        // Arrange
+        const string conversationId = "conv-sticky-attachments";
+        const string attachmentsJson = "[{\"type\":\"file\",\"name\":\"a.pdf\"}]";
+        var t = new DateTime(2026, 6, 1, 10, 0, 0);
+        await CreateRepository().UpsertConversationAsync(
+            MakeConversation(conversationId, SmartsuppConversationStatus.Open, t),
+            CancellationToken.None);
+
+        await CreateRepository().UpsertMessagesAsync(
+            conversationId,
+            new List<SmartsuppMessage> { MakeMessage(conversationId, "msg-1", attachmentsJson) },
+            CancellationToken.None);
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+
+        // Act — re-upsert the same message with an empty attachments payload
+        await CreateRepository().UpsertMessagesAsync(
+            conversationId,
+            new List<SmartsuppMessage> { MakeMessage(conversationId, "msg-1", "[]") },
+            CancellationToken.None);
+        await _context.SaveChangesAsync();
+
+        // Assert — read through a second context so tracked instances cannot alias the result
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseNpgsql(_connectionString)
+            .Options;
+        await using var readContext = new ApplicationDbContext(options);
+        var stored = await readContext.SmartsuppMessages
+            .AsNoTracking()
+            .SingleAsync(m => m.Id == "msg-1");
+        stored.AttachmentsJson.Should().Be(attachmentsJson,
+            "an empty incoming attachments payload must not overwrite stored attachments");
+    }
+
+    private static SmartsuppMessage MakeMessage(string conversationId, string id, string attachmentsJson) =>
+        new()
+        {
+            Id = id,
+            ConversationId = conversationId,
+            AuthorType = SmartsuppMessageAuthorType.Visitor,
+            Content = "hello",
+            CreatedAt = new DateTime(2026, 6, 1, 10, 0, 0, DateTimeKind.Utc),
+            UpdatedAt = new DateTime(2026, 6, 1, 10, 0, 0, DateTimeKind.Utc),
+            AttachmentsJson = attachmentsJson,
+        };
 }

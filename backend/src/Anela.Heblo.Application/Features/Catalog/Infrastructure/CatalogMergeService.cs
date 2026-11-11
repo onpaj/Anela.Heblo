@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Catalog.Eshop;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
 using Anela.Heblo.Domain.Features.Catalog.ConsumedMaterials;
@@ -87,7 +88,10 @@ public sealed class CatalogMergeService
 
         // Build all lookup maps from cache data
         var attributesMap = _cacheStore.GetCatalogAttributesData().ToDictionary(k => k.ProductCode, v => v);
-        var eshopProductsMap = _cacheStore.GetEshopStockData().ToDictionary(k => k.Code, v => v);
+        var eshopStockMap = _cacheStore.GetEshopStockData().ToDictionary(k => k.Code, v => v);
+        var eshopProductMap = _cacheStore.GetEshopProductData()
+            .GroupBy(p => p.Code)
+            .ToDictionary(g => g.Key, g => g.First());
         var erpProductsMap = _cacheStore.GetErpStockData().ToDictionary(k => k.ProductCode, v => v);
         var consumedMap = _cacheStore.GetConsumedData()
             .GroupBy(p => p.ProductCode)
@@ -126,7 +130,7 @@ public sealed class CatalogMergeService
             MergeSalesHistory(product, salesMap);
             MergeAttributes(product, attributesMap);
             MergeStockData(product, inTransportData, manufacturedData, inReserveData, inQuarantineData, orderedData, plannedData);
-            MergeEshopData(product, eshopProductsMap);
+            MergeEshopData(product, eshopStockMap, eshopProductMap);
             MergeHistoryData(product, consumedMap, purchaseMap, manufactureMap, stockTakingMap);
             MergeLots(product, lotsMap);
             MergePrices(product, eshopPriceMap, erpPriceMap);
@@ -181,6 +185,7 @@ public sealed class CatalogMergeService
             product.MinimalManufactureQuantity = attributes.MinimalManufactureQuantity;
             product.Properties.AllowedResiduePercentage = attributes.AllowedResiduePercentage;
             product.Properties.Cooling = attributes.Cooling;
+            product.Properties.IsNd = attributes.IsNd;
         }
     }
 
@@ -201,21 +206,29 @@ public sealed class CatalogMergeService
         product.Stock.Planned = plannedData.ContainsKey(product.ProductCode) ? plannedData[product.ProductCode] : 0;
     }
 
-    private static void MergeEshopData(CatalogAggregate product, IDictionary<string, EshopStock> eshopProductsMap)
+    private static void MergeEshopData(
+        CatalogAggregate product,
+        IDictionary<string, EshopStock> eshopStockMap,
+        IDictionary<string, EshopProduct> eshopProductMap)
     {
-        if (eshopProductsMap.TryGetValue(product.ProductCode, out var eshopProduct))
+        if (eshopStockMap.TryGetValue(product.ProductCode, out var eshopStock))
         {
-            product.Stock.Eshop = eshopProduct.Stock;
+            product.Stock.Eshop = eshopStock.Stock;
             product.Stock.PrimaryStockSource = StockSource.Eshop;
-            product.Location = eshopProduct.Location;
-            product.Image = eshopProduct.Image;
-            product.DefaultImage = eshopProduct.DefaultImage;
-            product.GrossWeight = eshopProduct.Weight;
-            product.Height = eshopProduct.Height;
-            product.Width = eshopProduct.Width;
-            product.Depth = eshopProduct.Depth;
-            product.AtypicalShipping = eshopProduct.AtypicalShipping;
+            product.Location = eshopStock.Location;
         }
+
+        // Merges start from a clone of the previous aggregate, so every info field is assigned
+        // explicitly: a code missing from the product sweep ends up empty rather than stale.
+        eshopProductMap.TryGetValue(product.ProductCode, out var eshopProduct);
+        product.Image = eshopProduct?.ImageUrl;
+        product.DefaultImage = eshopProduct?.DefaultImageUrl;
+        product.GrossWeight = eshopProduct?.WeightGrams;
+        product.Height = eshopProduct?.Height;
+        product.Width = eshopProduct?.Width;
+        product.Depth = eshopProduct?.Depth;
+        product.AtypicalShipping = eshopProduct?.AtypicalShipping ?? false;
+        product.EshopFlags = eshopProduct?.Flags ?? Array.Empty<EshopProductFlag>();
     }
 
     private static void MergeHistoryData(

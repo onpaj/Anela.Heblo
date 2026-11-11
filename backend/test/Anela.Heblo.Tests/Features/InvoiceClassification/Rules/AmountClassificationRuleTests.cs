@@ -1,5 +1,6 @@
 using Anela.Heblo.Domain.Features.InvoiceClassification.Rules;
 using Anela.Heblo.Tests.Features.InvoiceClassification.TestHelpers;
+using System.Globalization;
 using FluentAssertions;
 using Xunit;
 
@@ -44,6 +45,94 @@ public class AmountClassificationRuleTests
 
         // Assert
         result.Should().Be(expected);
+    }
+
+    private static void WithCulture(string name, Action action)
+    {
+        var originalCulture = CultureInfo.CurrentCulture;
+        var originalUiCulture = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentCulture = new CultureInfo(name);
+            CultureInfo.CurrentUICulture = new CultureInfo(name);
+            action();
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = originalCulture;
+            CultureInfo.CurrentUICulture = originalUiCulture;
+        }
+    }
+
+    [Theory]
+    // >=
+    [InlineData(">=1000.50", "1000.50", true)]
+    [InlineData(">=1000.50", "1000.51", true)]
+    [InlineData(">=1000.50", "1000.49", false)]
+    // <=
+    [InlineData("<=1000.50", "1000.50", true)]
+    [InlineData("<=1000.50", "1000.49", true)]
+    [InlineData("<=1000.50", "1000.51", false)]
+    // >
+    [InlineData(">1000.50", "1000.51", true)]
+    [InlineData(">1000.50", "1000.50", false)]
+    [InlineData(">1000.50", "1000.49", false)]
+    // <
+    [InlineData("<1000.50", "1000.49", true)]
+    [InlineData("<1000.50", "1000.50", false)]
+    [InlineData("<1000.50", "1000.51", false)]
+    // =
+    [InlineData("=1000.50", "1000.50", true)]
+    [InlineData("=1000.50", "1000.51", false)]
+    // bare literal
+    [InlineData("1000.50", "1000.50", true)]
+    [InlineData("1000.50", "1000.49", false)]
+    public void Evaluate_DecimalDotPatternUnderCzechCulture_ReturnsExpected(string pattern, string amount, bool expected)
+    {
+        WithCulture("cs-CZ", () =>
+        {
+            // Arrange
+            var invoice = InvoiceClassificationFixtures.CreateInvoice(
+                totalAmount: decimal.Parse(amount, CultureInfo.InvariantCulture));
+
+            // Act
+            var result = _sut.Evaluate(invoice, pattern);
+
+            // Assert
+            result.Should().Be(expected);
+        });
+    }
+
+    [Fact]
+    public void Evaluate_DecimalCommaPatternUnderCzechCulture_ReturnsFalse()
+    {
+        WithCulture("cs-CZ", () =>
+        {
+            // Arrange
+            var invoice = InvoiceClassificationFixtures.CreateInvoice(totalAmount: 1000.50m);
+
+            // Act
+            var result = _sut.Evaluate(invoice, ">=1000,50");
+
+            // Assert
+            result.Should().BeFalse();
+        });
+    }
+
+    [Fact]
+    public void Evaluate_PatternWithWhitespaceAfterOperator_StillMatches()
+    {
+        WithCulture("cs-CZ", () =>
+        {
+            // Arrange
+            var invoice = InvoiceClassificationFixtures.CreateInvoice(totalAmount: 100m);
+
+            // Act
+            var result = _sut.Evaluate(invoice, ">= 100");
+
+            // Assert
+            result.Should().BeTrue();
+        });
     }
 
     [Fact]

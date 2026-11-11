@@ -141,6 +141,8 @@ public enum ErrorCodes
     ShoptetSyncFailed = 1315,
     [HttpStatusCode(HttpStatusCode.BadRequest)]
     StockTakingFailed = 1316,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    NdWriteFailed = 1317,
 
     // Transport module errors (14XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]
@@ -350,6 +352,12 @@ public enum ErrorCodes
     SmartsuppDraftReplyFeedbackLogNotFound = 2709,
     [HttpStatusCode(HttpStatusCode.Conflict)]
     SmartsuppDraftReplyFeedbackAlreadySubmitted = 2710,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    SmartsuppAttachmentInvalid = 2711,
+    [HttpStatusCode(HttpStatusCode.BadRequest)]
+    SmartsuppAttachmentTooLarge = 2712,
+    [HttpStatusCode(HttpStatusCode.ServiceUnavailable)]
+    SmartsuppAttachmentUploadFailed = 2713,
 
     // Inventory module errors (28XX)
     [HttpStatusCode(HttpStatusCode.NotFound)]

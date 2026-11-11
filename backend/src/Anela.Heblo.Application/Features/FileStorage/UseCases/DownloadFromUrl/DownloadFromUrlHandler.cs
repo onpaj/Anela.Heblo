@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Anela.Heblo.Application.Features.FileStorage.Contracts;
 using Anela.Heblo.Application.Features.FileStorage.Infrastructure;
 using Anela.Heblo.Application.Shared;
 using Anela.Heblo.Domain.Features.FileStorage;
@@ -56,11 +57,7 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
                 async ct =>
                 {
                     Interlocked.Increment(ref attemptCount);
-                    return await _blobStorageService.DownloadFromUrlAsync(
-                        request.FileUrl,
-                        request.ContainerName,
-                        request.BlobName,
-                        ct);
+                    return await DownloadAndStoreAsync(request, ct);
                 },
                 FileStorageModule.FileDownloadClientName,
                 cancellationToken);
@@ -102,6 +99,37 @@ public sealed class DownloadFromUrlHandler : IRequestHandler<DownloadFromUrlRequ
             sw.Stop();
             _logger.LogError(ex, "Unexpected failure during DownloadFromUrl for URL: {RedactedUrl}", redactedUrl);
             return Failure(redactedUrl, "retry-exhausted", attemptCount, sw.ElapsedMilliseconds, ex.Message);
+        }
+    }
+
+    private async Task<string> DownloadAndStoreAsync(DownloadFromUrlRequest request, CancellationToken ct)
+    {
+        var redactedUrl = UrlRedactor.Redact(request.FileUrl);
+        try
+        {
+            _logger.LogInformation("Starting download from URL: {FileUrl}", redactedUrl);
+
+            // Resolve the named client per call so socket pooling is managed by IHttpClientFactory
+            // (SocketsHttpHandler with PooledConnectionLifetime).
+            var client = _httpClientFactory.CreateClient(FileStorageModule.FileDownloadClientName);
+            using var response = await client.GetAsync(request.FileUrl, HttpCompletionOption.ResponseHeadersRead, ct);
+            response.EnsureSuccessStatusCode();
+
+            using var stream = await response.Content.ReadAsStreamAsync(ct);
+
+            var mediaType = response.Content.Headers.ContentType?.MediaType;
+            var blobName = BlobNaming.ResolveBlobName(request.BlobName, request.FileUrl, mediaType);
+            var contentType = mediaType ?? BlobNaming.GetContentTypeFromExtension(blobName);
+
+            var blobUrl = await _blobStorageService.UploadAsync(stream, request.ContainerName, blobName, contentType, ct);
+
+            _logger.LogInformation("Successfully downloaded from URL and uploaded to blob: {BlobUrl}", blobUrl);
+            return blobUrl;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error downloading from URL {FileUrl} and uploading to container {ContainerName}", redactedUrl, request.ContainerName);
+            throw;
         }
     }
 

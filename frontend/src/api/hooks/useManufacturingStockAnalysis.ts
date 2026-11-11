@@ -84,7 +84,7 @@ export const toGeneratedTimePeriod = (
     : undefined;
 
 // Query keys
-const manufacturingStockAnalysisKeys = {
+export const manufacturingStockAnalysisKeys = {
   all: ["manufacturing-stock-analysis"] as const,
   lists: () => [...manufacturingStockAnalysisKeys.all, "list"] as const,
   list: (filters: GetManufacturingStockAnalysisRequest) =>

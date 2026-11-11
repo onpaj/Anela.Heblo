@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
-using Anela.Heblo.Domain.Features.Configuration;
 using Anela.Heblo.Application.Shared;
 using MediatR;
 
@@ -12,6 +11,9 @@ namespace Anela.Heblo.Application.Features.Configuration;
 /// </summary>
 public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, GetConfigurationResponse>
 {
+    private const string DefaultVersion = "1.0.0";
+    private const string DefaultEnvironment = "Production";
+
     private readonly IConfiguration _configuration;
     private readonly ILogger<GetConfigurationHandler> _logger;
 
@@ -25,39 +27,21 @@ public class GetConfigurationHandler : IRequestHandler<GetConfigurationRequest, 
     {
         _logger.LogDebug("Handling GetConfiguration request");
 
-        var appConfig = BuildApplicationConfiguration();
-
         var response = new GetConfigurationResponse
         {
-            Version = appConfig.Version,
-            Environment = appConfig.Environment,
-            UseMockAuth = appConfig.UseMockAuth,
+            // Version priority order:
+            // 1. APP_VERSION (set by CI/CD pipeline with GitVersion)
+            // 2. Assembly informational version
+            // 3. Assembly version
+            // 4. Fallback to default
+            Version = GetVersionFromSources() ?? DefaultVersion,
+            Environment = _configuration["ASPNETCORE_ENVIRONMENT"] ?? DefaultEnvironment,
+            UseMockAuth = _configuration.GetValue<bool>(InfrastructureConfigurationKeys.USE_MOCK_AUTH, false),
         };
 
         _logger.LogDebug("Configuration retrieved successfully: {@Config}", response);
 
         return Task.FromResult(response);
-    }
-
-    private ApplicationConfiguration BuildApplicationConfiguration()
-    {
-        // Get version with priority order:
-        // 1. APP_VERSION (set by CI/CD pipeline with GitVersion)
-        // 2. Assembly informational version
-        // 3. Assembly version
-        // 4. Fallback to default
-        var version = GetVersionFromSources();
-
-        // Falls back to ConfigurationConstants.DEFAULT_ENVIRONMENT ("Production") if not set
-        var environment = _configuration["ASPNETCORE_ENVIRONMENT"]
-            ?? ConfigurationConstants.DEFAULT_ENVIRONMENT;
-
-        // Get mock auth setting
-        var useMockAuth = _configuration.GetValue<bool>(InfrastructureConfigurationKeys.USE_MOCK_AUTH, false);
-
-        var config = ApplicationConfiguration.CreateWithDefaults(version, environment, useMockAuth);
-
-        return config;
     }
 
     private string? GetVersionFromSources()

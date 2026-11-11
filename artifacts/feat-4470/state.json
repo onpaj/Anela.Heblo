@@ -1,0 +1,58 @@
+{
+  "feature_id": "feat-4470",
+  "issue_number": 4470,
+  "created_at": "2026-10-23T09:10:52.378625Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-23T09:11:59.353137Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-23T09:11:59.874136Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-23T09:12:00.514693Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-24T22:09:47.312104Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-25T00:14:20.480914Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-25T02:16:42.192877Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "backend-request-validator",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-24T23:36:56.017824Z"
+    },
+    {
+      "name": "backend-handler",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-24T23:36:56.175414Z"
+    },
+    {
+      "name": "frontend-client-helper",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-25T00:19:15.669010Z"
+    },
+    {
+      "name": "process-docs-check",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-25T01:14:38.134177Z"
+    }
+  ]
+}

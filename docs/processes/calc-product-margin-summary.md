@@ -13,7 +13,7 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Analytics/AnalyticsProduct*.cs
   - backend/src/Anela.Heblo.Domain/Features/Analytics/MarginLevel.cs
   - backend/src/Anela.Heblo.Domain/Features/Analytics/ProductGroupingMode.cs
-verified_at: "5e993f9e2"
+verified_at: "fae19eaee"
 related: [calc-margins, calc-bundle-sales-expansion]
 ---
 
@@ -116,6 +116,9 @@ the period must be 1 to 730 days, and a product id is required for `margin-analy
   `gotcha_saleshistorydays_100_on_staging` and the appsettings files — 2026-10-02.
 
 ## Known quirks
+- **Streaming does not cap memory.** `MarginCalculator` retains every accepted product, with its
+  full sales history, per group in `GroupProducts`, so peak memory is O(products x sales history).
+  Streaming from the source only avoids holding a second full copy during the fetch.
 - **Past months use today's margin.** The report applies one per-unit margin — the latest month in
   the window — to the units of **every** month. A month in January is valued at September's margin,
   so the chart shows sales volume × the current margin, not the margin actually earned at the time.

@@ -1,5 +1,6 @@
 using Anela.Heblo.Application.Features.Packaging.Contracts;
 using Anela.Heblo.Domain.Features.Packaging;
+using Anela.Heblo.Domain.Features.Users;
 using Anela.Heblo.Xcc.Services.Dashboard;
 using Microsoft.Extensions.Logging;
 
@@ -11,6 +12,7 @@ public class PackingStatsTile : ITile
     private readonly IPackageRepository _repo;
     private readonly IPackingOrderCountSource _packingOrderClient;
     private readonly TimeProvider _timeProvider;
+    private readonly ICurrentUserService _currentUserService;
     private readonly ILogger<PackingStatsTile> _logger;
 
     public string Title => "Stav balení";
@@ -25,11 +27,13 @@ public class PackingStatsTile : ITile
         IPackageRepository repo,
         IPackingOrderCountSource packingOrderClient,
         TimeProvider timeProvider,
+        ICurrentUserService currentUserService,
         ILogger<PackingStatsTile> logger)
     {
         _repo = repo;
         _packingOrderClient = packingOrderClient;
         _timeProvider = timeProvider;
+        _currentUserService = currentUserService;
         _logger = logger;
     }
 
@@ -59,7 +63,12 @@ public class PackingStatsTile : ITile
                 _logger.LogWarning(ex, "Failed to retrieve order counts from Shoptet");
             }
 
-            var packers = byPacker
+            var canViewPackerBreakdown = PackerStatisticsAccess.CanViewBreakdown(_currentUserService);
+            var visiblePackers = canViewPackerBreakdown
+                ? byPacker
+                : Array.Empty<PackerPackingSummary>();
+
+            var packers = visiblePackers
                 .Select(p => new
                 {
                     packerId = p.PackedByUserId,
@@ -77,6 +86,7 @@ public class PackingStatsTile : ITile
                     ordersBeingProcessedCount,
                     ordersBeingPackedCountLastSync,
                     totalOrdersPackedToday = total,
+                    canViewPackerBreakdown,
                     packedByPacker = packers,
                 },
                 metadata = new

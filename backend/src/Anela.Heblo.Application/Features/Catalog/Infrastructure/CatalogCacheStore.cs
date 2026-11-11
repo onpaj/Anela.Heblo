@@ -1,3 +1,4 @@
+using Anela.Heblo.Domain.Features.Catalog.Eshop;
 using System.Collections.Concurrent;
 using Anela.Heblo.Domain.Features.Catalog;
 using Anela.Heblo.Domain.Features.Catalog.Attributes;
@@ -35,6 +36,7 @@ public sealed class CatalogCacheStore
     private const string CachedPlannedDataKey = "CachedPlannedData";
     private const string CachedErpStockDataKey = "CachedErpStockData";
     private const string CachedEshopStockDataKey = "CachedEshopStockData";
+    private const string CachedEshopProductDataKey = "CachedEshopProductData";
     private const string CachedPurchaseHistoryDataKey = "CachedPurchaseHistoryData";
     private const string CachedManufactureHistoryDataKey = "CachedManufactureHistoryData";
     private const string CachedConsumedDataKey = "CachedConsumedData";
@@ -255,7 +257,10 @@ public sealed class CatalogCacheStore
 
     public void SetCatalogAttributesData(IList<CatalogAttributes> value)
     {
-        _cache.Set(CachedCatalogAttributesDataKey, value);
+        lock (_sourceCacheLock)
+        {
+            _cache.Set(CachedCatalogAttributesDataKey, value);
+        }
         InvalidateSourceData(CachedCatalogAttributesDataKey);
         SetLoadDateInCache(CachedCatalogAttributesDataKey);
     }
@@ -341,6 +346,16 @@ public sealed class CatalogCacheStore
         _cache.Set(CachedEshopStockDataKey, value);
         InvalidateSourceData(CachedEshopStockDataKey);
         SetLoadDateInCache(CachedEshopStockDataKey);
+    }
+
+    public IList<EshopProduct> GetEshopProductData() =>
+        _cache.Get<List<EshopProduct>>(CachedEshopProductDataKey) ?? new List<EshopProduct>();
+
+    public void SetEshopProductData(IList<EshopProduct> value)
+    {
+        _cache.Set(CachedEshopProductDataKey, value);
+        InvalidateSourceData(CachedEshopProductDataKey);
+        SetLoadDateInCache(CachedEshopProductDataKey);
     }
 
     public IList<CatalogPurchaseRecord> GetPurchaseHistoryData() =>
@@ -452,7 +467,8 @@ public sealed class CatalogCacheStore
     /// <param name="productCode">Product the stock taking was submitted for.</param>
     /// <param name="newStock">New ERP stock level as confirmed by the ERP.</param>
     /// <param name="lots">Freshly loaded lots for the product, or null to leave lots untouched.</param>
-    public async Task ApplyErpStockTakingAsync(string productCode, decimal newStock, IReadOnlyList<CatalogLot>? lots)
+    /// <param name="record">Stock taking record to append to the cached aggregates' history (idempotent by Id), or null to leave history untouched.</param>
+    public async Task ApplyErpStockTakingAsync(string productCode, decimal newStock, IReadOnlyList<CatalogLot>? lots, StockTakingRecord? record = null)
     {
         if (string.IsNullOrWhiteSpace(productCode))
         {
@@ -467,12 +483,13 @@ public sealed class CatalogCacheStore
             ApplyStockTakingToLotsSource(productCode, lots);
         }
 
-        // Same guard the merge uses, so a merge completing mid-patch is not reverted either.
+        // Same guard the replacement uses. A merge already in flight can still install a list built from
+        // the old flag, so a debounced merge is scheduled below to converge.
         await _cacheReplacementSemaphore.WaitAsync();
         try
         {
-            ApplyStockTakingToMergedCache(CurrentCatalogCacheKey, productCode, newStock, lots);
-            ApplyStockTakingToMergedCache(StaleCatalogCacheKey, productCode, newStock, lots);
+            ApplyStockTakingToMergedCache(CurrentCatalogCacheKey, productCode, newStock, lots, record);
+            ApplyStockTakingToMergedCache(StaleCatalogCacheKey, productCode, newStock, lots, record);
         }
         finally
         {
@@ -537,7 +554,8 @@ public sealed class CatalogCacheStore
         string cacheKey,
         string productCode,
         decimal newStock,
-        IReadOnlyList<CatalogLot>? lots)
+        IReadOnlyList<CatalogLot>? lots,
+        StockTakingRecord? record)
     {
         var products = _cache.Get<List<CatalogAggregate>>(cacheKey);
         if (products == null)
@@ -558,6 +576,12 @@ public sealed class CatalogCacheStore
         var patched = products[index].Clone();
         patched.Stock.Erp = newStock;
 
+        // Clone() copies the history list, so appending cannot reach the cached instance.
+        if (record != null && patched.StockTakingHistory.All(r => r.Id != record.Id))
+        {
+            patched.StockTakingHistory.Add(record);
+        }
+
         if (lots != null)
         {
             patched.Stock.Lots = lots.ToList();
@@ -569,6 +593,95 @@ public sealed class CatalogCacheStore
         {
             // Re-setting drops the entry's expiry, so reapply it. This does restart the stale
             // retention window, which is acceptable for the rare stock taking write-back.
+            _cache.Set(cacheKey, updated, _cacheOptions.Value.StaleDataRetentionPeriod);
+            return;
+        }
+
+        _cache.Set(cacheKey, updated);
+    }
+
+    #endregion
+
+    #region ND Write-Back
+
+    /// <summary>
+    /// Applies an ND flag that the ERP has just accepted to the merged catalog cache AND to
+    /// the attributes source cache, for a single product and without scheduling a merge.
+    ///
+    /// The flag only reaches the merged catalog through a catalog-wide merge that runs after a
+    /// debounce, so without this the UI refetch right after a toggle reads the old value. Patching
+    /// the source cache as well keeps the next merge from reverting it.
+    /// </summary>
+    public async Task ApplyNdAsync(string productCode, bool isNd)
+    {
+        if (string.IsNullOrWhiteSpace(productCode))
+        {
+            throw new ArgumentException("Product code is required", nameof(productCode));
+        }
+
+        lock (_sourceCacheLock)
+        {
+            ApplyNdToAttributesSource(productCode, isNd);
+        }
+
+        // Same guard the merge uses, so a merge completing mid-patch is not reverted either.
+        await _cacheReplacementSemaphore.WaitAsync();
+        try
+        {
+            ApplyNdToMergedCache(CurrentCatalogCacheKey, productCode, isNd);
+            ApplyNdToMergedCache(StaleCatalogCacheKey, productCode, isNd);
+        }
+        finally
+        {
+            _cacheReplacementSemaphore.Release();
+        }
+
+        _mergeScheduler.ScheduleMerge("NdWriteBack");
+
+        _logger.LogInformation("Applied ND flag to catalog caches for {ProductCode}: {IsNd}", productCode, isNd);
+    }
+
+    private void ApplyNdToAttributesSource(string productCode, bool isNd)
+    {
+        var current = _cache.Get<List<CatalogAttributes>>(CachedCatalogAttributesDataKey);
+        var index = current?.FindIndex(a => a.ProductCode == productCode) ?? -1;
+        if (current == null || index < 0)
+        {
+            // A product whose only attribute row is the Top flag is absent from the attributes query.
+            // MergeAttributes skips it, so the merge keeps the merged aggregate's (patched) value, and
+            // the next attributes refresh picks the new row up.
+            return;
+        }
+
+        var replacement = current[index].Clone();
+        replacement.IsNd = isNd;
+
+        var updated = new List<CatalogAttributes>(current) { [index] = replacement };
+
+        // Re-set without InvalidateSourceData or a new load date: the merged cache is patched
+        // directly, and this is not a fresh load from the ERP.
+        _cache.Set(CachedCatalogAttributesDataKey, updated);
+    }
+
+    private void ApplyNdToMergedCache(string cacheKey, string productCode, bool isNd)
+    {
+        var products = _cache.Get<List<CatalogAggregate>>(cacheKey);
+        var index = products?.FindIndex(p => p.ProductCode == productCode) ?? -1;
+        if (products == null || index < 0)
+        {
+            return;
+        }
+
+        // Never mutate an aggregate that is live in the cache - see ApplyStockTakingToMergedCache.
+        // Clone() copies Properties, so writing to the clone cannot reach the cached instance.
+        var patched = products[index].Clone();
+        patched.Properties.IsNd = isNd;
+
+        var updated = new List<CatalogAggregate>(products) { [index] = patched };
+
+        if (cacheKey == StaleCatalogCacheKey)
+        {
+            // Re-setting drops the entry's expiry, so reapply it.
             _cache.Set(cacheKey, updated, _cacheOptions.Value.StaleDataRetentionPeriod);
             return;
         }

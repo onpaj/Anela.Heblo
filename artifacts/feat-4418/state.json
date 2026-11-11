@@ -1,0 +1,52 @@
+{
+  "feature_id": "feat-4418",
+  "issue_number": 4418,
+  "created_at": "2026-10-21T12:15:18.040806Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-21T12:15:37.994907Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-21T12:15:41.487573Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-21T12:16:04.603221Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-21T12:16:07.760661Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-21T20:15:54.426932Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-21T21:42:12.823400Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "invariant-parsing-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-21T12:33:11.647591Z"
+    },
+    {
+      "name": "invariant-parsing-fix",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-21T13:26:56.415093Z"
+    },
+    {
+      "name": "process-doc-update",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-21T20:16:19.599631Z"
+    }
+  ]
+}

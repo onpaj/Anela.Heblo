@@ -10,10 +10,11 @@ public interface IManufactureCatalogStockSync
 {
     /// <summary>
     /// Refreshes the cached catalog data of a single product after its ERP stock taking:
-    /// writes the confirmed stock level and reloads the product's lots from the ERP.
+    /// writes the confirmed stock level, appends the stock taking record to the cached history and reloads the product's lots from the ERP.
     /// </summary>
     Task SyncErpStockTakingAsync(
         string productCode,
         decimal newStockAmount,
+        ProductStockTakingSnapshot record,
         CancellationToken cancellationToken = default);
 }

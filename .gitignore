@@ -139,6 +139,8 @@ backend/src/Adapters/Anela.Heblo.Adapters.Shoptet/app/playwright/
 # Test results and coverage
 TestResults/
 test-results/
+backend-junit-results/
+*-junit.xml
 *.trx
 *.coverage
 *.coveragexml

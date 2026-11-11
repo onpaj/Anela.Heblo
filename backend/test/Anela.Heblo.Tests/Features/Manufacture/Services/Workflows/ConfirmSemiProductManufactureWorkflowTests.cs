@@ -16,6 +16,7 @@ namespace Anela.Heblo.Tests.Features.Manufacture.Services.Workflows;
 public class ConfirmSemiProductManufactureWorkflowTests
 {
     private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<IManufactureOrderRepository> _repositoryMock;
     private readonly Mock<IManufactureNameBuilder> _nameBuilderMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
     private readonly Mock<ICurrentUserService> _currentUserServiceMock;
@@ -30,6 +31,7 @@ public class ConfirmSemiProductManufactureWorkflowTests
     public ConfirmSemiProductManufactureWorkflowTests()
     {
         _mediatorMock = new Mock<IMediator>();
+        _repositoryMock = new Mock<IManufactureOrderRepository>();
         _nameBuilderMock = new Mock<IManufactureNameBuilder>();
         _timeProviderMock = new Mock<TimeProvider>();
         _currentUserServiceMock = new Mock<ICurrentUserService>();
@@ -41,12 +43,17 @@ public class ConfirmSemiProductManufactureWorkflowTests
         var testUser = new CurrentUser("test-user-id", TestUserName, "test@example.com", true);
         _currentUserServiceMock.Setup(x => x.GetCurrentUser()).Returns(testUser);
 
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateOrder());
+
         _nameBuilderMock
-            .Setup(x => x.Build(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<ErpManufactureType>()))
+            .Setup(x => x.Build(It.IsAny<ManufactureOrder>(), It.IsAny<ErpManufactureType>()))
             .Returns("SP-Short-Name");
 
         _workflow = new ConfirmSemiProductManufactureWorkflow(
             _mediatorMock.Object,
+            _repositoryMock.Object,
             _nameBuilderMock.Object,
             _timeProviderMock.Object,
             _currentUserServiceMock.Object,
@@ -89,6 +96,27 @@ public class ConfirmSemiProductManufactureWorkflowTests
                 r.SemiProductOrderCode == "ERP_SEMI_123" &&
                 r.ManualActionRequired == false),
             It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_WhenOrderNotFoundAfterUpdate_ReturnsFailureWithoutSubmittingToErp()
+    {
+        // Arrange
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSuccessfulUpdateOrderResponse());
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder?)null);
+
+        // Act
+        var result = await _workflow.ExecuteAsync(ValidOrderId, ValidQuantity, ValidChangeReason, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorCode.Should().Be(ErrorCodes.ResourceNotFound);
+        _mediatorMock.Verify(x => x.Send(It.IsAny<SubmitManufactureRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mediatorMock.Verify(x => x.Send(It.IsAny<UpdateManufactureOrderStatusRequest>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
@@ -352,32 +380,24 @@ public class ConfirmSemiProductManufactureWorkflowTests
 
     private static UpdateManufactureOrderResponse CreateSuccessfulUpdateOrderResponse()
     {
-        return new UpdateManufactureOrderResponse
+        return new UpdateManufactureOrderResponse { Success = true };
+    }
+
+    private static ManufactureOrder CreateOrder()
+    {
+        return new ManufactureOrder
         {
-            Success = true,
-            Order = new UpdateManufactureOrderDto
+            OrderNumber = "MO-2024-001",
+            SemiProduct = new ManufactureOrderSemiProduct
             {
-                OrderNumber = "MO-2024-001",
-                SemiProduct = new UpdateManufactureOrderSemiProductDto
-                {
-                    ProductCode = "SP001001",
-                    ProductName = "Semi Product 1",
-                    ActualQuantity = ValidQuantity,
-                    PlannedQuantity = ValidQuantity,
-                    LotNumber = "LOT123",
-                    ExpirationDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30))
-                },
-                Products = new List<UpdateManufactureOrderProductDto>
-                {
-                    new UpdateManufactureOrderProductDto
-                    {
-                        ProductCode = "P001",
-                        ProductName = "Product 1",
-                        ActualQuantity = 5.0m,
-                        PlannedQuantity = 5.0m
-                    }
-                }
-            }
+                ProductCode = "SP001001",
+                ProductName = "Semi Product 1",
+                ActualQuantity = ValidQuantity,
+                PlannedQuantity = ValidQuantity,
+                LotNumber = "LOT123",
+                ExpirationDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30)),
+            },
+            Products = new List<ManufactureOrderProduct>(),
         };
     }
 

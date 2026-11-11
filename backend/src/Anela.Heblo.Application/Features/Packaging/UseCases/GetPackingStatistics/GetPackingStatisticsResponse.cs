@@ -16,6 +16,13 @@ public class GetPackingStatisticsResponse : BaseResponse
     /// </summary>
     public DateTime? PackerAttributionSince { get; set; }
 
+    /// <summary>
+    /// False when the caller lacks <c>warehouse.packer_statistics.read</c>; then
+    /// <see cref="ByPacker"/> is empty, <see cref="PackingStatisticsSummaryDto.DistinctPackers"/>
+    /// is 0 and <see cref="PackerAttributionSince"/> is null.
+    /// </summary>
+    public bool CanViewPackerBreakdown { get; set; }
+
     public PackingStatisticsSummaryDto Summary { get; set; } = new();
     public List<DailyThroughputDto> ThroughputDaily { get; set; } = new();
     public List<HourBucketDto> HourHeatmap { get; set; } = new();

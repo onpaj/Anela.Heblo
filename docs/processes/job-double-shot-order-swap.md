@@ -52,7 +52,7 @@ The real side effect is switched **off by default**: until feature flag
 0. If `ShoptetOrders:DoubleShotSwapHoldStatusId` is set: `GET /api/orders?statusId={hold}`, all
    pages (code, status, creation time). These held orders are processed first, regardless of
    lookback. A failed listing is logged as an Error and counted as a failed listing.
-1. Download the stock CSV (`IEshopStockClient.ListAsync`) and keep distinct codes matching the V
+1. Fetch stock supplies (`IEshopStockClient.ListAsync`) and keep distinct codes matching the V
    rule (`DoubleShotCodeRule`, `^SA\d+V$`; S code = same code with trailing `V` -> `S`).
 2. For each V code: `GET /api/orders?productCode={V}&creationTimeFrom={now - lookback}`, all
    pages. Lookback = `ShoptetOrders:DoubleShotSwapLookbackDays` (14, clamped to at least 1).
@@ -81,8 +81,15 @@ Target: Shoptet order items, `eshopRemark`, and the status of held orders only. 
 
 ## Logic & formulas
 - Eligible order states: `ShoptetOrders:DoubleShotSwapEligibleStatusIds`; empty (the default)
-  means -1 Nova, 3 Ceka se na platbu, 32 Zaplaceno, -2 Vyrizuje se, 35 Poznamka, 73 Oprava-robot.
-  Never 26 (Bali se) or later: those are past picking.
+  means -1 Nova, 3 Ceka se na platbu, 32 Zaplaceno, -2 Vyrizuje se, 35 Poznamka, 73 Oprava-robot,
+  -3 Vyrizena. Never 26 (Bali se) or later carrier states: those are past picking. -3 is eligible
+  because orders rung up directly in the physical shop are created straight in Vyrizena and never
+  pass through the earlier states; such an order is swapped but its status is never changed (only
+  held orders are ever moved).
+  Caveat: -3 is also the state `CompleteDeliveredOrdersJob` moves delivered orders into, so a V order
+  that was missed earlier and has since shipped and completed would also be rewritten after
+  fulfilment. Shoptet's behaviour for item POST/DELETE on -3 orders is not yet documented in
+  `docs/integrations/shoptet-api.md`; check the dry-run log for -3 candidates before enabling the flag.
 - Only lines with `itemType == product` and a V code are swapped. Each V line is planned alone,
   so two V lines with the same code are swapped separately (the tag carries the V item id).
 - Swap = two calls, POST S then DELETE V; Shoptet has no atomic swap. Order of calls matters:
@@ -116,7 +123,7 @@ Target: Shoptet order items, `eshopRemark`, and the status of held orders only. 
 | Key | Repo default | Meaning |
 |---|---|---|
 | `FeatureManagement:is-double-shot-order-swap-enabled` | `false` | Off = dry run (log only) |
-| `ShoptetOrders:DoubleShotSwapEligibleStatusIds` | `[]` = -1, 3, 32, -2, 35, 73 | Order states in which lines may be rewritten |
+| `ShoptetOrders:DoubleShotSwapEligibleStatusIds` | `[]` = -1, 3, 32, -2, 35, 73, -3 | Order states in which lines may be rewritten |
 | `ShoptetOrders:DoubleShotSwapLookbackDays` | `14` | How far back (creation time) orders are searched |
 | `ShoptetOrders:DoubleShotSwapHoldStatusId` | unset; `23` in `appsettings.Production.json` | Status the add-on parks new V orders in; unset = no hold handling (the test store has no such status) |
 | `ShoptetOrders:DoubleShotSwapReleaseStatusId` | `-1` | Status a clean held order is moved to |
@@ -153,7 +160,7 @@ runtime in the admin UI (table `FeatureFlagOverrides`).
 - One sweep at a time (static lock, 2-minute wait); a second caller logs a warning and skips.
   Hangfire runs a single worker, so the job and a scheduled print never overlap; contention is
   only possible with the synchronous "Spustit tisk oprav" / "Tisknout zakazku" endpoints.
-- With the flag on, each picking-list print runs a sweep first (extra Shoptet calls: one stock-CSV
+- With the flag on, each picking-list print runs a sweep first (extra Shoptet calls: one stock-supplies
   download, one list call per V code, one detail call per eligible candidate order), capped at
   60 s. A print that hits the cap can still show V lines that the sweep did not reach.
 - A listing call that fails (429/5xx; the order client has no retry) hides that V code's orders

@@ -1,23 +1,19 @@
-using Anela.Heblo.Domain.Features.Catalog;
-
 namespace Anela.Heblo.Application.Features.Manufacture.Contracts;
 
 /// <summary>
 /// Manufacture-owned read abstraction over Catalog products. Implemented by the Catalog
-/// module via CatalogManufactureCatalogSourceAdapter. Returns CatalogAggregate as a
-/// deliberate pragmatic leak — symmetric to ICatalogManufactureSource returning
-/// ManufactureHistoryRecord. Allowlisted in ModuleBoundariesTests under
-/// "Manufacture -> Catalog". Follow-up: introduce Manufacture-owned ProductCatalogSnapshot DTO.
+/// module via CatalogManufactureCatalogSourceAdapter. Returns the Manufacture-owned
+/// ProductCatalogSnapshot, so Manufacture does not depend on Catalog domain types.
 /// </summary>
 public interface IManufactureCatalogSource
 {
-    Task<CatalogAggregate?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
+    Task<ProductCatalogSnapshot?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyDictionary<string, CatalogAggregate>> GetByIdsAsync(
+    Task<IReadOnlyDictionary<string, ProductCatalogSnapshot>> GetByIdsAsync(
         IEnumerable<string> ids,
         CancellationToken cancellationToken = default);
 
-    Task<IEnumerable<CatalogAggregate>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<IEnumerable<ProductCatalogSnapshot>> GetAllAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Product code -> name suffix (Flexi cenik.popisC) for the given codes; codes without a suffix are omitted.

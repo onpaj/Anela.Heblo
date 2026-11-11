@@ -235,67 +235,83 @@ public class ShoptetStockClientTests
         await act.Should().ThrowAsync<HttpRequestException>().WithMessage("*AKL001*unknown-product*");
     }
 
-    private static ShoptetStockClient BuildClientForCsv(
-        Func<HttpRequestMessage, HttpResponseMessage> handler,
-        string csvUrl = "https://test.com/stock-export.csv")
+    private static object SuppliesPage(int pageCount, params object[] supplies) => new
     {
-        var http = new HttpClient(new FakeDelegatingHandler(handler))
+        data = new { supplies, paginator = new { pageCount } },
+        errors = (object?)null,
+    };
+
+    [Fact]
+    public async Task ListAsync_ReadsSupplies_MapsAmountAndLocation()
+    {
+        HttpRequestMessage? captured = null;
+        var client = BuildClient(req =>
         {
-            BaseAddress = new Uri("https://fake.shoptet.cz"),
-        };
-        var settings = Options.Create(new ShoptetApiSettings { StockId = 1 });
-        var stockClientOptions = Options.Create(new ShoptetStockClientOptions { Url = csvUrl });
-        return new ShoptetStockClient(http, settings, stockClientOptions, NullLogger<ShoptetStockClient>.Instance);
+            captured = req;
+            return Json(SuppliesPage(1,
+                new { code = "AKL001", amount = "120.000", claim = "3.000", location = "A30-1", productGuid = "g1" }));
+        }, stockId: 1);
+
+        var result = await client.ListAsync(CancellationToken.None);
+
+        var item = result.Should().ContainSingle().Subject;
+        item.Code.Should().Be("AKL001");
+        item.Stock.Should().Be(120m);
+        item.Location.Should().Be("A30-1");
+        captured!.Method.Should().Be(HttpMethod.Get);
+        captured.RequestUri!.PathAndQuery.Should().Be("/api/stocks/1/supplies?itemsPerPage=1000&page=1");
     }
 
     [Fact]
-    public async Task ListAsync_WhenServerReturns500_ThrowsHttpRequestException()
+    public async Task ListAsync_SuppliesHaveTwoPages_ReadsBoth()
     {
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        var client = BuildClient(req =>
+            req.RequestUri!.Query.Contains("page=2")
+                ? Json(SuppliesPage(2, new { code = "B", amount = "2.000", location = "L2" }))
+                : Json(SuppliesPage(2, new { code = "A", amount = "1.000", location = "L1" })));
 
-        // Arrange
-        var htmlErrorBody = "<html><body><h1>Internal Server Error</h1></body></html>";
-        var client = BuildClientForCsv(_ => new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        var result = await client.ListAsync(CancellationToken.None);
+
+        result.Select(r => r.Code).Should().Equal("A", "B");
+    }
+
+    [Fact]
+    public async Task ListAsync_NullAmount_MapsToZero()
+    {
+        var client = BuildClient(_ => Json(SuppliesPage(1,
+            new { code = "AKL001", amount = (string?)null, location = (string?)null })));
+
+        var result = await client.ListAsync(CancellationToken.None);
+
+        var item = result.Should().ContainSingle().Subject;
+        item.Stock.Should().Be(0m);
+        item.Location.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    [InlineData(HttpStatusCode.ServiceUnavailable)]
+    [InlineData(HttpStatusCode.NotFound)]
+    public async Task ListAsync_WhenServerReturnsError_ThrowsHttpRequestException(HttpStatusCode status)
+    {
+        var client = BuildClient(_ => new HttpResponseMessage(status)
         {
-            Content = new StringContent(htmlErrorBody, Encoding.UTF8),
+            Content = new StringContent("<html>error</html>", Encoding.UTF8),
         });
 
-        // Act
         Func<Task> act = async () => await client.ListAsync(CancellationToken.None);
 
-        // Assert – HttpRequestException must be thrown, NOT CsvHelper.MissingFieldException
         await act.Should().ThrowAsync<HttpRequestException>();
     }
 
     [Fact]
-    public async Task ListAsync_WhenServerReturns503_ThrowsHttpRequestException()
+    public async Task ListAsync_ResponseWithoutData_Throws()
     {
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
-        var htmlErrorBody = "<html><body><h1>Service Unavailable</h1></body></html>";
-        var client = BuildClientForCsv(_ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
-        {
-            Content = new StringContent(htmlErrorBody, Encoding.UTF8),
-        });
+        var client = BuildClient(_ => Json(new { data = (object?)null, errors = (object?)null }));
 
         Func<Task> act = async () => await client.ListAsync(CancellationToken.None);
 
-        await act.Should().ThrowAsync<HttpRequestException>();
-    }
-
-    [Fact]
-    public async Task ListAsync_WhenServerReturns404_ThrowsHttpRequestException()
-    {
-        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
-        var client = BuildClientForCsv(_ => new HttpResponseMessage(HttpStatusCode.NotFound)
-        {
-            Content = new StringContent("Not Found", Encoding.UTF8),
-        });
-
-        Func<Task> act = async () => await client.ListAsync(CancellationToken.None);
-
-        await act.Should().ThrowAsync<HttpRequestException>();
+        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]

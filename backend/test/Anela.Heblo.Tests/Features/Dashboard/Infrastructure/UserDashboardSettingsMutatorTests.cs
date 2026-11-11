@@ -1,9 +1,7 @@
 using Anela.Heblo.Application.Features.Dashboard.Contracts;
 using Anela.Heblo.Application.Features.Dashboard.Infrastructure;
-using Anela.Heblo.Application.Features.Dashboard.UseCases.GetUserSettings;
 using Anela.Heblo.Domain.Features.Dashboard;
 using FluentAssertions;
-using MediatR;
 using Moq;
 using Xunit;
 
@@ -13,7 +11,7 @@ public class UserDashboardSettingsMutatorTests
 {
     private readonly Mock<IUserDashboardSettingsRepository> _repositoryMock;
     private readonly Mock<IUserDashboardSettingsLock> _lockMock;
-    private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<IUserDashboardSettingsProvisioner> _provisionerMock;
     private readonly TimeProvider _timeProvider;
     private readonly UserDashboardSettingsMutator _mutator;
 
@@ -23,7 +21,7 @@ public class UserDashboardSettingsMutatorTests
     {
         _repositoryMock = new Mock<IUserDashboardSettingsRepository>();
         _lockMock = new Mock<IUserDashboardSettingsLock>();
-        _mediatorMock = new Mock<IMediator>();
+        _provisionerMock = new Mock<IUserDashboardSettingsProvisioner>();
 
         var timeProviderMock = new Mock<TimeProvider>();
         timeProviderMock.Setup(x => x.GetUtcNow()).Returns(new DateTimeOffset(FixedUtcNow));
@@ -35,15 +33,15 @@ public class UserDashboardSettingsMutatorTests
             .Setup(x => x.AcquireAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(noOpDisposable.Object);
 
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new GetUserSettingsResponse());
+        _provisionerMock
+            .Setup(x => x.EnsureProvisionedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new UserDashboardSettings());
 
         _mutator = new UserDashboardSettingsMutator(
             _repositoryMock.Object,
             _lockMock.Object,
             _timeProvider,
-            _mediatorMock.Object);
+            _provisionerMock.Object);
     }
 
     private static UserDashboardSettings CreateSampleSettings(string userId, List<UserDashboardTile>? tiles = null)
@@ -82,19 +80,20 @@ public class UserDashboardSettingsMutatorTests
 
         _repositoryMock.Verify(x => x.GetByUserIdAsync("anonymous"), Times.Once);
         _lockMock.Verify(x => x.AcquireAsync("anonymous", It.IsAny<CancellationToken>()), Times.Once);
+        _provisionerMock.Verify(x => x.EnsureProvisionedAsync("anonymous", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
-    public async Task MutateBulkAsync_SendsGetUserSettingsBeforeAcquiringLock()
+    public async Task MutateBulkAsync_EnsuresProvisionedBeforeAcquiringLock()
     {
         var settings = CreateSampleSettings("user123");
         _repositoryMock.Setup(x => x.GetByUserIdAsync("user123")).ReturnsAsync(settings);
 
         var callOrder = new List<string>();
-        _mediatorMock
-            .Setup(x => x.Send(It.IsAny<GetUserSettingsRequest>(), It.IsAny<CancellationToken>()))
-            .Callback(() => callOrder.Add("mediator"))
-            .ReturnsAsync(new GetUserSettingsResponse());
+        _provisionerMock
+            .Setup(x => x.EnsureProvisionedAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .Callback(() => callOrder.Add("provisioner"))
+            .ReturnsAsync(new UserDashboardSettings());
         var noOpDisposable = new Mock<IAsyncDisposable>();
         noOpDisposable.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask);
         _lockMock
@@ -104,7 +103,8 @@ public class UserDashboardSettingsMutatorTests
 
         await _mutator.MutateBulkAsync("user123", Array.Empty<UserDashboardTileDto>(), CancellationToken.None);
 
-        callOrder.Should().ContainInOrder("mediator", "lock");
+        callOrder.Should().ContainInOrder("provisioner", "lock");
+        _provisionerMock.Verify(x => x.EnsureProvisionedAsync("user123", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockTakingHistory;
 using Anela.Heblo.Application.Features.Catalog.UseCases.GetStockUpOperations;
 using Anela.Heblo.Application.Features.Catalog.UseCases.UpdateManufactureDifficulty;
 using Anela.Heblo.Domain.Features.Catalog;
+using Anela.Heblo.Domain.Features.Catalog.Eshop;
 using Anela.Heblo.Domain.Features.Catalog.Price;
 using Anela.Heblo.Domain.Features.Catalog.Stock;
 using AutoMapper;
@@ -20,6 +21,8 @@ public class CatalogMappingProfile : Profile
             .ForMember(dest => dest.MinimalExpiration, opt => opt.MapFrom(src => src.MinimalExpiration))
             .ForMember(dest => dest.HasLots, opt => opt.MapFrom(src => src.HasLots))
             .ForMember(dest => dest.Lots, opt => opt.Ignore()); // Set manually in handler
+
+        CreateMap<EshopProductFlag, EshopFlagDto>();
 
         CreateMap<StockData, StockDto>();
 

@@ -66,6 +66,7 @@ public class TransportBoxController : BaseApiController
         var request = new GetTransportBoxByIdRequest { Id = id };
         var response = await _mediator.Send(request, cancellationToken);
 
+        // Handler signals not-found via a null TransportBox with Success=true (no ErrorCode), so HandleResponse cannot map it to 404.
         if (response.TransportBox == null)
         {
             return NotFound(response);
@@ -100,12 +101,7 @@ public class TransportBoxController : BaseApiController
     {
         var response = await _mediator.Send(request, cancellationToken);
 
-        if (!response.Success)
-        {
-            return BadRequest(response);
-        }
-
-        return Ok(response);
+        return HandleResponse(response);
     }
 
 
@@ -122,12 +118,7 @@ public class TransportBoxController : BaseApiController
         request.BoxId = id; // Ensure consistency
         var response = await _mediator.Send(request, cancellationToken);
 
-        if (!response.Success)
-        {
-            return BadRequest(response);
-        }
-
-        return Ok(response);
+        return HandleResponse(response);
     }
 
     /// <summary>
@@ -149,11 +140,7 @@ public class TransportBoxController : BaseApiController
         };
 
         var response = await _mediator.Send(request, cancellationToken);
-        if (!response.Success)
-        {
-            return BadRequest(response);
-        }
-        return Ok(response);
+        return HandleResponse(response);
     }
 
     /// <summary>
@@ -169,12 +156,7 @@ public class TransportBoxController : BaseApiController
         request.BoxId = id; // Ensure consistency
         var response = await _mediator.Send(request, cancellationToken);
 
-        if (!response.Success)
-        {
-            return BadRequest(response);
-        }
-
-        return Ok(response);
+        return HandleResponse(response);
     }
 
     /// <summary>
@@ -188,12 +170,7 @@ public class TransportBoxController : BaseApiController
         var request = new GetTransportBoxByCodeRequest { BoxCode = boxCode };
         var response = await _mediator.Send(request, cancellationToken);
 
-        if (!response.Success)
-        {
-            return BadRequest(response);
-        }
-
-        return Ok(response);
+        return HandleResponse(response);
     }
 
     /// <summary>

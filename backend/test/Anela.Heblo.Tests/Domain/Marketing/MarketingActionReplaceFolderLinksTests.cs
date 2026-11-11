@@ -26,7 +26,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         {
             // Arrange
             var action = CreateAction();
-            action.LinkToFolder("key-1", MarketingFolderType.General, UtcNow);
+            action.LinkToFolder("key-1", MarketingFolderType.Images, UtcNow);
             action.FolderLinks.Should().HaveCount(1);
 
             // Act
@@ -43,7 +43,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         {
             // Arrange
             var action = CreateAction();
-            action.LinkToFolder("key-1", MarketingFolderType.General, UtcNow);
+            action.LinkToFolder("key-1", MarketingFolderType.Images, UtcNow);
 
             // Act
             action.ReplaceFolderLinks(null, UtcNow);
@@ -60,7 +60,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
 
             // Act
             action.ReplaceFolderLinks(
-                new[] { ("  key-1  ", MarketingFolderType.General) },
+                new[] { ("  key-1  ", MarketingFolderType.Images) },
                 UtcNow);
 
             // Assert
@@ -77,9 +77,9 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             action.ReplaceFolderLinks(
                 new[]
                 {
-                    ("key-1", MarketingFolderType.General),
-                    ("key-1", MarketingFolderType.General),
-                    (" key-1 ", MarketingFolderType.General),
+                    ("key-1", MarketingFolderType.Images),
+                    ("key-1", MarketingFolderType.Images),
+                    (" key-1 ", MarketingFolderType.Images),
                 },
                 UtcNow);
 
@@ -97,8 +97,8 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             action.ReplaceFolderLinks(
                 new[]
                 {
-                    ("key-1", MarketingFolderType.General),
-                    ("key-1", MarketingFolderType.Campaign),
+                    ("key-1", MarketingFolderType.Images),
+                    ("key-1", MarketingFolderType.Graphics),
                 },
                 UtcNow);
 
@@ -107,8 +107,8 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             action.FolderLinks.Select(f => f.FolderType)
                 .Should().BeEquivalentTo(new[]
                 {
-                    MarketingFolderType.General,
-                    MarketingFolderType.Campaign,
+                    MarketingFolderType.Images,
+                    MarketingFolderType.Graphics,
                 });
         }
 
@@ -126,8 +126,8 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                 action.ReplaceFolderLinks(
                     new[]
                     {
-                        ("good", MarketingFolderType.General),
-                        (badKey!, MarketingFolderType.General),
+                        ("good", MarketingFolderType.Images),
+                        (badKey!, MarketingFolderType.Images),
                     },
                     UtcNow);
 
@@ -141,15 +141,15 @@ namespace Anela.Heblo.Tests.Domain.Marketing
         {
             // Arrange
             var action = CreateAction();
-            action.LinkToFolder("KEEP", MarketingFolderType.General, UtcNow);
-            action.LinkToFolder("REMOVE", MarketingFolderType.General, UtcNow);
+            action.LinkToFolder("KEEP", MarketingFolderType.Images, UtcNow);
+            action.LinkToFolder("REMOVE", MarketingFolderType.Images, UtcNow);
 
             // Act
             action.ReplaceFolderLinks(
                 new[]
                 {
-                    ("KEEP", MarketingFolderType.General),
-                    ("ADD", MarketingFolderType.Campaign),
+                    ("KEEP", MarketingFolderType.Images),
+                    ("ADD", MarketingFolderType.Graphics),
                 },
                 UtcNow);
 
@@ -158,8 +158,8 @@ namespace Anela.Heblo.Tests.Domain.Marketing
                 .Select(f => (f.FolderKey, f.FolderType))
                 .Should().BeEquivalentTo(new[]
                 {
-                    ("KEEP", MarketingFolderType.General),
-                    ("ADD", MarketingFolderType.Campaign),
+                    ("KEEP", MarketingFolderType.Images),
+                    ("ADD", MarketingFolderType.Graphics),
                 });
         }
 
@@ -174,8 +174,8 @@ namespace Anela.Heblo.Tests.Domain.Marketing
             action.ReplaceFolderLinks(
                 new[]
                 {
-                    ("a", MarketingFolderType.General),
-                    ("b", MarketingFolderType.Campaign),
+                    ("a", MarketingFolderType.Images),
+                    ("b", MarketingFolderType.Graphics),
                 },
                 moment);
 
@@ -192,7 +192,7 @@ namespace Anela.Heblo.Tests.Domain.Marketing
 
             // Act
             action.ReplaceFolderLinks(
-                new[] { ("a", MarketingFolderType.General) },
+                new[] { ("a", MarketingFolderType.Images) },
                 UtcNow);
 
             // Assert

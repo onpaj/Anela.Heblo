@@ -8,6 +8,7 @@ import {
   handleApiError,
   isErrorResponse,
   resolveSwaggerErrorMessage,
+  resolveApiErrorMessage,
 } from "../errorHandler";
 
 describe("errorHandler", () => {
@@ -271,5 +272,26 @@ describe("Error Code Coverage", () => {
     expect(names).toContain("TransportBoxEmpty");
     expect(names).toContain("ConfigurationNotFound");
     expect(names).toContain("ExternalServiceError");
+  });
+
+  describe("resolveApiErrorMessage", () => {
+    it("prefers the translated envelope message", () => {
+      const body = JSON.stringify({
+        success: false,
+        errorCode: "TransportBoxDuplicateActiveBoxFound",
+        params: { code: "B172" },
+      });
+      const error = new SwaggerException("generic", 409, body, {}, null);
+      expect(resolveApiErrorMessage(error, "fallback")).toBe(
+        "Box s číslem B172 již existuje a je stále aktivní",
+      );
+    });
+
+    it("falls back to the Error message, then to the fallback text", () => {
+      expect(resolveApiErrorMessage(new TypeError("Failed to fetch"), "fb")).toBe(
+        "Failed to fetch",
+      );
+      expect(resolveApiErrorMessage("boom", "fb")).toBe("fb");
+    });
   });
 });

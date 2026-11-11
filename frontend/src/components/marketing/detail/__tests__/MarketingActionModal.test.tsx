@@ -140,7 +140,7 @@ describe("MarketingActionModal — edit field population", () => {
     dateFrom: "2026-04-01T10:00:00",
     dateTo: "2026-04-30T23:59:00",
     associatedProducts: ["AKL001", "AKL002"],
-    folderLinks: [{ path: "folder/key", label: "Složka", folderType: "Campaign" }],
+    folderLinks: [{ path: "folder/key", label: "Složka", folderType: "Graphics" }],
   };
 
   it("populates title", () => {
@@ -206,7 +206,7 @@ describe("MarketingActionModal — edit submit", () => {
     dateFrom: "2026-04-01T00:00:00",
     dateTo: "2026-04-30T00:00:00",
     associatedProducts: [],
-    folderLinks: [{ path: "folder/key", label: "Složka", folderType: "Campaign" }],
+    folderLinks: [{ path: "folder/key", label: "Složka", folderType: "Graphics" }],
   };
 
   it("submits actionType as the Meeting enum value when editing Meeting", async () => {
@@ -223,13 +223,13 @@ describe("MarketingActionModal — edit submit", () => {
     );
   });
 
-  it("submits folderType as the Campaign enum value", async () => {
+  it("submits folderType as the Graphics enum value", async () => {
     render(<MarketingActionModal {...defaultProps} existingAction={existingAction} />);
     submitForm();
 
     await waitFor(() => {
       const { request } = mockUpdateMutateAsync.mock.calls[0][0];
-      expect(request.folderLinks[0].folderType).toBe(MarketingFolderType.Campaign);
+      expect(request.folderLinks[0].folderType).toBe(MarketingFolderType.Graphics);
     });
   });
 });

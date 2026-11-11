@@ -1,3 +1,4 @@
+using Anela.Heblo.Application.Features.Manufacture.Contracts;
 using Anela.Heblo.Application.Features.Manufacture.Configuration;
 using Anela.Heblo.Application.Features.Manufacture.Services;
 using Anela.Heblo.Application.Features.Manufacture.UseCases.GetStockAnalysis;
@@ -34,7 +35,7 @@ public class ManufactureAnalysisMapperTests
         _mapper = new ManufactureAnalysisMapper(_optionsMock.Object, _loggerMock.Object);
     }
 
-    private CatalogAggregate CreateTestCatalogItem(
+    private ProductCatalogSnapshot CreateTestCatalogItem(
         string productCode = "TEST001",
         string productName = "Test Product",
         decimal availableStock = 100,
@@ -42,17 +43,17 @@ public class ManufactureAnalysisMapperTests
         decimal stockMinSetup = 50,
         int batchSize = 10)
     {
-        return new CatalogAggregate
+        return new ProductCatalogSnapshot
         {
             ProductCode = productCode,
             ProductName = productName,
-            Properties = new CatalogProperties
+            Properties = new ProductPropertiesSnapshot
             {
                 OptimalStockDaysSetup = optimalStockDaysSetup,
                 StockMinSetup = stockMinSetup,
                 BatchSize = batchSize
             },
-            Stock = new StockData
+            Stock = new ProductStockSnapshot
             {
                 Erp = availableStock, // Available is calculated as Erp + Transport when PrimaryStockSource is Erp
                 Transport = 0
@@ -101,6 +102,25 @@ public class ManufactureAnalysisMapperTests
         result.BatchSize.Should().Be("5");
         result.Severity.Should().Be(ManufacturingStockSeverity.Adequate);
         result.IsConfigured.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void MapToDto_CarriesIsNdFromCatalogProperties(bool isNd)
+    {
+        // Arrange
+        var catalogItem = new ProductCatalogSnapshot
+        {
+            ProductCode = "TOP001",
+            Properties = new ProductPropertiesSnapshot { IsNd = isNd }
+        };
+
+        // Act
+        var result = _mapper.MapToDto(catalogItem, ManufacturingStockSeverity.Adequate, 1, 1, 1, 1, false);
+
+        // Assert
+        result.IsNd.Should().Be(isNd);
     }
 
     [Fact]
@@ -246,16 +266,16 @@ public class ManufactureAnalysisMapperTests
     public void MapToDto_WithNullProductFamily_ReturnsEmptyString()
     {
         // Arrange - Create catalog item with null ProductCode to trigger null ProductFamily
-        var catalogItem = new CatalogAggregate
+        var catalogItem = new ProductCatalogSnapshot
         {
             ProductCode = null!, // This will cause ProductFamily to be null
             ProductName = "Test Product",
-            Stock = new StockData
+            Stock = new ProductStockSnapshot
             {
                 Erp = 100,
                 Transport = 0
             },
-            Properties = new CatalogProperties
+            Properties = new ProductPropertiesSnapshot
             {
                 OptimalStockDaysSetup = 30,
                 StockMinSetup = 50,
@@ -414,17 +434,17 @@ public class ManufactureAnalysisMapperTests
     public void MapToDto_MapsManufacturedStock()
     {
         // Arrange
-        var catalogItem = new CatalogAggregate
+        var catalogItem = new ProductCatalogSnapshot
         {
             ProductCode = "PROD001",
             ProductName = "Product One",
-            Properties = new CatalogProperties
+            Properties = new ProductPropertiesSnapshot
             {
                 OptimalStockDaysSetup = 30,
                 StockMinSetup = 25,
                 BatchSize = 5
             },
-            Stock = new StockData
+            Stock = new ProductStockSnapshot
             {
                 Erp = 100,
                 Transport = 0,

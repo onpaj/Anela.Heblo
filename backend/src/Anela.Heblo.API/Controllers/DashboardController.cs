@@ -59,26 +59,26 @@ public class DashboardController : BaseApiController
     }
 
     [HttpPost("tiles/{tileId}/enable")]
-    public async Task<ActionResult> EnableTile(string tileId)
+    public async Task<ActionResult<EnableTileResponse>> EnableTile(string tileId)
     {
         var request = new EnableTileRequest
         {
             TileId = tileId
         };
-        await _mediator.Send(request);
+        var response = await _mediator.Send(request);
 
-        return Ok();
+        return HandleResponse(response);
     }
 
     [HttpPost("tiles/{tileId}/disable")]
-    public async Task<ActionResult> DisableTile(string tileId)
+    public async Task<ActionResult<DisableTileResponse>> DisableTile(string tileId)
     {
         var request = new DisableTileRequest
         {
             TileId = tileId
         };
-        await _mediator.Send(request);
+        var response = await _mediator.Send(request);
 
-        return Ok();
+        return HandleResponse(response);
     }
 }

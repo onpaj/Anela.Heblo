@@ -221,4 +221,25 @@ public sealed class PlaudCliClientParserTests
         // The CLI rejects bare ids with NOT_FOUND, so every lookup must send the prefixed form.
         PlaudCliClient.ToCliRecordingId(stored).Should().Be(expected);
     }
+
+    [Theory]
+    [InlineData("Error: API error: 500 Internal Server Error", 500)]
+    [InlineData("Error: API error: 502 Bad Gateway", 502)]
+    [InlineData("Error: API error: 503 Service Unavailable", 503)]
+    [InlineData("Error: API error: 504 Gateway Timeout", 504)]
+    public void TryParseUpstreamStatus_Upstream5xx_ReturnsTrueAndStatus(string stderr, int expected)
+    {
+        PlaudCliClient.TryParseUpstreamStatus(stderr, out var status).Should().BeTrue();
+        status.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("Error: API error: 404 Not Found")]
+    [InlineData("[AUTH_FAILED] Token invalid or expired")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void TryParseUpstreamStatus_NonUpstream_ReturnsFalse(string? stderr)
+    {
+        PlaudCliClient.TryParseUpstreamStatus(stderr, out _).Should().BeFalse();
+    }
 }

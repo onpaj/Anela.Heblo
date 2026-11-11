@@ -15,47 +15,6 @@ public class MockBlobStorageService : IBlobStorageService
         _simulateErrors = simulateErrors;
     }
 
-    public Task<string> DownloadFromUrlAsync(string fileUrl, string containerName, string? blobName = null, CancellationToken cancellationToken = default)
-    {
-        if (_simulateErrors)
-        {
-            throw new HttpRequestException("Simulated download error");
-        }
-
-        // Generate blob name if not provided
-        if (string.IsNullOrEmpty(blobName))
-        {
-            var uri = new Uri(fileUrl);
-            blobName = Path.GetFileName(uri.LocalPath);
-
-            if (string.IsNullOrEmpty(blobName))
-            {
-                blobName = $"downloaded-file-{Guid.NewGuid()}.bin";
-            }
-        }
-
-        // Ensure container exists
-        if (!_containers.ContainsKey(containerName))
-        {
-            _containers[containerName] = new Dictionary<string, MockBlobInfo>();
-        }
-
-        // Simulate file download and upload
-        var blobUrl = $"https://mockstorageaccount.blob.core.windows.net/{containerName}/{blobName}";
-        _containers[containerName][blobName] = new MockBlobInfo
-        {
-            BlobName = blobName,
-            ContainerName = containerName,
-            Url = blobUrl,
-            ContentType = GetContentTypeFromUrl(fileUrl),
-            Size = 1024, // Mock size
-            CreatedAt = DateTime.UtcNow,
-            SourceUrl = fileUrl
-        };
-
-        return Task.FromResult(blobUrl);
-    }
-
     public Task<string> UploadAsync(Stream stream, string containerName, string blobName, string contentType, CancellationToken cancellationToken = default)
     {
         if (_simulateErrors)
@@ -200,20 +159,6 @@ public class MockBlobStorageService : IBlobStorageService
             .AsReadOnly();
 
         return Task.FromResult(prefixes);
-    }
-
-    private static string GetContentTypeFromUrl(string url)
-    {
-        var extension = Path.GetExtension(new Uri(url).LocalPath).ToLowerInvariant();
-        return extension switch
-        {
-            ".jpg" or ".jpeg" => "image/jpeg",
-            ".png" => "image/png",
-            ".pdf" => "application/pdf",
-            ".txt" => "text/plain",
-            ".json" => "application/json",
-            _ => "application/octet-stream"
-        };
     }
 }
 

@@ -2,7 +2,7 @@
 process: sync-catalog-master-data
 kind: sync
 module: catalog
-summary: Loads product planning attributes (Flexi query 38), Flexi lots with expirations, Heblo stock-taking records and Heblo manufacture-difficulty settings into the catalog cache.
+summary: Loads product planning attributes (Flexi query 38), Flexi lots with expirations, Heblo stock-taking records and Heblo manufacture-difficulty settings into the catalog cache; also writes the manual ND flag back to Flexi.
 owns:
   - backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogReferenceRefreshService.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Flexi/ProductAttributes/**
@@ -14,8 +14,9 @@ owns:
   - backend/src/Anela.Heblo.Domain/Features/Catalog/ManufactureDifficultyConfiguration.cs
   - backend/src/Anela.Heblo.Domain/Features/Catalog/IManufactureDifficultyRepository.cs
   - backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/*ManufactureDifficulty*/**
+  - backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/SetNd/**
   - backend/src/Anela.Heblo.Persistence/Catalog/ManufactureDifficulty/**
-verified_at: "5e993f9e2"
+verified_at: "6b5578b47"
 related: [calc-catalog-merge, calc-margins, flow-stock-taking]
 ---
 
@@ -25,8 +26,9 @@ related: [calc-catalog-merge, calc-margins, flow-stock-taking]
 Brings in the slow-changing facts that planning and costing need per product:
 - **Planning attributes** kept in Flexi as product parameters: optimal stock days, minimum
   stock, batch size, minimal manufacture quantity (MMQ), shelf life in months, season months,
-  allowed residue % and cooling. Stock analysis, purchase/manufacture planning, low-stock alerts
-  and expedition cooling read them.
+  allowed residue %, cooling and the manual "top product" flag. Stock analysis,
+  purchase/manufacture planning, low-stock alerts and expedition cooling read them; the top flag
+  is shown as a star next to the product name in the catalog list, stock analysis and batch planning.
 - **Lots** (šarže) with amount and expiration from Flexi — shown in the catalog detail and used
   for expiration tiles and lot-stock checks.
 - **Stock-taking history** (inventury) from Heblo — the "last stock taking" date and history.
@@ -49,6 +51,9 @@ On demand: creating, editing or deleting a difficulty setting (catalog detail, `
 clone of the product into the live cache. An ERP stock taking reloads one product's Flexi lots
 (`flow-stock-taking`).
 
+Ticking or unticking "ND" in the catalog detail (`PUT /api/Catalog/{productCode}/nd`,
+`products.catalog.write`) writes the flag to Flexi and then patches that one product in the catalog caches (no full refresh).
+
 ## Data flow
 1. **Attributes** — Flexi user query **38** (all rows, through `CatalogResilienceService`), one
    row per product × attribute, grouped per product. Attribute ids → fields:
@@ -63,6 +68,7 @@ clone of the product into the live cache. An ERP stock taking reloads one produc
    | 86 | `ExpirationMonths` | int, else 0 |
    | 87 | `AllowedResiduePercentage` | double, else 0 |
    | 89 | `Cooling` | enum `Cooling` by name, else None |
+   | 90 (`ND`, formerly `TOPPRODUKT`; matched by ID) | `IsNd` | true for `true`/`1`/`ano`/`yes` (case-insensitive), else false |
 
 2. **Lots** — Flexi SDK lots client (all lots): id, product code, amount, expiration (date),
    lot code → `CatalogLot`. Flexi's "Entity LotsItem not found" is treated as no lots.
@@ -74,6 +80,19 @@ clone of the product into the live cache. An ERP stock taking reloads one produc
 5. Each list replaces its cache and schedules a merge; the merge copies attributes into
    `Properties`, lots into `Stock.Lots`, stock takings into `StockTakingHistory` (newest first)
    and difficulty into `ManufactureDifficultySettings`.
+6. **Top product write (Heblo → Flexi)** — `SetNdHandler` checks the product exists in
+   the catalog, then `FlexiNdWriter` calls the SDK `IProductAttributeClient` for attribute
+   **90**: ticking upserts boolean `true`, unticking **deletes** the attribute row (so "not set"
+   and "false" both read back as not top). A Flexi failure returns `NdWriteFailed` (1317,
+   503) and the caches are left alone. After a successful write `ICatalogRepository.ApplyNdFlagAsync`
+   (`CatalogCacheStore.ApplyNdAsync`) swaps a patched clone of the product into the merged
+   catalog (current and stale) **and** into the attributes source cache, and schedules a debounced merge so a racing in-flight merge converges.
+   Both are needed: the merged catalog only gets the flag through a catalog-wide merge that runs after
+   a 5 s debounce, so the UI refetch right after a toggle would read the old value, and a merge reads
+   the attributes source cache, so patching only the merged catalog is reverted by the next merge. A
+   product with no attributes row (its only row was the Top flag) is patched in the merged catalog
+   only; the next hourly refresh finds the new row. If the patch throws, the request still succeeds
+   and the hourly refresh catches up.
 
 ## Logic & formulas
 - **Current difficulty**: the setting whose `[ValidFrom, ValidTo]` (null = open) contains the
@@ -91,10 +110,10 @@ clone of the product into the live cache. An ERP stock taking reloads one produc
 |---|---|---|
 | `BackgroundRefresh:ICatalogRepository:Refresh{Attributes,Lots,ManufactureDifficultySettings}Data` | every 01:00:00, tier 1 | |
 | `BackgroundRefresh:ICatalogRepository:RefreshStockTakingData` | every 00:05:00, tier 1 | |
-| Flexi attribute ids | 80–89 (constants in `FlexiProductAttributesQueryClient`) | Parameter → field map |
+| Flexi attribute ids | 80–90 (constants in `FlexiProductAttributesQueryClient`) | Parameter → field map |
 
 ## Runtime facts
-None.
+- `RefreshLotsData` logs `Catalog.LotsRefreshCompleted rows={Rows} elapsedMs={ElapsedMs}` (Information) after the Flexi lots call (`sarze-expirace.json`) succeeds; nothing is logged on failure. Use it to track the endpoint's latency (p95 ~19 s observed, FlexiBee-side; see `docs/integrations/flexi-api.md`, Known slow endpoints).
 
 ## Known quirks
 - **Unparseable attribute values become 0/None silently** (e.g. "10 ks" for stock min) — the
@@ -107,9 +126,22 @@ None.
 - **`IsInSeason` reads inverted** (true outside the listed months) and is unused; check the
   meaning of attribute 84 before building on it.
 - Lots and stock takings have no resilience wrapper; a failed load keeps the previous list.
+- **The ND write is not idempotent against duplicate attribute rows**: if Flexi already
+  holds several rows for product × attribute 90 the SDK answers 409 and the save fails with
+  `NdWriteFailed`; fix the duplicate in Flexi.
+- **Query 38 must return boolean attributes in `hodnota`.** The SDK stores attribute 90 (type
+  `typAtribut.boolean`) in the row's `valBoolean` column and leaves `hodnota` empty, while the other
+  attributes are string-typed and use `hodnota`. The query's SQL lives only in Flexi (read it with
+  `GET uzivatelsky-dotaz/38.json?detail=full`); on 2026-10-31 it was changed to select
+  `COALESCE(NULLIF(A.hodnota,''), CASE WHEN A.valboolean THEN 'true' END) as hodnota`. Without it
+  every Top flag reads back as false even though the write succeeded (HTTP 200, no log line). If
+  the query is ever recreated, keep the `COALESCE`.
 
 ## Code entry points
 - `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/ProductAttributes/FlexiProductAttributesQueryClient.cs` — query 38 and the attribute-id map
+- `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/ProductAttributes/FlexiNdWriter.cs` — set/clear attribute 90 through the SDK
+- `backend/src/Anela.Heblo.Application/Features/Catalog/UseCases/SetNd/SetNdHandler.cs` — validation, write, single-product cache patch
+- `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogCacheStore.cs` — `ApplyNdAsync`, the cache patch
 - `backend/src/Adapters/Anela.Heblo.Adapters.Flexi/Lots/FlexiLotsClient.cs` — Flexi lots
 - `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogReferenceRefreshService.cs` — stock takings, difficulty (all / single product)
 - `backend/src/Anela.Heblo.Application/Features/Catalog/Infrastructure/CatalogMetaRefreshService.cs` — `RefreshAttributesData`, `RefreshLotsData`

@@ -1,10 +1,14 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Anela.Heblo.Application.Features.FileStorage;
+using Anela.Heblo.Application.Features.FileStorage.Contracts;
 using Anela.Heblo.Application.Features.FileStorage.Infrastructure;
 using Anela.Heblo.Application.Features.FileStorage.UseCases.DownloadFromUrl;
 using Anela.Heblo.Application.Shared;
@@ -51,13 +55,13 @@ public class DownloadFromUrlHandlerTests
         _headFactory = BuildHeadFactory(HttpStatusCode.OK, contentLength: 1024);
     }
 
-    private DownloadFromUrlHandler BuildHandler() =>
+    private DownloadFromUrlHandler BuildHandler(ILogger<DownloadFromUrlHandler>? logger = null) =>
         new DownloadFromUrlHandler(
             _blobStorage.Object,
             _resilience.Object,
             _headFactory.Object,
             _options,
-            _logger.Object);
+            logger ?? _logger.Object);
 
     private static Mock<IHttpClientFactory> BuildHeadFactory(
         HttpStatusCode status,
@@ -85,10 +89,11 @@ public class DownloadFromUrlHandlerTests
         // Arrange
         var blobUrl = "https://mockstorageaccount.blob.core.windows.net/documents/test-document.pdf";
         _blobStorage
-            .Setup(s => s.DownloadFromUrlAsync(
-                "https://example.com/document.pdf",
+            .Setup(s => s.UploadAsync(
+                It.IsAny<Stream>(),
                 "documents",
                 "test-document.pdf",
+                "application/pdf",
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(blobUrl);
 
@@ -115,10 +120,11 @@ public class DownloadFromUrlHandlerTests
         // Arrange
         var blobUrl = "https://mockstorageaccount.blob.core.windows.net/images/photo.jpg";
         _blobStorage
-            .Setup(s => s.DownloadFromUrlAsync(
+            .Setup(s => s.UploadAsync(
+                It.IsAny<Stream>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<string?>(),
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(blobUrl);
 
@@ -146,10 +152,11 @@ public class DownloadFromUrlHandlerTests
         // Arrange
         var blobUrl = $"https://mock.blob.core.windows.net/files/{expectedBlobName}";
         _blobStorage
-            .Setup(s => s.DownloadFromUrlAsync(
+            .Setup(s => s.UploadAsync(
+                It.IsAny<Stream>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<string?>(),
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(blobUrl);
 
@@ -177,10 +184,11 @@ public class DownloadFromUrlHandlerTests
         // Arrange
         const string blobUrl = "https://mock.blob.core.windows.net/exports/export.csv";
         _blobStorage
-            .Setup(s => s.DownloadFromUrlAsync(
+            .Setup(s => s.UploadAsync(
+                It.IsAny<Stream>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<string?>(),
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync(blobUrl);
 
@@ -210,16 +218,9 @@ public class DownloadFromUrlHandlerTests
     {
         // Arrange — HEAD probe throws TaskCanceledException (simulates per-probe timeout)
         // but the download itself succeeds
-        _headFactory = BuildHeadFactory(HttpStatusCode.OK, throwException: new TaskCanceledException("head timed out"));
-
-        const string blobUrl = "https://mock.blob.core.windows.net/exports/export.csv";
-        _blobStorage
-            .Setup(s => s.DownloadFromUrlAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<CancellationToken>()))
-            .ReturnsAsync(blobUrl);
+        SetupDownload(req => req.Method == HttpMethod.Head
+            ? throw new TaskCanceledException("head timed out")
+            : Ok("text/csv"));
 
         var request = new DownloadFromUrlRequest
         {
@@ -294,10 +295,11 @@ public class DownloadFromUrlHandlerTests
                 });
 
         _blobStorage
-            .Setup(s => s.DownloadFromUrlAsync(
+            .Setup(s => s.UploadAsync(
+                It.IsAny<Stream>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<string?>(),
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ReturnsAsync("ignored");
 
@@ -409,10 +411,11 @@ public class DownloadFromUrlHandlerTests
     {
         // Arrange
         _blobStorage
-            .Setup(s => s.DownloadFromUrlAsync(
+            .Setup(s => s.UploadAsync(
+                It.IsAny<Stream>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<string?>(),
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new HttpRequestException("Simulated download error"));
 
@@ -435,10 +438,11 @@ public class DownloadFromUrlHandlerTests
     {
         // Arrange
         _blobStorage
-            .Setup(s => s.DownloadFromUrlAsync(
+            .Setup(s => s.UploadAsync(
+                It.IsAny<Stream>(),
                 It.IsAny<string>(),
                 It.IsAny<string>(),
-                It.IsAny<string?>(),
+                It.IsAny<string>(),
                 It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("Unexpected error"));
 
@@ -458,6 +462,262 @@ public class DownloadFromUrlHandlerTests
         Assert.Null(result.BlobUrl);
         Assert.Null(result.BlobName);
         Assert.Null(result.ContainerName);
+    }
+
+    // ---------------------------------------------------------------------------
+    // GET + upload flow (moved from AzureBlobStorageService into the handler)
+    // ---------------------------------------------------------------------------
+
+    private sealed record UploadCall(string ContainerName, string BlobName, string ContentType, CancellationToken Token);
+
+    private (Mock<IHttpClientFactory> Factory, List<HttpRequestMessage> Requests, List<UploadCall> Uploads) SetupDownload(
+        Func<HttpRequestMessage, HttpResponseMessage> respond)
+    {
+        var requests = new List<HttpRequestMessage>();
+        var handler = new DelegatingStubHandler((req, ct) =>
+        {
+            ct.ThrowIfCancellationRequested();
+            requests.Add(req);
+            return respond(req);
+        });
+        var factory = new Mock<IHttpClientFactory>();
+        factory
+            .Setup(f => f.CreateClient(FileStorageModule.FileDownloadClientName))
+            .Returns(() => new HttpClient(handler));
+        _headFactory = factory;
+
+        var uploads = new List<UploadCall>();
+        _blobStorage
+            .Setup(s => s.UploadAsync(
+                It.IsAny<Stream>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<string>(),
+                It.IsAny<CancellationToken>()))
+            .Callback<Stream, string, string, string, CancellationToken>(
+                (_, container, blob, contentType, ct) => uploads.Add(new UploadCall(container, blob, contentType, ct)))
+            .ReturnsAsync((Stream _, string container, string blob, string _, CancellationToken _) =>
+                $"https://mock.blob.core.windows.net/{container}/{blob}");
+
+        return (factory, requests, uploads);
+    }
+
+    private static HttpResponseMessage Ok(string? contentType = null)
+    {
+        var content = new ByteArrayContent(new byte[] { 1, 2, 3 });
+        if (contentType is not null)
+            content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+        return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
+    }
+
+    [Fact]
+    public async Task Handle_Download_ResolvesNamedClient_AndUsesGetWithUpload()
+    {
+        // Arrange
+        var (factory, requests, uploads) = SetupDownload(_ => Ok("text/csv"));
+
+        // Act
+        var result = await BuildHandler().Handle(
+            new DownloadFromUrlRequest { FileUrl = "https://example.com/export.csv", ContainerName = "exports" },
+            CancellationToken.None);
+
+        // Assert
+        Assert.True(result.Success);
+        factory.Verify(f => f.CreateClient(FileStorageModule.FileDownloadClientName), Times.AtLeast(2)); // HEAD probe + GET
+        Assert.Contains(requests, r => r.Method == HttpMethod.Get);
+        var upload = Assert.Single(uploads);
+        Assert.Equal("exports", upload.ContainerName);
+        Assert.Equal("export.csv", upload.BlobName);
+    }
+
+    [Fact]
+    public async Task Handle_Download_NonSuccessStatus_ReturnsFailure_AndNeverUploads()
+    {
+        // Arrange — HEAD and GET both return 503
+        var (_, _, uploads) = SetupDownload(_ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+
+        // Act
+        var result = await BuildHandler().Handle(
+            new DownloadFromUrlRequest { FileUrl = "https://example.com/file", ContainerName = "exports" },
+            CancellationToken.None);
+
+        // Assert
+        Assert.False(result.Success);
+        Assert.Equal(ErrorCodes.FileDownloadFailed, result.ErrorCode);
+        Assert.Equal("http-status", result.Params!["cause"]);
+        Assert.Empty(uploads);
+    }
+
+    [Fact]
+    public async Task Handle_Download_ForwardsCancellationTokenToGetAndUpload()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        var (_, _, uploads) = SetupDownload(_ => Ok("application/pdf"));
+
+        // Act
+        var result = await BuildHandler().Handle(
+            new DownloadFromUrlRequest { FileUrl = "https://example.com/a.pdf", ContainerName = "docs" },
+            cts.Token);
+
+        // Assert — the token reaching UploadAsync is the one handed to the resilience delegate
+        Assert.True(result.Success);
+        Assert.Equal(cts.Token, Assert.Single(uploads).Token);
+    }
+
+    [Fact]
+    public async Task Handle_Download_AlreadyCancelledToken_Propagates()
+    {
+        // Arrange
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+        SetupDownload(_ => Ok());
+
+        // Act & Assert
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            BuildHandler().Handle(
+                new DownloadFromUrlRequest { FileUrl = "https://example.com/file", ContainerName = "exports" },
+                cts.Token));
+    }
+
+    [Fact]
+    public async Task Handle_Download_UrlWithFilename_UsesBlobNameFromPath()
+    {
+        var (_, _, uploads) = SetupDownload(_ => Ok());
+
+        await BuildHandler().Handle(
+            new DownloadFromUrlRequest { FileUrl = "https://example.com/folder/report.pdf", ContainerName = "documents" },
+            CancellationToken.None);
+
+        Assert.Equal("report.pdf", Assert.Single(uploads).BlobName);
+    }
+
+    [Fact]
+    public async Task Handle_Download_RequestedBlobName_TakesPrecedenceOverUrl()
+    {
+        var (_, _, uploads) = SetupDownload(_ => Ok());
+
+        await BuildHandler().Handle(
+            new DownloadFromUrlRequest
+            {
+                FileUrl = "https://example.com/folder/report.pdf",
+                ContainerName = "documents",
+                BlobName = "custom.pdf",
+            },
+            CancellationToken.None);
+
+        Assert.Equal("custom.pdf", Assert.Single(uploads).BlobName);
+    }
+
+    [Fact]
+    public async Task Handle_Download_UrlWithNoFilename_GeneratesNameWithContentTypeExtension()
+    {
+        var (_, _, uploads) = SetupDownload(_ => Ok("image/png"));
+
+        await BuildHandler().Handle(
+            new DownloadFromUrlRequest { FileUrl = "https://example.com/files/", ContainerName = "documents" },
+            CancellationToken.None);
+
+        var upload = Assert.Single(uploads);
+        Assert.StartsWith("downloaded-file-", upload.BlobName);
+        Assert.EndsWith(".png", upload.BlobName);
+        Assert.Equal("image/png", upload.ContentType);
+    }
+
+    [Fact]
+    public async Task Handle_Download_ResponseContentType_IsPassedToUpload()
+    {
+        var (_, _, uploads) = SetupDownload(_ => Ok("application/pdf"));
+
+        await BuildHandler().Handle(
+            new DownloadFromUrlRequest { FileUrl = "https://example.com/data.bin", ContainerName = "documents" },
+            CancellationToken.None);
+
+        Assert.Equal("application/pdf", Assert.Single(uploads).ContentType);
+    }
+
+    [Theory]
+    [InlineData("file.jpg", "image/jpeg")]
+    [InlineData("file.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
+    [InlineData("PHOTO.JPG", "image/jpeg")]
+    [InlineData("file.unknown", "application/octet-stream")]
+    public async Task Handle_Download_NoResponseContentType_InfersContentTypeFromExtension(
+        string blobName, string expectedContentType)
+    {
+        var (_, _, uploads) = SetupDownload(_ => Ok());
+
+        await BuildHandler().Handle(
+            new DownloadFromUrlRequest
+            {
+                FileUrl = "https://example.com/file",
+                ContainerName = "documents",
+                BlobName = blobName,
+            },
+            CancellationToken.None);
+
+        Assert.Equal(expectedContentType, Assert.Single(uploads).ContentType);
+    }
+
+    [Fact]
+    public async Task Handle_Download_Success_DoesNotLogUrlQuerySecret()
+    {
+        var logger = new CapturingLogger<DownloadFromUrlHandler>();
+        SetupDownload(_ => Ok("application/pdf"));
+
+        var result = await BuildHandler(logger).Handle(
+            new DownloadFromUrlRequest { FileUrl = "https://example.com/file.pdf?token=secret", ContainerName = "documents" },
+            CancellationToken.None);
+
+        Assert.True(result.Success);
+        Assert.NotEmpty(logger.Entries);
+        Assert.DoesNotContain(logger.Entries, e => e.Contains("secret"));
+    }
+
+    [Fact]
+    public async Task Handle_Download_Failure_DoesNotLogUrlQuerySecret()
+    {
+        var logger = new CapturingLogger<DownloadFromUrlHandler>();
+        SetupDownload(_ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+
+        var result = await BuildHandler(logger).Handle(
+            new DownloadFromUrlRequest { FileUrl = "https://example.com/file.pdf?token=secret", ContainerName = "exports" },
+            CancellationToken.None);
+
+        Assert.False(result.Success);
+        Assert.NotEmpty(logger.Entries);
+        Assert.DoesNotContain(logger.Entries, e => e.Contains("secret"));
+    }
+
+    private sealed class CapturingLogger<T> : ILogger<T>
+    {
+        public List<string> Entries { get; } = new();
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            Entries.Add(formatter(state, exception));
+            if (exception is not null)
+            {
+                Entries.Add(exception.ToString());
+            }
+
+            if (state is IEnumerable<KeyValuePair<string, object?>> kvps)
+            {
+                Entries.AddRange(kvps.Select(kv => kv.Value?.ToString() ?? string.Empty));
+            }
+        }
+    }
+
+    private sealed class DelegatingStubHandler(
+        Func<HttpRequestMessage, CancellationToken, HttpResponseMessage> respond) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(respond(request, cancellationToken));
     }
 
     // ---------------------------------------------------------------------------

@@ -18,6 +18,7 @@ namespace Anela.Heblo.Tests.Features.Manufacture.Services.Workflows;
 public class ConfirmProductCompletionWorkflowTests
 {
     private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<IManufactureOrderRepository> _repositoryMock;
     private readonly Mock<IResidueDistributionCalculator> _residueCalculatorMock;
     private readonly Mock<IManufactureNameBuilder> _nameBuilderMock;
     private readonly Mock<TimeProvider> _timeProviderMock;
@@ -32,6 +33,7 @@ public class ConfirmProductCompletionWorkflowTests
     public ConfirmProductCompletionWorkflowTests()
     {
         _mediatorMock = new Mock<IMediator>();
+        _repositoryMock = new Mock<IManufactureOrderRepository>();
         _residueCalculatorMock = new Mock<IResidueDistributionCalculator>();
         _nameBuilderMock = new Mock<IManufactureNameBuilder>();
         _timeProviderMock = new Mock<TimeProvider>();
@@ -44,12 +46,17 @@ public class ConfirmProductCompletionWorkflowTests
         var testUser = new CurrentUser("test-user-id", TestUserName, "test@example.com", true);
         _currentUserServiceMock.Setup(x => x.GetCurrentUser()).Returns(testUser);
 
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateOrder());
+
         _nameBuilderMock
-            .Setup(x => x.Build(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<ErpManufactureType>()))
+            .Setup(x => x.Build(It.IsAny<ManufactureOrder>(), It.IsAny<ErpManufactureType>()))
             .Returns("Product-Short-Name");
 
         _workflow = new ConfirmProductCompletionWorkflow(
             _mediatorMock.Object,
+            _repositoryMock.Object,
             _residueCalculatorMock.Object,
             _nameBuilderMock.Object,
             _timeProviderMock.Object,
@@ -69,7 +76,7 @@ public class ConfirmProductCompletionWorkflowTests
 
         SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
         _residueCalculatorMock
-            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CalculateAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(distribution);
 
         // Act
@@ -111,6 +118,28 @@ public class ConfirmProductCompletionWorkflowTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_WhenOrderNotFoundAfterUpdate_ReturnsFailureWithoutSubmittingToErp()
+    {
+        // Arrange
+        var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m } };
+        _mediatorMock
+            .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateSuccessfulUpdateOrderResponse());
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder?)null);
+
+        // Act
+        var result = await _workflow.ExecuteAsync(ValidOrderId, productQuantities, false, ValidChangeReason, CancellationToken.None);
+
+        // Assert
+        result.Success.Should().BeFalse();
+        result.ErrorMessage.Should().Contain(ErrorCodes.ResourceNotFound.ToString());
+        _mediatorMock.Verify(x => x.Send(It.IsAny<SubmitManufactureRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+        _mediatorMock.Verify(x => x.Send(It.IsAny<UpdateManufactureOrderStatusRequest>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
     public async Task ExecuteAsync_WhenUpdateProductsFails_ReturnsQuantityUpdateError()
     {
         // Arrange
@@ -149,7 +178,7 @@ public class ConfirmProductCompletionWorkflowTests
             .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updateOrderResponse);
         _residueCalculatorMock
-            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CalculateAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(distribution);
 
         // Act
@@ -178,7 +207,7 @@ public class ConfirmProductCompletionWorkflowTests
 
         SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
         _residueCalculatorMock
-            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CalculateAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(distribution);
 
         // Act
@@ -210,7 +239,7 @@ public class ConfirmProductCompletionWorkflowTests
 
         SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
         _residueCalculatorMock
-            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CalculateAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(distribution);
 
         // Act
@@ -246,7 +275,7 @@ public class ConfirmProductCompletionWorkflowTests
 
         SetupMediatorResponses(CreateSuccessfulUpdateOrderResponse(), submitManufactureResponse, CreateSuccessfulUpdateStatusResponse());
         _residueCalculatorMock
-            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CalculateAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateDistributionWithinThreshold());
 
         // Act
@@ -291,7 +320,7 @@ public class ConfirmProductCompletionWorkflowTests
             .ReturnsAsync(new UpdateBoMIngredientAmountResponse(new Exception("BoM update failed")));
 
         _residueCalculatorMock
-            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CalculateAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(distribution);
 
         // Act
@@ -325,7 +354,7 @@ public class ConfirmProductCompletionWorkflowTests
 
         SetupMediatorResponses(updateOrderResponse, submitManufactureResponse, updateStatusResponse);
         _residueCalculatorMock
-            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CalculateAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(distribution);
 
         // Act
@@ -411,7 +440,7 @@ public class ConfirmProductCompletionWorkflowTests
             .ReturnsAsync(updateStatusResponse);
 
         _residueCalculatorMock
-            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CalculateAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(distribution);
 
         // Act
@@ -435,7 +464,7 @@ public class ConfirmProductCompletionWorkflowTests
         // Arrange — 30 products, each with a 200-char error message.
         // Raw note would be >> 2000 chars; it must be truncated to exactly <= 2000.
         const int ProductCount = 30;
-        var updateOrderResponse = CreateSuccessfulUpdateOrderResponseWithManyProducts(ProductCount);
+        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
         var productQuantities = Enumerable.Range(1, ProductCount)
             .ToDictionary(i => i, _ => 1m);
 
@@ -443,8 +472,12 @@ public class ConfirmProductCompletionWorkflowTests
             .Setup(x => x.Send(It.IsAny<UpdateManufactureOrderRequest>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(updateOrderResponse);
 
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateOrderWithManyProducts(ProductCount));
+
         _residueCalculatorMock
-            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CalculateAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(CreateDistributionWithinThreshold());
 
         _mediatorMock
@@ -487,14 +520,14 @@ public class ConfirmProductCompletionWorkflowTests
         var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m }, { 2, 3.0m }, { 3, 200.0m } };
         var distribution = CreateDistributionWithinThreshold();
         var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
+        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
 
-        var updateOrderResponse = new UpdateManufactureOrderResponse
-        {
-            Success = true,
-            Order = new UpdateManufactureOrderDto
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ManufactureOrder
             {
                 OrderNumber = "MO-2024-DIRECT",
-                SemiProduct = new UpdateManufactureOrderSemiProductDto
+                SemiProduct = new ManufactureOrderSemiProduct
                 {
                     ProductCode = "SP001001",
                     ProductName = "Semi Product 1",
@@ -503,33 +536,14 @@ public class ConfirmProductCompletionWorkflowTests
                     LotNumber = "LOT-DIRECT",
                     ExpirationDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30)),
                 },
-                Products = new List<UpdateManufactureOrderProductDto>
+                Products = new List<ManufactureOrderProduct>
                 {
-                    new UpdateManufactureOrderProductDto
-                    {
-                        ProductCode = "P001",
-                        ProductName = "Product 1",
-                        ActualQuantity = 5.0m,
-                        PlannedQuantity = 5.0m,
-                    },
-                    new UpdateManufactureOrderProductDto
-                    {
-                        ProductCode = "P002",
-                        ProductName = "Product 2",
-                        ActualQuantity = 3.0m,
-                        PlannedQuantity = 3.0m,
-                    },
+                    new ManufactureOrderProduct { ProductCode = "P001", ProductName = "Product 1", ActualQuantity = 5.0m, PlannedQuantity = 5.0m },
+                    new ManufactureOrderProduct { ProductCode = "P002", ProductName = "Product 2", ActualQuantity = 3.0m, PlannedQuantity = 3.0m },
                     // Direct semiproduct row — ProductCode matches SemiProduct.ProductCode
-                    new UpdateManufactureOrderProductDto
-                    {
-                        ProductCode = "SP001001",
-                        ProductName = "Semi Product 1",
-                        ActualQuantity = 200.0m,
-                        PlannedQuantity = 200.0m,
-                    },
+                    new ManufactureOrderProduct { ProductCode = "SP001001", ProductName = "Semi Product 1", ActualQuantity = 200.0m, PlannedQuantity = 200.0m },
                 },
-            },
-        };
+            });
 
         SubmitManufactureRequest? capturedSubmitRequest = null;
 
@@ -552,7 +566,7 @@ public class ConfirmProductCompletionWorkflowTests
             .ReturnsAsync(new UpdateBoMIngredientAmountResponse());
 
         _residueCalculatorMock
-            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CalculateAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(distribution);
 
         // Act
@@ -575,14 +589,14 @@ public class ConfirmProductCompletionWorkflowTests
         var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m }, { 2, 200.0m } };
         var distribution = CreateDistributionWithinThreshold();
         var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
+        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
 
-        var updateOrderResponse = new UpdateManufactureOrderResponse
-        {
-            Success = true,
-            Order = new UpdateManufactureOrderDto
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ManufactureOrder
             {
                 OrderNumber = "MO-2024-DIRECT2",
-                SemiProduct = new UpdateManufactureOrderSemiProductDto
+                SemiProduct = new ManufactureOrderSemiProduct
                 {
                     ProductCode = "SP001001",
                     ProductName = "Semi Product 1",
@@ -591,25 +605,12 @@ public class ConfirmProductCompletionWorkflowTests
                     LotNumber = "LOT-DIRECT",
                     ExpirationDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30)),
                 },
-                Products = new List<UpdateManufactureOrderProductDto>
+                Products = new List<ManufactureOrderProduct>
                 {
-                    new UpdateManufactureOrderProductDto
-                    {
-                        ProductCode = "P001",
-                        ProductName = "Product 1",
-                        ActualQuantity = 5.0m,
-                        PlannedQuantity = 5.0m,
-                    },
-                    new UpdateManufactureOrderProductDto
-                    {
-                        ProductCode = "SP001001",
-                        ProductName = "Semi Product 1",
-                        ActualQuantity = 200.0m,
-                        PlannedQuantity = 200.0m,
-                    },
+                    new ManufactureOrderProduct { ProductCode = "P001", ProductName = "Product 1", ActualQuantity = 5.0m, PlannedQuantity = 5.0m },
+                    new ManufactureOrderProduct { ProductCode = "SP001001", ProductName = "Semi Product 1", ActualQuantity = 200.0m, PlannedQuantity = 200.0m },
                 },
-            },
-        };
+            });
 
         SubmitManufactureRequest? capturedSubmitRequest = null;
 
@@ -632,7 +633,7 @@ public class ConfirmProductCompletionWorkflowTests
             .ReturnsAsync(new UpdateBoMIngredientAmountResponse());
 
         _residueCalculatorMock
-            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CalculateAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(distribution);
 
         // Act
@@ -667,7 +668,7 @@ public class ConfirmProductCompletionWorkflowTests
             .ReturnsAsync(submitManufactureResponse);
 
         _residueCalculatorMock
-            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CalculateAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(distribution);
 
         // Act
@@ -688,15 +689,15 @@ public class ConfirmProductCompletionWorkflowTests
         // output: all products go to ERP as finished products, and no direct output is emitted.
         var productQuantities = new Dictionary<int, decimal> { { 1, 5.0m }, { 2, 3.0m } };
         var updateStatusResponse = CreateSuccessfulUpdateStatusResponse();
+        var updateOrderResponse = CreateSuccessfulUpdateOrderResponse();
 
-        var updateOrderResponse = new UpdateManufactureOrderResponse
-        {
-            Success = true,
-            Order = new UpdateManufactureOrderDto
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ManufactureOrder
             {
                 OrderNumber = "MO-2024-SINGLE",
                 ManufactureType = ManufactureType.SinglePhase,
-                SemiProduct = new UpdateManufactureOrderSemiProductDto
+                SemiProduct = new ManufactureOrderSemiProduct
                 {
                     ProductCode = "P001", // placeholder == first product
                     ProductName = "Product 1",
@@ -705,25 +706,12 @@ public class ConfirmProductCompletionWorkflowTests
                     LotNumber = "LOT-SINGLE",
                     ExpirationDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30)),
                 },
-                Products = new List<UpdateManufactureOrderProductDto>
+                Products = new List<ManufactureOrderProduct>
                 {
-                    new UpdateManufactureOrderProductDto
-                    {
-                        ProductCode = "P001",
-                        ProductName = "Product 1",
-                        ActualQuantity = 5.0m,
-                        PlannedQuantity = 5.0m,
-                    },
-                    new UpdateManufactureOrderProductDto
-                    {
-                        ProductCode = "P002",
-                        ProductName = "Product 2",
-                        ActualQuantity = 3.0m,
-                        PlannedQuantity = 3.0m,
-                    },
+                    new ManufactureOrderProduct { ProductCode = "P001", ProductName = "Product 1", ActualQuantity = 5.0m, PlannedQuantity = 5.0m },
+                    new ManufactureOrderProduct { ProductCode = "P002", ProductName = "Product 2", ActualQuantity = 3.0m, PlannedQuantity = 3.0m },
                 },
-            },
-        };
+            });
 
         SubmitManufactureRequest? capturedSubmitRequest = null;
 
@@ -742,7 +730,7 @@ public class ConfirmProductCompletionWorkflowTests
             .ReturnsAsync(updateStatusResponse);
 
         _residueCalculatorMock
-            .Setup(x => x.CalculateAsync(It.IsAny<UpdateManufactureOrderDto>(), It.IsAny<CancellationToken>()))
+            .Setup(x => x.CalculateAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ResidueDistribution { IsWithinAllowedThreshold = true });
 
         // Act
@@ -783,10 +771,42 @@ public class ConfirmProductCompletionWorkflowTests
             .ReturnsAsync(new UpdateBoMIngredientAmountResponse());
     }
 
-    private static UpdateManufactureOrderResponse CreateSuccessfulUpdateOrderResponseWithManyProducts(int productCount)
+    private static UpdateManufactureOrderResponse CreateSuccessfulUpdateOrderResponse()
+    {
+        return new UpdateManufactureOrderResponse { Success = true };
+    }
+
+    private static ManufactureOrder CreateOrder()
+    {
+        return new ManufactureOrder
+        {
+            OrderNumber = "MO-2024-001",
+            SemiProduct = new ManufactureOrderSemiProduct
+            {
+                ProductCode = "SP001001",
+                ProductName = "Semi Product 1",
+                ActualQuantity = 10.5m,
+                PlannedQuantity = 10.5m,
+                LotNumber = "LOT123",
+                ExpirationDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30)),
+            },
+            Products = new List<ManufactureOrderProduct>
+            {
+                new ManufactureOrderProduct
+                {
+                    ProductCode = "P001",
+                    ProductName = "Product 1",
+                    ActualQuantity = 5.0m,
+                    PlannedQuantity = 5.0m,
+                },
+            },
+        };
+    }
+
+    private static ManufactureOrder CreateOrderWithManyProducts(int productCount)
     {
         var products = Enumerable.Range(1, productCount)
-            .Select(i => new UpdateManufactureOrderProductDto
+            .Select(i => new ManufactureOrderProduct
             {
                 ProductCode = $"P{i:D3}",
                 ProductName = $"Product {i}",
@@ -795,54 +815,19 @@ public class ConfirmProductCompletionWorkflowTests
             })
             .ToList();
 
-        return new UpdateManufactureOrderResponse
+        return new ManufactureOrder
         {
-            Success = true,
-            Order = new UpdateManufactureOrderDto
+            OrderNumber = "MO-2024-LARGE",
+            SemiProduct = new ManufactureOrderSemiProduct
             {
-                OrderNumber = "MO-2024-LARGE",
-                SemiProduct = new UpdateManufactureOrderSemiProductDto
-                {
-                    ProductCode = "SP001001",
-                    ProductName = "Semi Product 1",
-                    ActualQuantity = 10.5m,
-                    PlannedQuantity = 10.5m,
-                    LotNumber = "LOT123",
-                    ExpirationDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30)),
-                },
-                Products = products,
+                ProductCode = "SP001001",
+                ProductName = "Semi Product 1",
+                ActualQuantity = 10.5m,
+                PlannedQuantity = 10.5m,
+                LotNumber = "LOT123",
+                ExpirationDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30)),
             },
-        };
-    }
-
-    private static UpdateManufactureOrderResponse CreateSuccessfulUpdateOrderResponse()
-    {
-        return new UpdateManufactureOrderResponse
-        {
-            Success = true,
-            Order = new UpdateManufactureOrderDto
-            {
-                OrderNumber = "MO-2024-001",
-                SemiProduct = new UpdateManufactureOrderSemiProductDto
-                {
-                    ProductCode = "SP001001",
-                    ProductName = "Semi Product 1",
-                    ActualQuantity = 10.5m,
-                    PlannedQuantity = 10.5m,
-                    LotNumber = "LOT123",
-                    ExpirationDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30)),
-                },
-                Products = new List<UpdateManufactureOrderProductDto>
-                {
-                    new UpdateManufactureOrderProductDto
-                    {
-                        ProductCode = "P001",
-                        ProductName = "Product 1",
-                        ActualQuantity = 5.0m,
-                        PlannedQuantity = 5.0m,
-                    },
-                },
-            },
+            Products = products,
         };
     }
 

@@ -1,0 +1,40 @@
+{
+  "feature_id": "feat-4433",
+  "issue_number": 4433,
+  "created_at": "2026-10-22T05:12:07.217892Z",
+  "max_revisions": 3,
+  "phases": {
+    "analyzing": {
+      "status": "completed",
+      "updated_at": "2026-10-22T05:12:52.684315Z"
+    },
+    "architecting": {
+      "status": "completed",
+      "updated_at": "2026-10-22T05:12:55.352052Z"
+    },
+    "designing": {
+      "status": "completed",
+      "updated_at": "2026-10-22T05:12:57.431397Z"
+    },
+    "planning": {
+      "status": "completed",
+      "updated_at": "2026-10-24T11:09:33.085165Z"
+    },
+    "developing": {
+      "status": "in_progress",
+      "updated_at": "2026-10-24T11:13:54.410519Z"
+    },
+    "code-review": {
+      "status": "completed",
+      "updated_at": "2026-10-24T12:22:29.005190Z"
+    }
+  },
+  "tasks": [
+    {
+      "name": "add-force-refresh-handler-tests",
+      "status": "completed",
+      "revision": 1,
+      "updated_at": "2026-10-24T11:32:05.557299Z"
+    }
+  ]
+}

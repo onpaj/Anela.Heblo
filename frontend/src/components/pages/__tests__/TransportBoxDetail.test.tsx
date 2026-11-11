@@ -10,6 +10,7 @@ import {
 import { useManufacturedProductInventoryQuery } from "../../../api/hooks/useManufacturedProductInventory";
 import { TestRouterWrapper } from "../../../test-utils/router-wrapper";
 import { ToastProvider } from "../../../contexts/ToastContext";
+import { SwaggerException } from "../../../api/generated/api-client";
 
 // Mock the hooks
 jest.mock("../../../api/hooks/useTransportBoxes", () => ({
@@ -397,6 +398,43 @@ describe("TransportBoxDetail", () => {
   });
 
   describe("Error handling", () => {
+    it("shows the translated message in the box number field when the box number is already active (409)", async () => {
+      const body = JSON.stringify({
+        success: false,
+        errorCode: "TransportBoxDuplicateActiveBoxFound",
+        params: { code: "B172" },
+      });
+      const failingMutate = jest
+        .fn()
+        .mockRejectedValue(
+          new SwaggerException("An unexpected server error occurred.", 409, body, {}, null),
+        );
+      mockUseChangeTransportBoxState.mockReturnValue({
+        mutateAsync: failingMutate,
+        isPending: false,
+        error: null,
+      });
+      mockUseTransportBoxByIdQuery.mockReturnValue({
+        data: { transportBox: { ...mockTransportBox, state: "New", code: null } },
+        isLoading: false,
+        error: null,
+      });
+
+      render(
+        <TransportBoxDetail boxId={1} isOpen={true} onClose={jest.fn()} />,
+        { wrapper: createWrapper },
+      );
+
+      fireEvent.change(screen.getByPlaceholderText("B001"), {
+        target: { value: "B172" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: /Přiřadit/ }));
+
+      expect(
+        await screen.findByText("Box s číslem B172 již existuje a je stále aktivní"),
+      ).toBeInTheDocument();
+    });
+
     it("should display mutation error", () => {
       mockUseChangeTransportBoxState.mockReturnValue({
         mutateAsync: mockMutateAsync,

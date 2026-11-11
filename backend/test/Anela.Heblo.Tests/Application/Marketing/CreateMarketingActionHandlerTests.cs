@@ -179,7 +179,7 @@ public class CreateMarketingActionHandlerTests
         var request = BuildRequest();
         request.FolderLinks = new List<MarketingFolderLinkRequest>
         {
-            new() { FolderKey = " key-1 ", FolderType = MarketingFolderType.General },
+            new() { FolderKey = " key-1 ", FolderType = MarketingFolderType.Images },
         };
 
         var result = await BuildHandler().Handle(request, CancellationToken.None);
@@ -187,7 +187,7 @@ public class CreateMarketingActionHandlerTests
         result.Success.Should().BeTrue();
         capturedAction!.FolderLinks.Should().HaveCount(1);
         capturedAction.FolderLinks.Single().FolderKey.Should().Be("key-1");
-        capturedAction.FolderLinks.Single().FolderType.Should().Be(MarketingFolderType.General);
+        capturedAction.FolderLinks.Single().FolderType.Should().Be(MarketingFolderType.Images);
     }
 
     [Fact]
@@ -221,8 +221,8 @@ public class CreateMarketingActionHandlerTests
         var request = BuildRequest();
         request.FolderLinks = new List<MarketingFolderLinkRequest>
         {
-            new() { FolderKey = "key-1", FolderType = MarketingFolderType.General },
-            new() { FolderKey = "key-1", FolderType = MarketingFolderType.Campaign },
+            new() { FolderKey = "key-1", FolderType = MarketingFolderType.Images },
+            new() { FolderKey = "key-1", FolderType = MarketingFolderType.Graphics },
         };
 
         var result = await BuildHandler().Handle(request, CancellationToken.None);
@@ -230,9 +230,9 @@ public class CreateMarketingActionHandlerTests
         result.Success.Should().BeTrue();
         capturedAction!.FolderLinks.Should().HaveCount(2);
         capturedAction.FolderLinks.Should().Contain(fl =>
-            fl.FolderKey == "key-1" && fl.FolderType == MarketingFolderType.General);
+            fl.FolderKey == "key-1" && fl.FolderType == MarketingFolderType.Images);
         capturedAction.FolderLinks.Should().Contain(fl =>
-            fl.FolderKey == "key-1" && fl.FolderType == MarketingFolderType.Campaign);
+            fl.FolderKey == "key-1" && fl.FolderType == MarketingFolderType.Graphics);
     }
 
     [Fact]

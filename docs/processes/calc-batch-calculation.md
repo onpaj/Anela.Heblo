@@ -10,7 +10,7 @@ owns:
   - backend/src/Anela.Heblo.Application/Features/Manufacture/Validators/CalculateBatchByIngredientRequestValidator.cs
   - backend/src/Anela.Heblo.API/Controllers/ManufactureBatchController.cs
   - backend/src/Anela.Heblo.API/MCP/Tools/ManufactureBatchMcpTools.cs
-verified_at: "5e993f9e2"
+verified_at: "8161c408c"
 related:
   - calc-batch-planning
   - flow-manufacture-order

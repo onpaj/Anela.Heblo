@@ -44,7 +44,7 @@ public class UpdateMarketingActionHandlerTests
     {
         var action = BuildExistingAction();
         action.AssociateWithProduct("OLD-PROD", DateTime.UtcNow);
-        action.LinkToFolder("old-key", MarketingFolderType.General, DateTime.UtcNow);
+        action.LinkToFolder("old-key", MarketingFolderType.Images, DateTime.UtcNow);
         return action;
     }
 
@@ -199,7 +199,7 @@ public class UpdateMarketingActionHandlerTests
         request.AssociatedProducts = new List<string> { "prod-1", "prod-2", "prod-1" };
         request.FolderLinks = new List<MarketingFolderLinkRequest>
         {
-            new() { FolderKey = " key-1 ", FolderType = MarketingFolderType.General },
+            new() { FolderKey = " key-1 ", FolderType = MarketingFolderType.Images },
         };
 
         var result = await BuildHandler().Handle(request, CancellationToken.None);
@@ -328,8 +328,8 @@ public class UpdateMarketingActionHandlerTests
         request.AssociatedProducts = new List<string> { "OLD-PROD", "NEW-PROD" };
         request.FolderLinks = new List<MarketingFolderLinkRequest>
         {
-            new() { FolderKey = "old-key", FolderType = MarketingFolderType.General },
-            new() { FolderKey = "new-key", FolderType = MarketingFolderType.Seasonal },
+            new() { FolderKey = "old-key", FolderType = MarketingFolderType.Images },
+            new() { FolderKey = "new-key", FolderType = MarketingFolderType.Texts },
         };
 
         var result = await BuildHandler().Handle(request, CancellationToken.None);
@@ -341,8 +341,8 @@ public class UpdateMarketingActionHandlerTests
                 a.ProductAssociations.Any(p => p.ProductCodePrefix == "OLD-PROD") &&
                 a.ProductAssociations.Any(p => p.ProductCodePrefix == "NEW-PROD") &&
                 a.FolderLinks.Count == 2 &&
-                a.FolderLinks.Any(f => f.FolderKey == "old-key" && f.FolderType == MarketingFolderType.General) &&
-                a.FolderLinks.Any(f => f.FolderKey == "new-key" && f.FolderType == MarketingFolderType.Seasonal)),
+                a.FolderLinks.Any(f => f.FolderKey == "old-key" && f.FolderType == MarketingFolderType.Images) &&
+                a.FolderLinks.Any(f => f.FolderKey == "new-key" && f.FolderType == MarketingFolderType.Texts)),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 }
