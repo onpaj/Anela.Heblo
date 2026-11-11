@@ -21,16 +21,16 @@
       "updated_at": "2026-11-11T11:22:36.594327Z"
     },
     "developing": {
-      "status": "pending",
-      "updated_at": null
+      "status": "in_progress",
+      "updated_at": "2026-11-11T12:19:15.644108Z"
     }
   },
   "tasks": [
     {
       "name": "single-flight-refresh",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-11-11T12:19:15.792150Z"
     },
     {
       "name": "cancellation-source-diagnostics",
