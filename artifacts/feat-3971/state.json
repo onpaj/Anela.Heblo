@@ -34,9 +34,9 @@
     },
     {
       "name": "cancellation-source-diagnostics",
-      "status": "in_progress",
+      "status": "completed",
       "revision": 1,
-      "updated_at": "2026-11-11T21:15:44.695933Z"
+      "updated_at": "2026-11-11T21:30:28.673127Z"
     },
     {
       "name": "update-process-doc",
