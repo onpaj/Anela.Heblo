@@ -22,7 +22,7 @@
     },
     "developing": {
       "status": "in_progress",
-      "updated_at": "2026-11-11T13:32:30.326303Z"
+      "updated_at": "2026-11-11T21:15:44.544775Z"
     }
   },
   "tasks": [
@@ -34,9 +34,9 @@
     },
     {
       "name": "cancellation-source-diagnostics",
-      "status": "pending",
+      "status": "in_progress",
       "revision": 1,
-      "updated_at": null
+      "updated_at": "2026-11-11T21:15:44.695933Z"
     },
     {
       "name": "update-process-doc",
