@@ -264,16 +264,18 @@ public class HebloFeatureProviderTests
         callerCts.Cancel();
         (await cancelledCall).Reason.Should().Be(Reason.Error);
 
-        // No RunContinuationsAsynchronously on the TCS: the load's continuation (cache.Set)
-        // runs inline inside SetResult, so the cache is populated when SetResult returns.
         pending.SetResult(new Dictionary<string, bool> { [FlagKey] = true });
+
+        // Whether the load's continuation (cache.Set) runs inline inside SetResult depends on the
+        // synchronization context, so observe it through a second call: it either hits the cache
+        // or joins the still-running load. Either way the repository is queried exactly once.
+        var next = await provider.ResolveBooleanValueAsync(FlagKey, defaultValue: false);
+        next.Value.Should().BeTrue();
+        next.Reason.Should().Be(Reason.TargetingMatch);
+        repo.Verify(r => r.GetAllAsDictionaryAsync(It.IsAny<CancellationToken>()), Times.Once);
 
         cache.TryGetValue(HebloFeatureProvider.CacheKey, out Dictionary<string, bool>? cached).Should().BeTrue();
         cached.Should().ContainKey(FlagKey).WhoseValue.Should().BeTrue();
-
-        var next = await provider.ResolveBooleanValueAsync(FlagKey, defaultValue: false);
-        next.Value.Should().BeTrue();
-        repo.Verify(r => r.GetAllAsDictionaryAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
