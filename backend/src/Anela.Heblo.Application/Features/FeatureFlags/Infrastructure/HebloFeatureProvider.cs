@@ -22,6 +22,11 @@ internal sealed class HebloFeatureProvider : FeatureProvider
 
     internal const string CacheKey = "feature_flag_overrides";
     private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
+    internal static readonly TimeSpan RefreshTimeout = TimeSpan.FromSeconds(5);
+
+    // Guards _inflight so that concurrent cache misses share one DB load (single-flight).
+    private readonly SemaphoreSlim _gate = new(1, 1);
+    private Task<Dictionary<string, bool>>? _inflight;
 
     public HebloFeatureProvider(
         IServiceScopeFactory scopeFactory,
@@ -96,12 +101,44 @@ internal sealed class HebloFeatureProvider : FeatureProvider
     {
         ct.ThrowIfCancellationRequested();
 
-        return await _cache.GetOrCreateAsync(CacheKey, async entry =>
+        // Hit path: no lock.
+        if (_cache.TryGetValue(CacheKey, out Dictionary<string, bool>? hit) && hit is not null)
+            return hit;
+
+        Task<Dictionary<string, bool>> load;
+        await _gate.WaitAsync(ct);
+        try
         {
-            entry.AbsoluteExpirationRelativeToNow = CacheTtl;
-            using var scope = _scopeFactory.CreateScope();
-            var repo = scope.ServiceProvider.GetRequiredService<IFeatureFlagOverrideRepository>();
-            return await repo.GetAllAsDictionaryAsync(ct);
-        }) ?? [];
+            if (_cache.TryGetValue(CacheKey, out hit) && hit is not null)
+                return hit;
+
+            // A completed task here is either a failed load (failures are never cached, so retry)
+            // or a successful one whose cache entry has since expired or been invalidated.
+            if (_inflight is null || _inflight.IsCompleted)
+                _inflight = LoadOverridesAsync();
+
+            load = _inflight;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+
+        // A cancelled caller abandons only its own wait; the shared load keeps running.
+        return await load.WaitAsync(ct);
+    }
+
+    /// <summary>
+    /// Loads all overrides and caches them. Shared by every caller that missed the cache, so it
+    /// must not observe any caller's CancellationToken — it is bounded by RefreshTimeout instead.
+    /// </summary>
+    private async Task<Dictionary<string, bool>> LoadOverridesAsync()
+    {
+        using var cts = new CancellationTokenSource(RefreshTimeout);
+        using var scope = _scopeFactory.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFeatureFlagOverrideRepository>();
+        var overrides = await repo.GetAllAsDictionaryAsync(cts.Token) ?? [];
+        _cache.Set(CacheKey, overrides, CacheTtl);
+        return overrides;
     }
 }

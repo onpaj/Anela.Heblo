@@ -56,6 +56,22 @@ public class HebloFeatureProviderTests
             logger ?? NullLogger<HebloFeatureProvider>.Instance);
     }
 
+    private static HebloFeatureProvider MakeProviderWithRepo(
+        Mock<IFeatureFlagOverrideRepository> repo,
+        IMemoryCache? cache = null,
+        ILogger<HebloFeatureProvider>? logger = null)
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton(repo.Object);
+        var scopeFactory = services.BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
+
+        return new HebloFeatureProvider(
+            scopeFactory,
+            cache ?? new MemoryCache(new MemoryCacheOptions()),
+            new ConfigurationBuilder().AddInMemoryCollection([]).Build(),
+            logger ?? NullLogger<HebloFeatureProvider>.Instance);
+    }
+
     [Fact]
     public async Task ResolveBooleanValueAsync_DbOverrideWins_OverConfigAndDefault()
     {
@@ -149,6 +165,149 @@ public class HebloFeatureProviderTests
         result.Value.Should().BeFalse();
         result.Reason.Should().Be(Reason.Error);
         VerifyWarningLogged(loggerMock, thrown, "dbRetryExhausted=False", "attempts=1");
+    }
+
+    [Fact]
+    public async Task ResolveBooleanValueAsync_ConcurrentCallersOnColdCache_QueryDbOnce()
+    {
+        var pending = new TaskCompletionSource<Dictionary<string, bool>>();
+        var repo = new Mock<IFeatureFlagOverrideRepository>();
+        repo.Setup(r => r.GetAllAsDictionaryAsync(It.IsAny<CancellationToken>()))
+            .Returns(() => pending.Task);
+        var provider = MakeProviderWithRepo(repo);
+
+        var calls = Enumerable.Range(0, 20)
+            .Select(_ => provider.ResolveBooleanValueAsync(FlagKey, defaultValue: false))
+            .ToArray();
+        pending.SetResult(new Dictionary<string, bool> { [FlagKey] = true });
+        var results = await Task.WhenAll(calls);
+
+        results.Should().OnlyContain(r => r.Value && r.Reason == Reason.TargetingMatch);
+        repo.Verify(r => r.GetAllAsDictionaryAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ResolveBooleanValueAsync_ConcurrentCallersAfterCacheExpiry_QueryDbOnceMore()
+    {
+        var pending = new TaskCompletionSource<Dictionary<string, bool>>();
+        var repo = new Mock<IFeatureFlagOverrideRepository>();
+        repo.Setup(r => r.GetAllAsDictionaryAsync(It.IsAny<CancellationToken>()))
+            .Returns(() => pending.Task);
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var provider = MakeProviderWithRepo(repo, cache);
+
+        var first = provider.ResolveBooleanValueAsync(FlagKey, defaultValue: false);
+        pending.SetResult(new Dictionary<string, bool> { [FlagKey] = true });
+        await first;
+
+        // Simulates TTL expiry (the entry disappears from the cache).
+        cache.Remove(HebloFeatureProvider.CacheKey);
+        pending = new TaskCompletionSource<Dictionary<string, bool>>();
+
+        var calls = Enumerable.Range(0, 20)
+            .Select(_ => provider.ResolveBooleanValueAsync(FlagKey, defaultValue: true))
+            .ToArray();
+        pending.SetResult(new Dictionary<string, bool> { [FlagKey] = false });
+        var results = await Task.WhenAll(calls);
+
+        results.Should().OnlyContain(r => !r.Value && r.Reason == Reason.TargetingMatch);
+        repo.Verify(r => r.GetAllAsDictionaryAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task ResolveBooleanValueAsync_CallerCancellation_DoesNotCancelLoadOrOtherCallers()
+    {
+        var pending = new TaskCompletionSource<Dictionary<string, bool>>();
+        var repoTokens = new List<CancellationToken>();
+        var repo = new Mock<IFeatureFlagOverrideRepository>();
+        repo.Setup(r => r.GetAllAsDictionaryAsync(It.IsAny<CancellationToken>()))
+            .Returns((CancellationToken token) =>
+            {
+                repoTokens.Add(token);
+                return pending.Task;
+            });
+        var provider = MakeProviderWithRepo(repo);
+        using var callerCts = new CancellationTokenSource();
+
+        var cancelledCall = provider.ResolveBooleanValueAsync(FlagKey, defaultValue: false, context: null, callerCts.Token);
+        var otherCall = provider.ResolveBooleanValueAsync(FlagKey, defaultValue: false);
+        callerCts.Cancel();
+
+        var cancelledResult = await cancelledCall;
+        cancelledResult.Value.Should().BeFalse();
+        cancelledResult.Reason.Should().Be(Reason.Error);
+
+        repoTokens.Should().ContainSingle();
+        repoTokens[0].Should().NotBe(callerCts.Token);
+        repoTokens[0].CanBeCanceled.Should().BeTrue("the load runs on its own timeout token");
+        repoTokens[0].IsCancellationRequested.Should().BeFalse();
+        otherCall.IsCompleted.Should().BeFalse();
+
+        pending.SetResult(new Dictionary<string, bool> { [FlagKey] = true });
+        var otherResult = await otherCall;
+        otherResult.Value.Should().BeTrue();
+        otherResult.Reason.Should().Be(Reason.TargetingMatch);
+    }
+
+    [Fact]
+    public async Task ResolveBooleanValueAsync_LoadStartedByCancelledCaller_StillPopulatesCache()
+    {
+        var pending = new TaskCompletionSource<Dictionary<string, bool>>();
+        var repo = new Mock<IFeatureFlagOverrideRepository>();
+        repo.Setup(r => r.GetAllAsDictionaryAsync(It.IsAny<CancellationToken>()))
+            .Returns(() => pending.Task);
+        var cache = new MemoryCache(new MemoryCacheOptions());
+        var provider = MakeProviderWithRepo(repo, cache);
+        using var callerCts = new CancellationTokenSource();
+
+        var cancelledCall = provider.ResolveBooleanValueAsync(FlagKey, defaultValue: false, context: null, callerCts.Token);
+        callerCts.Cancel();
+        (await cancelledCall).Reason.Should().Be(Reason.Error);
+
+        // No RunContinuationsAsynchronously on the TCS: the load's continuation (cache.Set)
+        // runs inline inside SetResult, so the cache is populated when SetResult returns.
+        pending.SetResult(new Dictionary<string, bool> { [FlagKey] = true });
+
+        cache.TryGetValue(HebloFeatureProvider.CacheKey, out Dictionary<string, bool>? cached).Should().BeTrue();
+        cached.Should().ContainKey(FlagKey).WhoseValue.Should().BeTrue();
+
+        var next = await provider.ResolveBooleanValueAsync(FlagKey, defaultValue: false);
+        next.Value.Should().BeTrue();
+        repo.Verify(r => r.GetAllAsDictionaryAsync(It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task ResolveBooleanValueAsync_FailedLoadIsNotCached_NextCallReloads()
+    {
+        var repo = new Mock<IFeatureFlagOverrideRepository>();
+        repo.SetupSequence(r => r.GetAllAsDictionaryAsync(It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("DB unavailable"))
+            .ReturnsAsync(new Dictionary<string, bool> { [FlagKey] = true });
+        var provider = MakeProviderWithRepo(repo);
+
+        var failed = await provider.ResolveBooleanValueAsync(FlagKey, defaultValue: false);
+        var recovered = await provider.ResolveBooleanValueAsync(FlagKey, defaultValue: false);
+
+        failed.Value.Should().BeFalse();
+        failed.Reason.Should().Be(Reason.Error);
+        recovered.Value.Should().BeTrue();
+        recovered.Reason.Should().Be(Reason.TargetingMatch);
+        repo.Verify(r => r.GetAllAsDictionaryAsync(It.IsAny<CancellationToken>()), Times.Exactly(2));
+    }
+
+    [Fact]
+    public async Task ResolveBooleanValueAsync_CacheHit_DoesNotQueryDbAgain()
+    {
+        var repo = new Mock<IFeatureFlagOverrideRepository>();
+        repo.Setup(r => r.GetAllAsDictionaryAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<string, bool> { [FlagKey] = true });
+        var provider = MakeProviderWithRepo(repo);
+
+        await provider.ResolveBooleanValueAsync(FlagKey, defaultValue: false);
+        var second = await provider.ResolveBooleanValueAsync(FlagKey, defaultValue: false);
+
+        second.Value.Should().BeTrue();
+        repo.Verify(r => r.GetAllAsDictionaryAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
     private static void VerifyWarningLogged(Mock<ILogger<HebloFeatureProvider>> loggerMock, Exception expectedException, params string[] expectedFragments)
