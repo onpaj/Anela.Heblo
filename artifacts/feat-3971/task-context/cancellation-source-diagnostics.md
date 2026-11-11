@@ -136,8 +136,8 @@ Run:
 
 ```bash
 dotnet test backend/test/Anela.Heblo.Tests/Anela.Heblo.Tests.csproj --filter "FullyQualifiedName~FeatureFlags"
-dotnet build backend/Anela.Heblo.sln
-dotnet format backend/Anela.Heblo.sln --include backend/src/Anela.Heblo.Application/Features/FeatureFlags/Infrastructure/HebloFeatureProvider.cs backend/test/Anela.Heblo.Tests/Features/FeatureFlags/HebloFeatureProviderTests.cs
+dotnet build Anela.Heblo.sln
+dotnet format Anela.Heblo.sln --include backend/src/Anela.Heblo.Application/Features/FeatureFlags/Infrastructure/HebloFeatureProvider.cs backend/test/Anela.Heblo.Tests/Features/FeatureFlags/HebloFeatureProviderTests.cs
 ```
 
 Expected: all tests PASS, build has 0 errors, `dotnet format` leaves no further changes.

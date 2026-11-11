@@ -287,11 +287,11 @@ Expected: all 13 tests PASS (7 pre-existing + 6 new).
 Run:
 
 ```bash
-dotnet build backend/Anela.Heblo.sln
-dotnet format backend/Anela.Heblo.sln --include backend/src/Anela.Heblo.Application/Features/FeatureFlags/Infrastructure/HebloFeatureProvider.cs backend/test/Anela.Heblo.Tests/Features/FeatureFlags/HebloFeatureProviderTests.cs
+dotnet build Anela.Heblo.sln
+dotnet format Anela.Heblo.sln --include backend/src/Anela.Heblo.Application/Features/FeatureFlags/Infrastructure/HebloFeatureProvider.cs backend/test/Anela.Heblo.Tests/Features/FeatureFlags/HebloFeatureProviderTests.cs
 ```
 
-Expected: build succeeds with 0 errors; `dotnet format` leaves no further changes (`git status` shows only the two files above). If the solution file is not at `backend/Anela.Heblo.sln`, locate it with `git ls-files '*.sln'` and use that path.
+Expected: build succeeds with 0 errors; `dotnet format` leaves no further changes (`git status` shows only the two files above).
 
 - [ ] **Step 7: Commit**
 
