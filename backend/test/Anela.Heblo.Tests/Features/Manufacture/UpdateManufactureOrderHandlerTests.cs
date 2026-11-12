@@ -126,6 +126,8 @@ public class UpdateManufactureOrderHandlerTests
         };
 
         var existingOrder = CreateExistingOrder();
+        // Planned date unchanged → the explicit lot/expiration is a manual override and is honoured.
+        request.PlannedDate = existingOrder.PlannedDate;
         ManufactureOrder? updatedOrder = null;
 
         _repositoryMock
@@ -439,6 +441,145 @@ public class UpdateManufactureOrderHandlerTests
         // Assert
         result.Success.Should().BeTrue();
         result.Order.Should().NotBeNull();
+    }
+
+    // ── Lot / expiration recompute on planned-date change ────────────────────
+
+    private static readonly DateOnly StoredPlannedDate = new(2026, 11, 2);
+    private const string StoredLot = "4526";
+    private static readonly DateOnly StoredExpiration = new(2028, 12, 31);
+    private static readonly DateOnly NewPlannedDate = new(2026, 10, 30);
+    private const string NewLot = "4426";
+    private static readonly DateOnly NewExpiration = new(2029, 5, 31); // 30 months + 1, no day clamp
+
+    [Theory]
+    [InlineData(ManufactureOrderState.Draft)]
+    [InlineData(ManufactureOrderState.Planned)]
+    public async Task Handle_PlannedDateChangedBeforeSemiProductConfirmed_RecomputesLotAndExpirationEverywhere(
+        ManufactureOrderState state)
+    {
+        var existingOrder = CreateOrderWithStoredLot(state);
+        ManufactureOrder? updatedOrder = null;
+        SetupRepository(existingOrder, o => updatedOrder = o);
+
+        // What the UI sends: the new date plus the lot/expiration it last read from the server.
+        var request = CreateLotRequest(NewPlannedDate, StoredLot, StoredExpiration);
+
+        var result = await _handler.Handle(request, CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        updatedOrder!.SemiProduct!.LotNumber.Should().Be(NewLot);
+        updatedOrder.SemiProduct.ExpirationDate.Should().Be(NewExpiration);
+        updatedOrder.Products.Should().AllSatisfy(p =>
+        {
+            p.LotNumber.Should().Be(NewLot);
+            p.ExpirationDate.Should().Be(NewExpiration);
+        });
+        result.Order!.SemiProduct!.LotNumber.Should().Be(NewLot);
+        result.Order.SemiProduct.ExpirationDate.Should().Be(NewExpiration);
+    }
+
+    [Fact]
+    public async Task Handle_PlannedDateChangedTogetherWithManualLot_RecomputeWins()
+    {
+        var existingOrder = CreateOrderWithStoredLot(ManufactureOrderState.Planned);
+        ManufactureOrder? updatedOrder = null;
+        SetupRepository(existingOrder, o => updatedOrder = o);
+
+        var request = CreateLotRequest(NewPlannedDate, "9999", new DateOnly(2030, 1, 31));
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        updatedOrder!.SemiProduct!.LotNumber.Should().Be(NewLot);
+        updatedOrder.SemiProduct.ExpirationDate.Should().Be(NewExpiration);
+    }
+
+    [Theory]
+    [InlineData(ManufactureOrderState.SemiProductManufactured)]
+    [InlineData(ManufactureOrderState.Completed)]
+    public async Task Handle_PlannedDateChangedAfterSemiProductConfirmed_KeepsStoredLotAndExpiration(
+        ManufactureOrderState state)
+    {
+        var existingOrder = CreateOrderWithStoredLot(state);
+        ManufactureOrder? updatedOrder = null;
+        SetupRepository(existingOrder, o => updatedOrder = o);
+
+        var request = CreateLotRequest(NewPlannedDate, StoredLot, StoredExpiration);
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        updatedOrder!.PlannedDate.Should().Be(NewPlannedDate);
+        updatedOrder.SemiProduct!.LotNumber.Should().Be(StoredLot);
+        updatedOrder.SemiProduct.ExpirationDate.Should().Be(StoredExpiration);
+        updatedOrder.Products.Single().LotNumber.Should().Be(StoredLot);
+        updatedOrder.Products.Single().ExpirationDate.Should().Be(StoredExpiration);
+    }
+
+    [Fact]
+    public async Task Handle_PlannedDateUnchangedWithManualLot_HonoursOverrideAndPropagatesToProducts()
+    {
+        var existingOrder = CreateOrderWithStoredLot(ManufactureOrderState.Planned);
+        ManufactureOrder? updatedOrder = null;
+        SetupRepository(existingOrder, o => updatedOrder = o);
+
+        var manualExpiration = new DateOnly(2028, 11, 30);
+        var request = CreateLotRequest(StoredPlannedDate, "4426", manualExpiration);
+        request.Products = new List<UpdateManufactureOrderProductRequest>(); // no product rows sent
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        updatedOrder!.SemiProduct!.LotNumber.Should().Be("4426");
+        updatedOrder.SemiProduct.ExpirationDate.Should().Be(manualExpiration);
+        updatedOrder.Products.Single().LotNumber.Should().Be("4426");
+        updatedOrder.Products.Single().ExpirationDate.Should().Be(manualExpiration);
+    }
+
+    private void SetupRepository(ManufactureOrder existingOrder, Action<ManufactureOrder> onUpdate)
+    {
+        _repositoryMock
+            .Setup(x => x.GetOrderByIdAsync(ValidOrderId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(existingOrder);
+        _repositoryMock
+            .Setup(x => x.UpdateOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken _) =>
+            {
+                onUpdate(order);
+                return order;
+            });
+    }
+
+    private static UpdateManufactureOrderRequest CreateLotRequest(DateOnly plannedDate, string lot, DateOnly expiration)
+    {
+        return new UpdateManufactureOrderRequest
+        {
+            Id = ValidOrderId,
+            PlannedDate = plannedDate,
+            SemiProduct = new UpdateManufactureOrderSemiProductRequest
+            {
+                LotNumber = lot,
+                ExpirationDate = expiration,
+            },
+            Products = new List<UpdateManufactureOrderProductRequest>
+            {
+                new() { Id = 1, ProductCode = "ORIGINAL-PROD", ProductName = "Original Product", PlannedQuantity = 50.0 }
+            }
+        };
+    }
+
+    private static ManufactureOrder CreateOrderWithStoredLot(ManufactureOrderState state)
+    {
+        var order = CreateExistingOrder();
+        order.PlannedDate = StoredPlannedDate;
+        order.InitializeState(state, DateTime.UtcNow.AddDays(-1), "Original User");
+        order.SemiProduct!.ExpirationMonths = 30;
+        order.SemiProduct.LotNumber = StoredLot;
+        order.SemiProduct.ExpirationDate = StoredExpiration;
+        foreach (var product in order.Products)
+        {
+            product.LotNumber = StoredLot;
+            product.ExpirationDate = StoredExpiration;
+        }
+        return order;
     }
 
     private static UpdateManufactureOrderRequest CreateValidRequest()

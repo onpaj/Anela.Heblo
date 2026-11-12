@@ -96,9 +96,6 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   const [editableErpDiscardResidueDocumentNumber, setEditableErpDiscardResidueDocumentNumber] = useState("");
   const [editableManualActionRequired, setEditableManualActionRequired] = useState(false);
 
-  // Track initial semi-product date from server to detect user changes
-  const [initialSemiProductDate, setInitialSemiProductDate] = useState<string>("");
-  
   // Confirmation dialog state
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [showStateReturnConfirmation, setShowStateReturnConfirmation] = useState(false);
@@ -246,15 +243,6 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
     }
   };
 
-  // Auto-calculate lot number and expiration date
-  const getWeekNumber = (date: Date): number => {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-  };
-
   // Initialize editable fields when order data changes
   React.useEffect(() => {
     if (order) {
@@ -264,13 +252,14 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
 
       const plannedDateFromServer = order.plannedDate ? new Date(order.plannedDate).toISOString().split('T')[0] : "";
       setEditablePlannedDate(plannedDateFromServer);
-      setInitialSemiProductDate(plannedDateFromServer); // Track initial date from server
 
       const semiProductQuantity = fieldsCanBeEdited
         ? order.semiProduct?.plannedQuantity?.toString() || ""
         : order.semiProduct?.actualQuantity?.toString() || order.semiProduct?.plannedQuantity?.toString() || "";
       setEditableSemiProductQuantity(semiProductQuantity);
 
+      // Lot and expiration are computed by the backend from the planned date (recomputed on save when
+      // the planned date changes). A hand-edited value is sent back as a manual override.
       setEditableLotNumber(order.semiProduct?.lotNumber || "");
       setEditableExpirationDate(order.semiProduct?.expirationDate ? new Date(order.semiProduct.expirationDate).toISOString().split('T')[0] : "");
 
@@ -287,35 +276,6 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
       setEditableProductQuantities(productQuantities);
     }
   }, [order]);
-
-  // Auto-calculate lot number and expiration date when semi-product planned date changes
-  // Only in Draft state - in Planned state, user can edit manually without auto-recalculation
-  // Auto-recalculate when user actively changes the date (not on initial load)
-  React.useEffect(() => {
-    if (editablePlannedDate && order?.state === ManufactureOrderState.Draft) {
-      // Check if the date was actually changed by the user (not just loaded from server)
-      const hasUserChangedDate = editablePlannedDate !== initialSemiProductDate;
-
-      if (hasUserChangedDate) {
-        const semiProductDate = new Date(editablePlannedDate);
-
-        // Auto-calculate lot number in wwyy format (ISO week + 2-digit year)
-        const year = String(semiProductDate.getFullYear() % 100).padStart(2, '0');
-        const week = String(getWeekNumber(semiProductDate)).padStart(2, '0');
-        const newLotNumber = `${week}${year}`;
-        setEditableLotNumber(newLotNumber);
-
-        // Auto-calculate expiration date
-        const expirationMonths = order?.semiProduct?.expirationMonths || 12;
-        const expirationDate = new Date(semiProductDate);
-        expirationDate.setMonth(expirationDate.getMonth() + expirationMonths + 1);
-        const lastDayOfExpirationMonth = new Date(expirationDate.getFullYear(), expirationDate.getMonth() + 1, 0).getDate();
-        expirationDate.setDate(lastDayOfExpirationMonth);
-        const newExpirationDateString = expirationDate.toISOString().split('T')[0];
-        setEditableExpirationDate(newExpirationDateString);
-      }
-    }
-  }, [editablePlannedDate, order?.semiProduct?.expirationMonths, order?.state, initialSemiProductDate]);
 
   // Keyboard event listener for Esc key
   React.useEffect(() => {
