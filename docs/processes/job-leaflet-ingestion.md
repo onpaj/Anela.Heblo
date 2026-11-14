@@ -96,7 +96,7 @@ cascade, its chunks — database only; the file in SharePoint is not touched.
 - Job counters logged at the end: `Indexed`, `Skipped` (duplicates + unsupported types), `Failed`.
   One failing file does not stop the others; a failed file stays in the inbox.
 - Summary LLM call uses the shared default chat client (model = `KnowledgeBase:ChatModel`,
-  `claude-sonnet-4-6`, max tokens `KnowledgeBase:ChatMaxTokens` = 1024), not `Leaflet:ChatModel`.
+  `claude-sonnet-5-5`, max tokens `KnowledgeBase:ChatMaxTokens` = 1024), not `Leaflet:ChatModel`.
 
 ## Configuration
 | Key | Repo default | Meaning |

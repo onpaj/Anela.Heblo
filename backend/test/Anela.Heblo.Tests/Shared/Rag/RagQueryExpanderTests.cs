@@ -99,7 +99,7 @@ public class RagQueryExpanderTests
                 (_, opts, _) => capturedOptions = opts)
             .ReturnsAsync(chatResponse);
 
-        var config = EnabledConfig(model: "claude-haiku-4-5-20251001");
+        var config = EnabledConfig(model: "claude-haiku-5-5");
         var expander = CreateExpander();
 
         // Act
@@ -107,7 +107,7 @@ public class RagQueryExpanderTests
 
         // Assert
         capturedOptions.Should().NotBeNull();
-        capturedOptions!.ModelId.Should().Be("claude-haiku-4-5-20251001");
+        capturedOptions!.ModelId.Should().Be("claude-haiku-5-5");
     }
 
     [Fact]

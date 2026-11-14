@@ -67,8 +67,8 @@ Plain CRUD (no process doc): document list, content-type filter values
   The same `IOneDriveService` also serves the Article module's style-guide download
   (`IArticleStyleGuideSource`).
 - **OpenAI** embeddings `text-embedding-3-large` at 1536 dimensions (ingestion and every query).
-- **Anthropic Claude**: `claude-sonnet-4-6` for chunk summaries, topic split and answers;
-  `claude-haiku-4-5-20251001` for query expansion.
+- **Anthropic Claude**: `claude-sonnet-5-5` for chunk summaries, topic split and answers;
+  `claude-haiku-5-5` for query expansion.
 
 ## Dependencies
 - Reads **Catalog** (`IProductCatalogQueryService.GetActiveProductsAsync`) for product codes,

@@ -172,7 +172,7 @@ New `Leaflet` section in `appsettings.json`:
     "ChunkOverlapTokens": 80,
     "MaxRetrievedLeafletChunks": 3,
     "MaxRetrievedKbChunks": 5,
-    "ClaudeModel": "claude-sonnet-4-6",
+    "ClaudeModel": "claude-sonnet-5-5",
     "ClaudeMaxTokens": 2048
   }
 }

@@ -80,7 +80,7 @@ backend/src/
 │       │   ├── IOneDriveService.cs
 │       │   ├── IDocumentTextExtractor.cs
 │       │   ├── OpenAiEmbeddingService.cs     # OpenAI text-embedding-3-small
-│       │   ├── AnthropicClaudeService.cs     # Claude claude-sonnet-4-6
+│       │   ├── AnthropicClaudeService.cs     # Claude claude-sonnet-5-5
 │       │   ├── GraphOneDriveService.cs       # Microsoft Graph implementation
 │       │   ├── MockOneDriveService.cs        # Local dev / mock auth mode
 │       │   ├── DocumentChunker.cs            # Sliding-window word chunker
@@ -413,7 +413,7 @@ Returns: JSON-serialized AskQuestionResponse
     "ChunkSize": 512,
     "ChunkOverlap": 50,
     "MaxRetrievedChunks": 5,
-    "ClaudeModel": "claude-sonnet-4-6",
+    "ClaudeModel": "claude-sonnet-5-5",
     "ClaudeMaxTokens": 1024
   },
   "OpenAI": {
@@ -438,7 +438,7 @@ API keys are set via environment variables or Azure Key Vault — never committe
 | `ChunkSize` | `512` | Words per chunk |
 | `ChunkOverlap` | `50` | Overlap words between consecutive chunks |
 | `MaxRetrievedChunks` | `5` | Default `topK` for search and Q&A |
-| `ClaudeModel` | `claude-sonnet-4-6` | Claude model for Q&A generation |
+| `ClaudeModel` | `claude-sonnet-5-5` | Claude model for Q&A generation |
 | `ClaudeMaxTokens` | `1024` | Max tokens in Claude response |
 
 ### Local Development — OneDrive Mock

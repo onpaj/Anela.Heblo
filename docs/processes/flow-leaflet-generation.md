@@ -45,7 +45,7 @@ States of a generation: *generated* (row in `LeafletGenerations`, no scores) →
 
 ## Data flow
 1. **Query expansion** (`IRagQueryExpander`): if `QueryExpansionEnabled`, one Claude call
-   (`QueryExpansionModel` = `claude-haiku-4-5-20251001`) rewrites the topic into a structured Czech
+   (`QueryExpansionModel` = `claude-haiku-5-5`) rewrites the topic into a structured Czech
    search description (Produkt / Kontext / Klíčové ingredience / Benefity / Cílová skupina).
    On HTTP error/timeout or empty answer the raw topic is used.
 2. **Embedding** of the expanded query: OpenAI `text-embedding-3-large`, 1536 dimensions
@@ -57,7 +57,7 @@ States of a generation: *generated* (row in `LeafletGenerations`, no scores) →
 5. Both hit lists are filtered to score ≥ `MinSimilarityScore` = 0.55 (score = 1 − cosine distance).
    **Both empty** → error `LeafletEmptyRetrieval` (2504, HTTP 422); UI: "Knowledge Base zatím toto
    téma nepokrývá. Zkuste obecnější formulaci." Nothing is logged.
-6. **Stage 1 — facts outline**: Claude `ChatModel` = `claude-sonnet-4-6`, max `ChatMaxTokens` = 2048.
+6. **Stage 1 — facts outline**: Claude `ChatModel` = `claude-sonnet-5-5`, max `ChatMaxTokens` = 2048.
    System prompt `Stage1SystemPrompt` with topic, audience, word target and the KB chunks joined by
    `---` ("(empty)" if none); user message = topic. Output: structured outline (ingredients,
    benefits, use cases, regulatory cautions), told not to invent facts.
@@ -94,8 +94,8 @@ States of a generation: *generated* (row in `LeafletGenerations`, no scores) →
 | `Leaflet:KbTopK` | 8 | Max KB chunks for facts |
 | `Leaflet:LeafletTopK` | 5 | Max leaflet chunks for style |
 | `Leaflet:MinSimilarityScore` | 0.55 | Cut-off for both lists |
-| `Leaflet:ChatModel` / `ChatMaxTokens` | `claude-sonnet-4-6` / 2048 | Stage 1 + 2 |
-| `Leaflet:QueryExpansionEnabled` / `QueryExpansionModel` | `true` / `claude-haiku-4-5-20251001` | Topic rewrite before search |
+| `Leaflet:ChatModel` / `ChatMaxTokens` | `claude-sonnet-5-5` / 2048 | Stage 1 + 2 |
+| `Leaflet:QueryExpansionEnabled` / `QueryExpansionModel` | `true` / `claude-haiku-5-5` | Topic rewrite before search |
 | `Leaflet:QueryExpansionPrompt`, `Stage1SystemPrompt`, `Stage2SystemPrompt` | in `LeafletOptions.cs` | Prompts (overridable by config) |
 | `Leaflet:ShortWordTarget` / `MediumWordTarget` / `LongWordTarget` | 200 / 400 / 700 | Word targets |
 | `Leaflet:EmbeddingModel` / `EmbeddingDimensions` | `text-embedding-3-large` / 1536 | Query embedding |
