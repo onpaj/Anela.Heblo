@@ -113,7 +113,7 @@ SharePoint.
   Výsledek). `SummarizationEnabled = false` skips the LLM: the chunk text (or the whole
   transcript as one topic) is embedded as-is.
 - Chat model: the default `IChatClient` (Anthropic). Its model and max tokens come from
-  `KnowledgeBase:ChatModel` (`claude-sonnet-4-6`) and `KnowledgeBase:ChatMaxTokens` (1024).
+  `KnowledgeBase:ChatModel` (`claude-sonnet-5-5`) and `KnowledgeBase:ChatMaxTokens` (1024).
 - Embedding retries: the OpenAI adapter retries `HttpRequestException` 3× with exponential
   back-off from 2 s.
 - Statuses stored lower-case: `processing`, `indexed`, `failed`.
@@ -131,7 +131,7 @@ SharePoint.
 | `KnowledgeBase:SummarizationPrompt`, `TopicSummarizationPrompt`, `TopicDelimiter` | class defaults (Czech), `[TOPIC]` | Indexing prompts |
 | `KnowledgeBase:PreprocessorPatterns` | 4 Smartsupp boilerplate regexes | Removed from every document before chunking |
 | `KnowledgeBase:EmbeddingModel` / `EmbeddingDimensions` | `text-embedding-3-large` / 1536 | Must match the `vector(1536)` column |
-| `KnowledgeBase:ChatModel` / `ChatMaxTokens` | `claude-sonnet-4-6` / 1024 | Default Anthropic client for the whole app (see quirks) |
+| `KnowledgeBase:ChatModel` / `ChatMaxTokens` | `claude-sonnet-5-5` / 1024 | Default Anthropic client for the whole app (see quirks) |
 | `KnowledgeBase:IngestionCronExpression` | `*/15 * * * *` | **Not read** — the job's cron is hard-coded in its metadata |
 | `OpenAI:ApiKey`, `Anthropic:ApiKey` | secrets (empty in repo) | Embedding / chat credentials |
 | `UseMockAuth`, `BypassJwtValidation` | false | Either true, or no mapping with a `DriveId`, → `MockOneDriveService` (inbox always empty) |

@@ -80,7 +80,7 @@ Document (`MindMapDocument`, camelCase JSON): `schemaVersion` (1), `rootNodeId`,
 
 ## External systems
 - **Anthropic Claude** (Messages API, model from `KnowledgeBase:ChatModel`, default
-  `claude-sonnet-4-6`) — Heblo → Anthropic: current map + meeting summary + full transcript;
+  `claude-sonnet-5-5`) — Heblo → Anthropic: current map + meeting summary + full transcript;
   reply = next map. Only in `job-mindmap-update`. Staging uses a stub (`MindMaps:UseStubUpdater`).
 
 ## Dependencies

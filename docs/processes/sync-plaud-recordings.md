@@ -108,7 +108,7 @@ not changed.
 | `Plaud:TokensJson` | empty (secret, KV `Plaud--TokensJson`) | Seeds `~/.plaud/tokens.json` at startup (`PlaudTokenBootstrapper`) |
 | `Plaud:MaxRecordingAgeDays` | 7 | **Unused** — the job reads `MeetingTasks:MaxRecordingAgeDays` |
 | `KeyVault:Uri` | env-specific | When set, rotated Plaud tokens are written back to KV secret `Plaud--TokensJson` |
-| `KnowledgeBase:ChatModel` | `claude-sonnet-4-6` | Model of the shared Anthropic chat client used for extraction |
+| `KnowledgeBase:ChatModel` | `claude-sonnet-5-5` | Model of the shared Anthropic chat client used for extraction |
 | `Anthropic:ApiKey`, `Anthropic:HttpTimeoutSeconds` | secret, 180 | Claude access and per-call timeout |
 
 ## Runtime facts

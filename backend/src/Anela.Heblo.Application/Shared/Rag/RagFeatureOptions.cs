@@ -11,7 +11,7 @@ public abstract class RagFeatureOptions
     public int EmbeddingDimensions { get; set; } = 1536;
 
     [Required]
-    public string ChatModel { get; set; } = "claude-sonnet-4-6";
+    public string ChatModel { get; set; } = "claude-sonnet-5-5";
 
     public int ChatMaxTokens { get; set; } = 1024;
 
@@ -29,7 +29,7 @@ public abstract class RagFeatureOptions
 
     public bool QueryExpansionEnabled { get; set; } = true;
 
-    public string QueryExpansionModel { get; set; } = "claude-haiku-4-5-20251001";
+    public string QueryExpansionModel { get; set; } = "claude-haiku-5-5";
 
     public string QueryExpansionPrompt { get; set; } = string.Empty;
 

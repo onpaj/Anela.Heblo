@@ -55,7 +55,7 @@ On demand, no schedule:
 
 ## Data flow
 1. **Query expansion** (`RagQueryExpander`): Claude `QueryExpansionModel`
-   (`claude-haiku-4-5-20251001`) rewrites the question into the same Czech key/value shape the
+   (`claude-haiku-5-5`) rewrites the question into the same Czech key/value shape the
    chunk summaries use (Problém / Kontext / Doporučení / Ingredience), prompt
    `KnowledgeBase:QueryExpansionPrompt`. Network/timeout errors or an empty reply → raw question.
    The KB prompt asks for JSON `{expanded, problemTags, productTags}`: Czech, lowercase,
@@ -85,7 +85,7 @@ On demand, no schedule:
    code, from `ProductEnrichmentCache`. `AskQuestionSystemPrompt` gets `{context}`,
    `{products}`, `{query}` substituted; sent as system message + the question as user message.
 7. **Answer** by the KB-keyed chat client (`knowledge-base-answer`) = default Anthropic client
-   (`KnowledgeBase:ChatModel` `claude-sonnet-4-6`, max 1024 tokens) wrapped in
+   (`KnowledgeBase:ChatModel` `claude-sonnet-5-5`, max 1024 tokens) wrapped in
    `PostAnswerEnrichmentMiddleware`.
 8. **Product links** (middleware): `[Name](CODE)` → `[Name](product URL)`, or just `Name` when the
    product has no URL or the code is unknown. A bare `(CODE)` of a known product →
@@ -133,11 +133,11 @@ On demand, no schedule:
 | Key | Repo default | Meaning |
 |---|---|---|
 | `KnowledgeBase:QueryExpansionEnabled` | true | Rewrite the question before embedding |
-| `KnowledgeBase:QueryExpansionModel` | `claude-haiku-4-5-20251001` | Model for the rewrite |
+| `KnowledgeBase:QueryExpansionModel` | `claude-haiku-5-5` | Model for the rewrite |
 | `KnowledgeBase:QueryExpansionPrompt` | Czech prompt in `KnowledgeBaseOptions` | Rewrite + tagging instructions; an override must keep the JSON shape and `{EXISTING_TAGS}`, or tagging silently stops (no KV/App Setting override in prod as of 2026-10-14) |
 | `KnowledgeBase:MinSimilarityScore` | 0.55 | Chunk cut-off |
 | `KnowledgeBase:AskQuestionSystemPrompt` | Czech advisor prompt in `KnowledgeBaseOptions` | Answer prompt with `{context}`, `{products}`, `{query}` |
-| `KnowledgeBase:ChatModel` / `ChatMaxTokens` | `claude-sonnet-4-6` / 1024 | Answer model (app-wide default client) |
+| `KnowledgeBase:ChatModel` / `ChatMaxTokens` | `claude-sonnet-5-5` / 1024 | Answer model (app-wide default client) |
 | `KnowledgeBase:EmbeddingModel` / `EmbeddingDimensions` | `text-embedding-3-large` / 1536 | Query embedding; must match ingestion |
 | `KnowledgeBase:ProductEnrichmentCacheTtlMinutes` | 60 | Product link cache lifetime |
 | `KnowledgeBase:MaxRetrievedChunks` | 5 | **Not read anywhere**; `topK` comes from the request |

@@ -67,11 +67,11 @@ optional `StyleGuideDriveId` + `StyleGuideItemPath` (free-text OneDrive drive id
 
 | # | Step (`StepName`, `Sequence`) | Model (config key) | Reads | Produces |
 |---|---|---|---|---|
-| 1 | `PlanQueries`, 1 | `Articles:QueryPlannerModel` (Haiku 4.5) | Topic only | 6–8 Czech search queries (capped at 8) |
+| 1 | `PlanQueries`, 1 | `Articles:QueryPlannerModel` (Haiku 5.5) | Topic only | 6–8 Czech search queries (capped at 8) |
 | 2 | `GatherContext`, 2 | none here (KB search makes its own calls) | queries | KB snippets + web snippets + style-guide text |
-| 3 | `AggregateFacts`, 3 | `Articles:AggregateFactsModel` (Sonnet 4.6) | Topic, Angle, Scope, first 50 snippets | list of facts `{claim, confidence, source_url, source_title}` |
-| 4 | `ValidateFacts`, 4 | `Articles:ValidateFactsModel` (Haiku 4.5) | fact claims | a reliability note per fact |
-| 5 | `WriteArticle`, 5 | `Articles:DefaultModel` (Sonnet 4.6) | brief, facts + notes, style guide | title, HTML, list of sources used |
+| 3 | `AggregateFacts`, 3 | `Articles:AggregateFactsModel` (Sonnet 5.5) | Topic, Angle, Scope, first 50 snippets | list of facts `{claim, confidence, source_url, source_title}` |
+| 4 | `ValidateFacts`, 4 | `Articles:ValidateFactsModel` (Haiku 5.5) | fact claims | a reliability note per fact |
+| 5 | `WriteArticle`, 5 | `Articles:DefaultModel` (Sonnet 5.5) | brief, facts + notes, style guide | title, HTML, list of sources used |
 
 Status moves to Researching before step 1 and to Writing before step 5.
 
@@ -155,12 +155,12 @@ prompts.
 ## Configuration
 | Key | Repo default | Meaning |
 |---|---|---|
-| `Articles:DefaultModel` | `claude-sonnet-4-6` | Writer model |
+| `Articles:DefaultModel` | `claude-sonnet-5-5` | Writer model |
 | `Articles:WriteMaxTokens` | 4096 (appsettings; class default 8192) | Writer output cap |
-| `Articles:QueryPlannerModel` | `claude-haiku-4-5-20251001` | Query planner |
-| `Articles:AggregateFactsModel` | `claude-sonnet-4-6` | Fact aggregation |
+| `Articles:QueryPlannerModel` | `claude-haiku-5-5` | Query planner |
+| `Articles:AggregateFactsModel` | `claude-sonnet-5-5` | Fact aggregation |
 | `Articles:AggregateMaxTokens` | 1024 | Fact aggregation output cap |
-| `Articles:ValidateFactsModel` | `claude-haiku-4-5-20251001` | Fact check (no own token cap) |
+| `Articles:ValidateFactsModel` | `claude-haiku-5-5` | Fact check (no own token cap) |
 | `Articles:WebSearchTopK` | 5 | Web hits per query |
 | `Articles:KnowledgeBaseTopK` | 8 | KB chunks per query (before the 0.55 threshold) |
 | `Articles:*SystemPrompt`, `Articles:WriteArticleUserPromptTemplate` | in `ArticleOptions.cs` | Prompts; overridable from config |

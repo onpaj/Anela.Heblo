@@ -65,7 +65,7 @@ All tables are in `public` of the Heblo DB.
   `GET /drives/{driveId}/items/{rootItemId}/delta` (+ `@odata.nextLink` / `@odata.deltaLink`),
   `GET /drives/{driveId}/items/{itemId}/thumbnails/0/{medium|large}/content` (gallery thumbnails).
   Heblo never writes to SharePoint.
-- **Anthropic Claude** (via the shared `IChatClient`) — only for AI tagging; model `Photobank:AutoTag:Model` (`claude-haiku-4-5-20251001`).
+- **Anthropic Claude** (via the shared `IChatClient`) — only for AI tagging; model `Photobank:AutoTag:Model` (`claude-haiku-5-5`).
 
 ## Dependencies
 - Reads from: Background jobs module (`RecurringJobConfiguration` enable switch and cron, Hangfire), Microsoft365 adapter (`PhotobankGraphService`), Anthropic adapter (`IChatClient`).

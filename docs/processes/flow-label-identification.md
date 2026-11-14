@@ -119,7 +119,7 @@ Screen states (`LabelIdentificationScreen.tsx`): capture → *Čtu štítek…* 
 | `LabelIdentification:AutoConfirmMargin` | 5 (code default) | Required lead over the runner-up for `Auto` |
 | `LabelIdentification:LowConfidenceFloor` | 60 (code default) | Below this the result is `Low` |
 | `LabelIdentification:MaxImageEdge` | 2048 (code default) | Longest edge in px sent to the model |
-| `KnowledgeBase:ChatModel` | `claude-sonnet-4-6` | Model used for the OCR call (shared with the knowledge base chat) |
+| `KnowledgeBase:ChatModel` | `claude-sonnet-5-5` | Model used for the OCR call (shared with the knowledge base chat) |
 | `KnowledgeBase:ChatMaxTokens` | 1024 | Max output tokens of the OCR reply (shared) |
 | `Anthropic:ApiKey` | empty (Key Vault) | Anthropic API key; empty → every photo fails with 3304 |
 | `Anthropic:HttpTimeoutSeconds` | 180 | HTTP timeout of the Anthropic client |
