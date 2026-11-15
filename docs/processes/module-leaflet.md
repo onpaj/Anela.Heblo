@@ -55,7 +55,7 @@ No caches, no blob containers. The uploaded/SharePoint file itself is not stored
 | System | Direction | What |
 |---|---|---|
 | Microsoft Graph (SharePoint drive from `Leaflet:OneDriveFolderMappings`) | read + move | List inbox children, download file, PATCH-move to archive folder (app-only token) |
-| Anthropic Claude | call | Query expansion (`claude-haiku-4-5-20251001`), Stage 1 + 2 generation (`claude-sonnet-4-6`), per-chunk summaries at ingestion (default chat model = `KnowledgeBase:ChatModel`) |
+| Anthropic Claude | call | Query expansion (`claude-haiku-5-5`), Stage 1 + 2 generation (`claude-sonnet-5-5`), per-chunk summaries at ingestion (default chat model = `KnowledgeBase:ChatModel`) |
 | OpenAI embeddings | call | `text-embedding-3-large` at 1536 dimensions, for chunks and topics |
 
 ## Dependencies

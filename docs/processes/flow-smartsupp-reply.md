@@ -148,7 +148,7 @@ returns aggregate stats.
 |---|---|---|
 | `Smartsupp:SendMessage:AgentMap` | 5 entries: `ondra@`, `pepi@`, `bara@`, `janka@`, `eliska@anela.cz` → Smartsupp agent ids | Who may send, and as which Smartsupp agent; also the presence identity |
 | `SmartsuppDraftReply:DraftReplySystemPrompt` | Czech prompt in `SmartsuppDraftReplyOptions` (section absent from appsettings) | LLM system prompt with placeholders |
-| `KnowledgeBase:ChatModel` | `claude-sonnet-4-6` | Model used by the default chat client (shared with KnowledgeBase) |
+| `KnowledgeBase:ChatModel` | `claude-sonnet-5-5` | Model used by the default chat client (shared with KnowledgeBase) |
 | `Smartsupp:Presence:HeartbeatTtlSeconds` | `90` (code default) | Heblo presence lifetime without heartbeat (UI beats every 20 s) |
 | `Smartsupp:Presence:SmartsuppTtlMinutes` | `30` (code default) | Safety TTL for native-app presence if `agent_left` never arrives |
 | `Smartsupp:ApiToken` / `Smartsupp:BaseUrl` / `Smartsupp:HttpTimeoutSeconds` | secret / `https://api.smartsupp.com/v2/` / `30` | Smartsupp REST access |

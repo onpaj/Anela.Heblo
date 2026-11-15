@@ -7,7 +7,7 @@ public sealed class ArticleOptions
     public const string SectionName = "Articles";
 
     [Required, MinLength(1)]
-    public string DefaultModel { get; set; } = "claude-sonnet-4-6";
+    public string DefaultModel { get; set; } = "claude-sonnet-5-5";
 
     [Range(1, 16384)]
     public int WriteMaxTokens { get; set; } = 8192;
@@ -22,13 +22,13 @@ public sealed class ArticleOptions
     public int KnowledgeBaseTopK { get; set; } = 8;
 
     [Required, MinLength(1)]
-    public string QueryPlannerModel { get; set; } = "claude-haiku-4-5-20251001";
+    public string QueryPlannerModel { get; set; } = "claude-haiku-5-5";
 
     [Required, MinLength(1)]
-    public string AggregateFactsModel { get; set; } = "claude-sonnet-4-6";
+    public string AggregateFactsModel { get; set; } = "claude-sonnet-5-5";
 
     [Required, MinLength(1)]
-    public string ValidateFactsModel { get; set; } = "claude-haiku-4-5-20251001";
+    public string ValidateFactsModel { get; set; } = "claude-haiku-5-5";
 
     public string QueryPlannerSystemPrompt { get; set; } =
         """

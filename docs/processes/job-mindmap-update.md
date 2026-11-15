@@ -133,7 +133,7 @@ every parent exists, no cycles). Invalid → one more call with a corrective mes
 |---|---|---|
 | `MindMaps:UseStubUpdater` | `false` (`appsettings.json`); `true` in `appsettings.Staging.json` | Replace Claude with the deterministic stub. |
 | `MindMaps:UpdaterMaxOutputTokens` | `16384` (code default, range 1024–64000) | `max_tokens` per Claude call; the whole map must fit in one reply. |
-| `KnowledgeBase:ChatModel` | `claude-sonnet-4-6` | Model used — the mind map client shares `AnthropicOptions.Model` with the knowledge-base chat. |
+| `KnowledgeBase:ChatModel` | `claude-sonnet-5-5` | Model used — the mind map client shares `AnthropicOptions.Model` with the knowledge-base chat. |
 | `Anthropic:ApiKey` | `""` (secret, Key Vault) | Empty → every update fails with "Anthropic:ApiKey is not configured.". |
 | `Anthropic:HttpTimeoutSeconds` | `180` | HTTP timeout of the `"Anthropic"` client used per call. |
 | `Hangfire:WorkerCount` | `1` (`HangfireOptions` default, not set in repo json) | Shared worker pool; see quirks. |

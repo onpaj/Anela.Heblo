@@ -17,7 +17,7 @@ public class AnthropicChatClientTests
     private static AnthropicOptions DefaultOptions => new()
     {
         ApiKey = "test-api-key",
-        Model = "claude-sonnet-4-6",
+        Model = "claude-sonnet-5-5",
         MaxTokens = 1024,
         MessagesUrl = "https://api.anthropic.com/v1/messages",
         HttpTimeoutSeconds = 60

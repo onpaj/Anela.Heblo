@@ -50,7 +50,7 @@ public class LeafletModuleIntegrationTests
             ["Leaflet:OneDriveFolderMappings:0:InboxPath"] = "/Leaflets/Inbox",
             ["Leaflet:OneDriveFolderMappings:0:ArchivedPath"] = "/Leaflets/Archived",
             ["Leaflet:OneDriveFolderMappings:0:DocumentType"] = nameof(DocumentType.Leaflet),
-            ["Leaflet:ChatModel"] = "claude-sonnet-4-6",
+            ["Leaflet:ChatModel"] = "claude-sonnet-5-5",
             ["Leaflet:EmbeddingModel"] = "text-embedding-3-small",
         });
 

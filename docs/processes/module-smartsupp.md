@@ -91,7 +91,7 @@ All in `public` schema of the main Heblo DB; timestamps are UTC stored as
 - **Shoptet REST** `GET /api/customers/{guid}` via the ShoptetCustomers module's
   `IShoptetCustomerClient` (read-only customer card).
 - **Anthropic LLM** via the app's default `IChatClient` (model `KnowledgeBase:ChatModel`,
-  repo default `claude-sonnet-4-6`) for draft replies.
+  repo default `claude-sonnet-5-5`) for draft replies.
 
 ## Dependencies
 - Reads from **KnowledgeBase** (`SearchDocumentsRequest` through

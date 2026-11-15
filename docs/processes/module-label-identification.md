@@ -76,7 +76,7 @@ manual developer step, described in `flow-label-identification` under *Reference
 - **Size is never detected.** For the 12 two-size families the operator must pick 015 or 030;
   a wrong pick is not caught.
 - **Shared AI model setting.** The OCR uses `KnowledgeBase:ChatModel` (repo default
-  `claude-sonnet-4-6`) and `KnowledgeBase:ChatMaxTokens` (1024) — changing the knowledge-base
+  `claude-sonnet-5-5`) and `KnowledgeBase:ChatMaxTokens` (1024) — changing the knowledge-base
   chat model also changes the model reading labels.
 - **Two different permissions** guard the menu (`Warehouse_Logistics`) and the endpoint
   (`Products_Catalog`); a terminal user without Katalog read sees the tile but every photo

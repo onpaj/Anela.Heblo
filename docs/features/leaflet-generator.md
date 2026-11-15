@@ -73,7 +73,7 @@ POST /api/leaflet/generate → { content: "# Leaflet…" }
 - **LLM task**: rewrite the outline into polished Czech-language marketing copy in Markdown, matching the voice and rhythm of the style references
 - **Cold start**: when no leaflet style examples match the topic, the LLM uses a neutral professional register instead
 
-Both stages use `claude-sonnet-4-6` with a 2048-token output limit. Transient network errors trigger one automatic retry (1 s delay).
+Both stages use `claude-sonnet-5-5` with a 2048-token output limit. Transient network errors trigger one automatic retry (1 s delay).
 
 ---
 
@@ -182,7 +182,7 @@ All settings live under the `Leaflet` section in `appsettings.json`:
 | `KbTopK` | `8` | Max Knowledge Base chunks retrieved per query |
 | `LeafletTopK` | `5` | Max Leaflet Store chunks retrieved per query |
 | `MinSimilarityScore` | `0.55` | Minimum cosine similarity (0–1) to include a chunk |
-| `ChatModel` | `claude-sonnet-4-6` | Claude model for both generation stages |
+| `ChatModel` | `claude-sonnet-5-5` | Claude model for both generation stages |
 | `ChatMaxTokens` | `2048` | Max tokens for each LLM response |
 | `EmbeddingModel` | `text-embedding-3-large` | OpenAI embedding model (1536 dimensions) |
 | `IngestionCronExpression` | `*/15 * * * *` | How often the ingestion job polls OneDrive |

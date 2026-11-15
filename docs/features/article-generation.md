@@ -13,7 +13,7 @@ Article generation is now a Heblo feature, exposing REST endpoints and a React U
 
 Heblo already has all the infrastructure needed:
 - **pgvector + OpenAI `text-embedding-3-large` (1536-d)** with HNSW cosine retrieval (`KnowledgeBaseRepository`)
-- **Anthropic `IChatClient`** wrapping `claude-sonnet-4-6` with Polly retry + `PostAnswerEnrichmentMiddleware`
+- **Anthropic `IChatClient`** wrapping `claude-sonnet-5-5` with Polly retry + `PostAnswerEnrichmentMiddleware`
 - **MediatR vertical-slice** feature pattern (`Application/Features/{Feature}/UseCases/{Action}/`)
 - **Hangfire** for background jobs with `IRecurringJob` abstraction
 - **Microsoft Graph** for SharePoint/OneDrive access (`GraphOneDriveService`)
@@ -188,7 +188,7 @@ Paged list, default pageSize=20, max 100.
 ## 8. Pipeline Handlers (in execution order inside `GenerateArticleJob`)
 
 ### 8.1 `PlanQueriesHandler`
-- **Model:** `claude-haiku-4-5-20251001` via `IChatClient`
+- **Model:** `claude-haiku-5-5` via `IChatClient`
 - **System prompt** (stored in `ArticleOptions.QueryPlannerSystemPrompt`):
   > Generate 6-8 search queries to thoroughly research an article. Cover: (1) definition/what it is, (2) recent news/developments (current year and prior), (3) statistics/data/studies, (4) expert opinions/authoritative sources, (5) Czech-specific context if relevant, (6) counterarguments/nuance. Respond ONLY with valid JSON (no markdown): `{"queries": ["..."]}`
 - **Fallback:** seed-based fallback (`<seed>`, `<seed> statistiky`, `<seed> recenze`)
@@ -201,17 +201,17 @@ Paged list, default pageSize=20, max 100.
 - All branch failures are caught per-query/per-source; partial results pass through. Total failure of a branch only logs a warning.
 
 ### 8.3 `AggregateFactsHandler`
-- **Model:** `claude-sonnet-4-6` via `IChatClient`, `MaxTokens = 1024`
+- **Model:** `claude-sonnet-5-5` via `IChatClient`, `MaxTokens = 1024`
 - **Input:** `topic, angle, scope` + flat list of all `ContextSnippet`s
 - **System prompt** (Czech): synthesize into `{facts:[{claim, confidence, source_url, source_title}], summary, gaps}` — JSON-only output
 - **Fallback:** parse failure → empty facts, raw concatenated snippets in `summary`
 
 ### 8.4 `ValidateFactsHandler`
-- **Model:** `claude-haiku-4-5-20251001`
+- **Model:** `claude-haiku-5-5`
 - **Output:** annotates each fact with `validation_note` (or null). **No gating** — annotations only; user-visible later.
 
 ### 8.5 `WriteArticleHandler`
-- **Model:** `claude-sonnet-4-6`, `MaxTokens = 4096`
+- **Model:** `claude-sonnet-5-5`, `MaxTokens = 4096`
 - **System prompt structure:**
   1. Optional style guide block: `STYLE GUIDE — follow this exactly:\n<style_guide>\n\n`
   2. Persona + JSON instruction:
@@ -310,15 +310,15 @@ Configurations follow `KnowledgeBaseDocumentConfiguration` style: explicit `HasM
 Add to `appsettings.json`:
 ```json
 "Articles": {
-  "DefaultModel": "claude-sonnet-4-6",
+  "DefaultModel": "claude-sonnet-5-5",
   "WriteMaxTokens": 4096,
   "AggregateMaxTokens": 1024,
   "WebSearchTopK": 5,
   "KnowledgeBaseTopK": 8,
   "DefaultLength": "medium (1000w)",
-  "QueryPlannerModel": "claude-haiku-4-5-20251001",
-  "AggregateFactsModel": "claude-sonnet-4-6",
-  "ValidateFactsModel": "claude-haiku-4-5-20251001",
+  "QueryPlannerModel": "claude-haiku-5-5",
+  "AggregateFactsModel": "claude-sonnet-5-5",
+  "ValidateFactsModel": "claude-haiku-5-5",
   "QueryPlannerSystemPrompt": "...",
   "AggregateFactsSystemPrompt": "...",
   "ValidateFactsSystemPrompt": "...",

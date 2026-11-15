@@ -78,7 +78,7 @@ recognition.
 |---|---|---|
 | `Photobank:AutoTag:BatchSize` | 50 | Photos per LLM call |
 | `Photobank:AutoTag:MaxPhotosPerRun` | 5000 | Upper bound of photos fetched per nightly run |
-| `Photobank:AutoTag:Model` | `claude-haiku-4-5-20251001` | Anthropic model id sent per request |
+| `Photobank:AutoTag:Model` | `claude-haiku-5-5` | Anthropic model id sent per request |
 | `Photobank:AutoTag:MaxTagsPerPhoto` | 5 | Cap of AI tags kept per photo |
 | `KnowledgeBase:ChatMaxTokens` | 1024 | Output-token limit of the shared Anthropic chat client (the job sets no own limit) |
 | `Anthropic:ApiKey` | secret | Anthropic API key |
