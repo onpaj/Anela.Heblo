@@ -58,7 +58,8 @@ User actions only; no job. States of a container (`MaterialContainerStatus`):
    `MaterialContainerLabelZplBuilder` and records the media state only after a successful print.
    Creates or changes no container rows. The list shows a per-row "Dotisk" button (hidden for
    Discarded); the terminal screen reprints on every scan, ignores scans while printing or while
-   the roll-change sheet is open, and remembers the roll-change confirmation for the screen session.
+   the roll-change sheet is open, and sends `mediaChangeConfirmed` only on the retry that follows
+   the sheet — the confirmation is never remembered across scans (the shared roll may be swapped).
 4. **Discard** — `POST /api/material-containers/{id}/discard`.
 5. **Lots** (`public."Lots"`, unique per material code + lot code) — `api/lots` list, get,
    create, update (expiration, received date, notes), delete. Delete is refused

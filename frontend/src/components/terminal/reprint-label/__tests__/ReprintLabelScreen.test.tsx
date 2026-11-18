@@ -65,7 +65,7 @@ describe('ReprintLabelScreen', () => {
     expect(flashState()).toBe('ok:M00000010');
   });
 
-  it('media change response opens sheet; confirm resends with mediaChangeConfirmed true; next scan also sends true', () => {
+  it('media change response opens sheet; confirm resends with mediaChangeConfirmed true; next scan sends false again', () => {
     renderScreen();
     scan('M00000010');
     act(() => lastCallbacks().onSuccess?.({ requiresMediaChangeConfirmation: true }));
@@ -78,7 +78,23 @@ describe('ReprintLabelScreen', () => {
 
     act(() => lastCallbacks().onSuccess?.({ requiresMediaChangeConfirmation: false }));
     scan('M00000011');
-    expect(mutate.mock.calls[2][0]).toEqual({ code: 'M00000011', mediaChangeConfirmed: true });
+    expect(mutate.mock.calls[2][0]).toEqual({ code: 'M00000011', mediaChangeConfirmed: false });
+  });
+
+  it('error on the confirmed retry records a failure and the next scan is unconfirmed', () => {
+    renderScreen();
+    scan('M00000010');
+    act(() => lastCallbacks().onSuccess?.({ requiresMediaChangeConfirmation: true }));
+    fireEvent.click(screen.getByText('Role vyměněna, tisknout'));
+    const error = new SwaggerException('err', 500, '', {}, null);
+    act(() => lastCallbacks().onError?.(error));
+
+    expect(screen.queryByText('Vyměňte roli za štítky kontejnerů')).not.toBeInTheDocument();
+    expect(screen.getByTestId('reprint-history')).toHaveTextContent('✗');
+    expect(flashState()).toBe('err:M00000010');
+
+    scan('M00000011');
+    expect(mutate.mock.calls[2][0]).toEqual({ code: 'M00000011', mediaChangeConfirmed: false });
   });
 
   it('scan while pending is ignored', () => {

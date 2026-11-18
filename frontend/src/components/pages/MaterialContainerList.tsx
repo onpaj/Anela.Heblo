@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Filter, AlertCircle, Loader2, Printer, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Filter, AlertCircle, CheckCircle, Loader2, Printer, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   useMaterialContainersList,
   MaterialContainersListRequest,
@@ -44,9 +44,11 @@ const MaterialContainerList: React.FC = () => {
   const [pendingConfirm, setPendingConfirm] = useState<(() => void) | null>(null);
 
   const [reprintError, setReprintError] = useState<string | null>(null);
+  const [reprintedCode, setReprintedCode] = useState<string | null>(null);
 
   const runPrintLabels = (confirmed: boolean) => {
     setReprintError(null);
+    setReprintedCode(null);
     printLabels.mutate(
       { count: qty, mediaChangeConfirmed: confirmed },
       {
@@ -66,6 +68,7 @@ const MaterialContainerList: React.FC = () => {
 
   const runReprint = (code: string, confirmed: boolean) => {
     setReprintError(null);
+    setReprintedCode(null);
     reprintLabel.mutate(
       { code, mediaChangeConfirmed: confirmed },
       {
@@ -74,6 +77,7 @@ const MaterialContainerList: React.FC = () => {
             setPendingConfirm(() => () => runReprint(code, true));
           } else {
             setPendingConfirm(null);
+            setReprintedCode(code);
           }
         },
         onError: (err) => {
@@ -83,6 +87,9 @@ const MaterialContainerList: React.FC = () => {
       },
     );
   };
+
+  // Bulk print and reprint share one media-change confirmation slot, so only one may run at a time.
+  const isAnyPrintPending = printLabels.isPending || reprintLabel.isPending;
 
   useScreenView("Manufacturing", "MaterialContainers");
 
@@ -175,7 +182,7 @@ const MaterialContainerList: React.FC = () => {
               />
               <button
                 type="button"
-                disabled={printLabels.isPending || qty < 1 || qty > 200}
+                disabled={isAnyPrintPending || qty < 1 || qty > 200}
                 onClick={() => runPrintLabels(false)}
                 className="bg-green-600 hover:bg-green-700 text-white font-medium py-1.5 px-3 rounded-md text-sm disabled:opacity-50"
               >
@@ -276,6 +283,16 @@ const MaterialContainerList: React.FC = () => {
         </div>
       </div>
 
+      {reprintedCode && (
+        <div
+          role="status"
+          className="flex-shrink-0 mb-3 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-900/50 dark:bg-green-900/20 dark:text-green-400"
+        >
+          <CheckCircle className="h-4 w-4" />
+          <span>{`Štítek ${reprintedCode} odeslán na tiskárnu.`}</span>
+        </div>
+      )}
+
       {reprintError && (
         <div
           role="alert"
@@ -317,7 +334,7 @@ const MaterialContainerList: React.FC = () => {
                         type="button"
                         title="Dotisk"
                         aria-label={`Dotisknout štítek ${container.code}`}
-                        disabled={reprintLabel.isPending}
+                        disabled={isAnyPrintPending}
                         onClick={() => runReprint(container.code!, false)}
                         className="p-1 rounded text-gray-500 hover:text-indigo-600 hover:bg-gray-100 dark:text-graphite-muted dark:hover:text-indigo-400 dark:hover:bg-white/5 disabled:opacity-50"
                       >

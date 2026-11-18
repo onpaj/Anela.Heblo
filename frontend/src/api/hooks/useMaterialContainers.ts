@@ -59,9 +59,9 @@ export const usePrintMaterialContainerLabels = () => {
   });
 };
 
-export const useReprintMaterialContainerLabel = () => {
-  const queryClient = useQueryClient();
-  return useMutation<
+// A reprint never changes container data, so nothing is invalidated on success.
+export const useReprintMaterialContainerLabel = () =>
+  useMutation<
     ReprintMaterialContainerLabelResponse,
     unknown,
     { code: string; mediaChangeConfirmed?: boolean }
@@ -73,11 +73,7 @@ export const useReprintMaterialContainerLabel = () => {
       });
       return apiClient.materialContainers_Reprint(input.code, body);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materialContainers });
-    },
   });
-};
 
 export const usePrintLotLabels = () =>
   useMutation({

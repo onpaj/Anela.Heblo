@@ -26,7 +26,6 @@ const ReprintLabelScreen: React.FC = () => {
   const isInFlightRef = useRef(false);
   const isSheetOpenRef = useRef(false);
   const pendingCodeRef = useRef<string | null>(null);
-  const isSessionConfirmedRef = useRef(false);
   const entryIdRef = useRef(0);
   const flashRef = useRef<ReturnType<typeof useScanScreen>['flash'] | null>(null);
 
@@ -41,12 +40,14 @@ const ReprintLabelScreen: React.FC = () => {
     setHistory((prev) => [entry, ...prev].slice(0, HISTORY_LIMIT));
   };
 
-  const print = (code: string) => {
+  // Confirmation covers only the retry that follows the bottom sheet: the shared printer's
+  // roll can be swapped by someone else between scans, so it is never remembered.
+  const print = (code: string, isMediaChangeConfirmed: boolean) => {
     isInFlightRef.current = true;
     pendingCodeRef.current = code;
     setErrorMessage(null);
     mutate(
-      { code, mediaChangeConfirmed: isSessionConfirmedRef.current },
+      { code, mediaChangeConfirmed: isMediaChangeConfirmed },
       {
         onSuccess: (response) => {
           isInFlightRef.current = false;
@@ -77,7 +78,7 @@ const ReprintLabelScreen: React.FC = () => {
         flash('warn', code);
         return;
       }
-      print(code);
+      print(code, false);
     },
   });
   flashRef.current = flash;
@@ -85,9 +86,8 @@ const ReprintLabelScreen: React.FC = () => {
   const handleConfirm = () => {
     const code = pendingCodeRef.current;
     if (!code) return;
-    isSessionConfirmedRef.current = true;
     setSheet(false);
-    print(code);
+    print(code, true);
   };
 
   const handleCancel = () => {

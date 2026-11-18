@@ -24,7 +24,7 @@ Container labels (Code128 + human-readable code, 50×20 mm, `MaterialContainerLa
   - Discarded container → refused with a new error code (my call: a discarded container shouldn't get a fresh label). New ErrorCode needs the ErrorHandlingTests range bucket + Czech i18n entry.
   - Media-type check identical to the existing print: returns `RequiresMediaChangeConfirmation = true` when the printer last printed a different media type and the request isn't confirmed; records the print on success.
 - **List page:** row button → reprint mutation; reuses the existing `PrinterMediaChangeDialog` flow.
-- **Terminal:** route `/terminal/reprint-label`, scan via `useScanScreen`; success flashes ok + code, error flashes err with message. On media-change response, a bottom sheet asks to change the roll; on confirm the pending code is printed and confirmation is remembered for the rest of the screen session.
+- **Terminal:** route `/terminal/reprint-label`, scan via `useScanScreen`; success flashes ok + code, error flashes err with message. On media-change response, a bottom sheet asks to change the roll; on confirm only the pending code is reprinted confirmed. Confirmation is never remembered across scans — the shared printer's roll can be swapped by someone else between scans, and the backend records the media type after each print anyway.
 
 ## Left to the builder
 Icon choice, exact Czech copy, test layout (BE handler unit tests, FE component tests for list button and terminal screen). Process doc for label printing under `docs/processes/` updated if one owns this code.

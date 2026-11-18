@@ -283,6 +283,66 @@ describe("MaterialContainerList", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows a success notice after a reprint is printed", () => {
+    mockReprintMutate.mockImplementation((_input, opts) =>
+      opts?.onSuccess?.({ requiresMediaChangeConfirmation: false }),
+    );
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    fireEvent.click(screen.getByLabelText("Dotisknout štítek M00001234"));
+    expect(
+      screen.getByText("Štítek M00001234 odeslán na tiskárnu."),
+    ).toBeInTheDocument();
+  });
+
+  it("disables row reprint buttons while a bulk print is pending", () => {
+    mockUsePrint.mockReturnValue({ mutate: mockPrintMutate, isPending: true });
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    const button = screen.getByLabelText("Dotisknout štítek M00001234");
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(mockReprintMutate).not.toHaveBeenCalled();
+  });
+
+  it("cancelling the media-change dialog sends nothing", () => {
+    mockReprintMutate.mockImplementation((_input, opts) =>
+      opts?.onSuccess?.({ requiresMediaChangeConfirmation: true }),
+    );
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    fireEvent.click(screen.getByLabelText("Dotisknout štítek M00001234"));
+    fireEvent.click(screen.getByText("Zrušit"));
+    expect(mockReprintMutate).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByTestId("printer-media-change-dialog"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("error on the confirmed retry closes the dialog and shows the error", () => {
+    mockReprintMutate.mockImplementation((input, opts) => {
+      if (input.mediaChangeConfirmed) {
+        opts?.onError?.(
+          new SwaggerException(
+            "err",
+            409,
+            JSON.stringify({ errorCode: "MaterialContainerDiscarded" }),
+            {},
+            null,
+          ),
+        );
+        return;
+      }
+      opts?.onSuccess?.({ requiresMediaChangeConfirmation: true });
+    });
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    fireEvent.click(screen.getByLabelText("Dotisknout štítek M00001234"));
+    fireEvent.click(screen.getByText("Pokračovat v tisku"));
+    expect(
+      screen.queryByTestId("printer-media-change-dialog"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Kontejner je vyřazený – štítek nelze dotisknout."),
+    ).toBeInTheDocument();
+  });
+
   it("renders a Stav column with the container status", () => {
     render(<MaterialContainerList />, { wrapper: createWrapper });
     expect(screen.getByText("Stav")).toBeInTheDocument();
