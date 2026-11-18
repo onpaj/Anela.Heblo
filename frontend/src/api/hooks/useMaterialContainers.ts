@@ -10,6 +10,8 @@ import {
   PrintMaterialContainerLabelsRequest,
   PrintMaterialContainerLabelsResponse,
   PrintLotLabelsRequest,
+  ReprintMaterialContainerLabelBody,
+  ReprintMaterialContainerLabelResponse,
   PrintLotLabelsResponse,
   PrintLotCalibrationLabelRequest,
   PrintLotCalibrationLabelResponse,
@@ -50,6 +52,26 @@ export const usePrintMaterialContainerLabels = () => {
         mediaChangeConfirmed: input.mediaChangeConfirmed ?? false,
       });
       return apiClient.materialContainers_PrintLabels(request);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materialContainers });
+    },
+  });
+};
+
+export const useReprintMaterialContainerLabel = () => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    ReprintMaterialContainerLabelResponse,
+    unknown,
+    { code: string; mediaChangeConfirmed?: boolean }
+  >({
+    mutationFn: (input) => {
+      const apiClient = getAuthenticatedApiClient();
+      const body = new ReprintMaterialContainerLabelBody({
+        mediaChangeConfirmed: input.mediaChangeConfirmed ?? false,
+      });
+      return apiClient.materialContainers_Reprint(input.code, body);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.materialContainers });

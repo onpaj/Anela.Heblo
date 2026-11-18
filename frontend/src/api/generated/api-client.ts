@@ -9605,6 +9605,47 @@ export class ApiClient {
         return Promise.resolve<PrintMaterialContainerLabelsResponse>(null as any);
     }
 
+    materialContainers_Reprint(code: string, body: ReprintMaterialContainerLabelBody): Promise<ReprintMaterialContainerLabelResponse> {
+        let url_ = this.baseUrl + "/api/material-containers/{code}/reprint";
+        if (code === undefined || code === null)
+            throw new Error("The parameter 'code' must be defined.");
+        url_ = url_.replace("{code}", encodeURIComponent("" + code));
+        url_ = url_.replace(/[?&]$/, "");
+
+        const content_ = JSON.stringify(body);
+
+        let options_: RequestInit = {
+            body: content_,
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+        };
+
+        return this.http.fetch(url_, options_).then((_response: Response) => {
+            return this.processMaterialContainers_Reprint(_response);
+        });
+    }
+
+    protected processMaterialContainers_Reprint(response: Response): Promise<ReprintMaterialContainerLabelResponse> {
+        const status = response.status;
+        let _headers: any = {}; if (response.headers && response.headers.forEach) { response.headers.forEach((v: any, k: any) => _headers[k] = v); };
+        if (status === 200) {
+            return response.text().then((_responseText) => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            result200 = ReprintMaterialContainerLabelResponse.fromJS(resultData200);
+            return result200;
+            });
+        } else if (status !== 200 && status !== 204) {
+            return response.text().then((_responseText) => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            });
+        }
+        return Promise.resolve<ReprintMaterialContainerLabelResponse>(null as any);
+    }
+
     meetingTasks_List(statusFilter: string | null | undefined, searchText: string | null | undefined, searchInTranscript: boolean | undefined, pageNumber: number | undefined, pageSize: number | undefined): Promise<GetTranscriptListResponse> {
         let url_ = this.baseUrl + "/api/meeting-tasks?";
         if (statusFilter !== undefined && statusFilter !== null)
@@ -16234,6 +16275,7 @@ export enum ErrorCodes {
     MaterialContainerCodeExists = "MaterialContainerCodeExists",
     MaterialContainerCodeInvalidFormat = "MaterialContainerCodeInvalidFormat",
     UnknownMaterialContainerCode = "UnknownMaterialContainerCode",
+    MaterialContainerDiscarded = "MaterialContainerDiscarded",
     WeatherForecastUnavailable = "WeatherForecastUnavailable",
     ShipmentLabelsNoShipmentFound = "ShipmentLabelsNoShipmentFound",
     ShipmentLabelsNotGenerated = "ShipmentLabelsNotGenerated",
@@ -38240,6 +38282,79 @@ export class PrintMaterialContainerLabelsRequest implements IPrintMaterialContai
 
 export interface IPrintMaterialContainerLabelsRequest {
     count?: number;
+    mediaChangeConfirmed?: boolean;
+}
+
+export class ReprintMaterialContainerLabelResponse extends BaseResponse implements IReprintMaterialContainerLabelResponse {
+    container?: MaterialContainerDto | undefined;
+    requiresMediaChangeConfirmation?: boolean;
+
+    constructor(data?: IReprintMaterialContainerLabelResponse) {
+        super(data);
+    }
+
+    override init(_data?: any) {
+        super.init(_data);
+        if (_data) {
+            this.container = _data["container"] ? MaterialContainerDto.fromJS(_data["container"]) : <any>undefined;
+            this.requiresMediaChangeConfirmation = _data["requiresMediaChangeConfirmation"];
+        }
+    }
+
+    static override fromJS(data: any): ReprintMaterialContainerLabelResponse {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReprintMaterialContainerLabelResponse();
+        result.init(data);
+        return result;
+    }
+
+    override toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["container"] = this.container ? this.container.toJSON() : <any>undefined;
+        data["requiresMediaChangeConfirmation"] = this.requiresMediaChangeConfirmation;
+        super.toJSON(data);
+        return data;
+    }
+}
+
+export interface IReprintMaterialContainerLabelResponse extends IBaseResponse {
+    container?: MaterialContainerDto | undefined;
+    requiresMediaChangeConfirmation?: boolean;
+}
+
+export class ReprintMaterialContainerLabelBody implements IReprintMaterialContainerLabelBody {
+    mediaChangeConfirmed?: boolean;
+
+    constructor(data?: IReprintMaterialContainerLabelBody) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.mediaChangeConfirmed = _data["mediaChangeConfirmed"];
+        }
+    }
+
+    static fromJS(data: any): ReprintMaterialContainerLabelBody {
+        data = typeof data === 'object' ? data : {};
+        let result = new ReprintMaterialContainerLabelBody();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["mediaChangeConfirmed"] = this.mediaChangeConfirmed;
+        return data;
+    }
+}
+
+export interface IReprintMaterialContainerLabelBody {
     mediaChangeConfirmed?: boolean;
 }
 
