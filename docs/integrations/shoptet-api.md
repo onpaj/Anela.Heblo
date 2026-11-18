@@ -767,6 +767,25 @@ The catalog e-shop data comes from CSV **pattern 46** (`StockClient:Url`), read 
 
 Sequential ≈4 req/s is safe; parallel ≥4 connections hits 429. The token is shared with packing/expedition. A full products sweep (1 list + ~206 details, or + 12 flag calls + 1 supplies call) at ≤4 req/s takes ≈ 60–70 s. Details in §3.14.
 
+### 4.10 Recreating a deleted product from the test store (done live 2026-11-11, BAL0002M)
+
+Used to restore BAL0002M on production after an accidental delete. The test store (780175) is a **drifted** clone of production: GUIDs of categories, products and brands that existed at clone time are shared, and the related-product and category GUIDs from the test copy were valid on prod as-is. Entities created on prod after the clone do not exist on the test store, so verify each GUID with a prod GET before sending. Filter **parameter** codes match, but **value** codes can differ per store (§4.3d). Map each value by `name` to the prod `valueIndex` from prod `GET /api/products/filtering-parameters`. Some values do not exist on prod at all (`problem: na-suche-rty`). A value code that exists on both stores with a different meaning is accepted silently; only an unknown code is a 422.
+
+Order of calls:
+
+0. Confirm `GET /api/products/code/{code}` on **prod** returns 404, so you don't create a duplicate of a product that still exists or was already restored.
+1. `GET /api/products/code/{code}?include=images,allCategories,filteringParameters,flags,descriptiveParameters,surchargeParameters,relatedProducts,alternativeProducts,gifts,relatedFiles,relatedVideos,perPricelistPrices` on the test store.
+2. `POST /api/products` → `201`, response `data.product` (not `data`). Sending the old `indexName` gives back the **same URL** as the deleted product.
+   - A single-variant product **rejects `variants[].visible`** (`422 It is not possible to set "visible" for non-variant product`); use product-level `visibility`.
+   - `variants[].stocksLocations[].amount` must have **3 decimals** (`"0.000"`); `"0"` is a 422. Stock is created at that amount. Restore the real quantity afterwards through stock movements (§8.3 / §8.7) or the normal sync.
+   - `vatRate` is not in the create schema; the e-shop default (21 %) was applied. If the original rate differed, correct it with the `vatRate` item field of `PATCH /api/pricelists/{id}`.
+   - No purchase price in the create schema — set it afterwards via `PATCH /api/pricelists/1` `{"data":[{"code":"…","price":{"buyPrice":"…"}}]}` (default price list only).
+3. `PUT /api/products/{guid}/relatedProducts` `{"data":{"relatedProducts":[{"guid":…}]}}` (sync, 200; replaces the list).
+4. Images: `POST /api/products/{guid}/images/shop` with `sourceUrl = https://780175.myshoptet.com/user/shop/orig/{seoName}` (public, no auth), plus `priority` and `description` from the step-1 `images[]` so the gallery order and alt texts match. Register a placeholder `job:finished` webhook first (`POST /api/webhooks`, any URL) and delete it afterwards (`DELETE /api/webhooks/{id}`); see *Product images API*. The call returns `202 {jobId}`; poll `GET /api/system/jobs/{jobId}` (it completed in 0.2 s). Images get new names on prod. On this single-variant product the variant photo was set to the new main image automatically; for a multi-variant product re-point `variants[].image` via `PATCH /api/products/{guid}` using the new names.
+5. Compare the prod product against the step-1 copy for every other include (`allCategories`, `filteringParameters`, `flags`, `descriptiveParameters`, `surchargeParameters`, `alternativeProducts`, `gifts`, `relatedFiles`, `relatedVideos`, `perPricelistPrices`) and set what is missing. Categories, flags and filters have replace semantics (§4.3b–d). Prices on non-default price lists and any `actionPrice` go through `PATCH /api/pricelists/{id}` (amounts as strings with exactly 2 decimals).
+
+Not recoverable this way: reviews (`voteCount`), order/sales history, and the product's old GUID (a new one is issued).
+
 ---
 
 ## 6. ShoptetPay API
