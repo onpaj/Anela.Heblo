@@ -98,7 +98,6 @@ const ReprintLabelScreen: React.FC = () => {
   return (
     <ScanShell subject={<SubjectHeader emptyPrompt="Naskenujte štítek kontejneru" />}>
       <h1 className="text-xl font-bold text-neutral-slate dark:text-graphite-text">Dotisk štítku</h1>
-      <p className="text-sm text-neutral-gray dark:text-graphite-muted mt-1">Naskenujte štítek kontejneru</p>
       {errorMessage && (
         <p role="alert" className="mt-3 text-sm font-medium text-red-600 dark:text-red-400">
           {errorMessage}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import ReprintLabelScreen from '../ReprintLabelScreen';
-import { ScanProvider } from '../../shell/ScanProvider';
+import { ScanProvider, ScanEchoContext } from '../../shell/ScanProvider';
 import { useReprintMaterialContainerLabel } from '../../../../api/hooks/useMaterialContainers';
 import { SwaggerException } from '../../../../api/generated/api-client';
 
@@ -25,9 +25,17 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
+const FlashProbe: React.FC = () => {
+  const { lastTone, lastCode } = React.useContext(ScanEchoContext);
+  return <div data-testid="flash-probe">{`${lastTone ?? ''}:${lastCode ?? ''}`}</div>;
+};
+
+const flashState = () => screen.getByTestId('flash-probe').textContent;
+
 const renderScreen = () =>
   render(
     <ScanProvider>
+      <FlashProbe />
       <ReprintLabelScreen />
     </ScanProvider>,
   );
@@ -54,6 +62,7 @@ describe('ReprintLabelScreen', () => {
     act(() => lastCallbacks().onSuccess?.({ requiresMediaChangeConfirmation: false }));
     expect(screen.getByTestId('reprint-history')).toHaveTextContent('M00000010');
     expect(screen.getByTestId('reprint-history')).toHaveTextContent('✓');
+    expect(flashState()).toBe('ok:M00000010');
   });
 
   it('media change response opens sheet; confirm resends with mediaChangeConfirmed true; next scan also sends true', () => {
@@ -77,6 +86,7 @@ describe('ReprintLabelScreen', () => {
     scan('M00000010');
     scan('M00000011');
     expect(mutate).toHaveBeenCalledTimes(1);
+    expect(flashState()).toBe('warn:M00000011');
   });
 
   it('scan while sheet open is ignored and pending code unchanged', () => {
@@ -85,6 +95,7 @@ describe('ReprintLabelScreen', () => {
     act(() => lastCallbacks().onSuccess?.({ requiresMediaChangeConfirmation: true }));
     scan('M00000011');
     expect(mutate).toHaveBeenCalledTimes(1);
+    expect(flashState()).toBe('warn:M00000011');
     fireEvent.click(screen.getByText('Role vyměněna, tisknout'));
     expect(mutate.mock.calls[1][0]).toEqual({ code: 'M00000010', mediaChangeConfirmed: true });
   });
@@ -105,5 +116,6 @@ describe('ReprintLabelScreen', () => {
     act(() => lastCallbacks().onError?.(error));
     expect(screen.getByText('Kontejner je vyřazený – štítek nelze dotisknout.')).toBeInTheDocument();
     expect(screen.getByTestId('reprint-history')).toHaveTextContent('✗');
+    expect(flashState()).toBe('err:M00000010');
   });
 });

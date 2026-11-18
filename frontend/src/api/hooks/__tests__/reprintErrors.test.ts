@@ -38,4 +38,10 @@ describe('resolveReprintErrorMessage', () => {
 
     expect(message.length).toBeGreaterThan(0);
   });
+
+  test('returns access-denied message for bare 403 without envelope', () => {
+    const message = resolveReprintErrorMessage(swaggerError('', 403));
+
+    expect(message).toBe('Přístup zakázán');
+  });
 });

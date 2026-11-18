@@ -43,7 +43,10 @@ const MaterialContainerList: React.FC = () => {
   // re-runs the print confirmed. Non-null while the confirmation dialog is shown.
   const [pendingConfirm, setPendingConfirm] = useState<(() => void) | null>(null);
 
+  const [reprintError, setReprintError] = useState<string | null>(null);
+
   const runPrintLabels = (confirmed: boolean) => {
+    setReprintError(null);
     printLabels.mutate(
       { count: qty, mediaChangeConfirmed: confirmed },
       {
@@ -60,12 +63,9 @@ const MaterialContainerList: React.FC = () => {
   };
 
   const reprintLabel = useReprintMaterialContainerLabel();
-  const [reprintingCode, setReprintingCode] = useState<string | null>(null);
-  const [reprintError, setReprintError] = useState<string | null>(null);
 
   const runReprint = (code: string, confirmed: boolean) => {
     setReprintError(null);
-    setReprintingCode(code);
     reprintLabel.mutate(
       { code, mediaChangeConfirmed: confirmed },
       {
@@ -74,12 +74,10 @@ const MaterialContainerList: React.FC = () => {
             setPendingConfirm(() => () => runReprint(code, true));
           } else {
             setPendingConfirm(null);
-            setReprintingCode(null);
           }
         },
         onError: (err) => {
           setPendingConfirm(null);
-          setReprintingCode(null);
           setReprintError(resolveReprintErrorMessage(err));
         },
       },
@@ -319,7 +317,7 @@ const MaterialContainerList: React.FC = () => {
                         type="button"
                         title="Dotisk"
                         aria-label={`Dotisknout štítek ${container.code}`}
-                        disabled={reprintLabel.isPending && reprintingCode === container.code}
+                        disabled={reprintLabel.isPending}
                         onClick={() => runReprint(container.code!, false)}
                         className="p-1 rounded text-gray-500 hover:text-indigo-600 hover:bg-gray-100 dark:text-graphite-muted dark:hover:text-indigo-400 dark:hover:bg-white/5 disabled:opacity-50"
                       >

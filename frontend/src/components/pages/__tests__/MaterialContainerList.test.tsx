@@ -176,6 +176,58 @@ describe("MaterialContainerList", () => {
     );
   });
 
+  it("disables every row's reprint button while a reprint is pending", () => {
+    // One useMutation instance only fires the latest mutate call's callbacks, so a second
+    // reprint must not be startable while the first is in flight.
+    mockUseReprint.mockReturnValue({ mutate: mockReprintMutate, isPending: true });
+    mockUseList.mockReturnValue({
+      data: {
+        ...sampleResponse,
+        containers: [
+          sampleResponse.containers[0],
+          { ...sampleResponse.containers[0], id: 2, code: "M00005678" },
+        ],
+      },
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+    });
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+
+    const first = screen.getByLabelText("Dotisknout štítek M00001234");
+    const second = screen.getByLabelText("Dotisknout štítek M00005678");
+    expect(first).toBeDisabled();
+    expect(second).toBeDisabled();
+    fireEvent.click(second);
+    expect(mockReprintMutate).not.toHaveBeenCalled();
+  });
+
+  it("clears a stale reprint error when the bulk print starts", () => {
+    mockReprintMutate.mockImplementation((_input, opts) =>
+      opts?.onError?.(
+        new SwaggerException(
+          "err",
+          409,
+          JSON.stringify({ errorCode: "MaterialContainerDiscarded" }),
+          {},
+          null,
+        ),
+      ),
+    );
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    fireEvent.click(screen.getByLabelText("Dotisknout štítek M00001234"));
+    expect(
+      screen.getByText("Kontejner je vyřazený – štítek nelze dotisknout."),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Tisk štítků"));
+    fireEvent.click(screen.getByText("Vytisknout 10"));
+
+    expect(
+      screen.queryByText("Kontejner je vyřazený – štítek nelze dotisknout."),
+    ).not.toBeInTheDocument();
+  });
+
   it("hides reprint button for Discarded rows", () => {
     mockUseList.mockReturnValue({
       data: {
