@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import "@testing-library/jest-dom";
 import MaterialContainerList from "../MaterialContainerList";
+import { SwaggerException } from "../../../api/generated/api-client";
 import * as useMaterialContainersHooks from "../../../api/hooks/useMaterialContainers";
 
 jest.mock("../../../api/hooks/useMaterialContainers");
@@ -53,11 +54,18 @@ describe("MaterialContainerList", () => {
   const mockRefetch = jest.fn();
   const mockPrintMutate = jest.fn();
   const mockUsePrint = jest.fn();
+  const mockReprintMutate = jest.fn();
+  const mockUseReprint = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
     (mockHooks.useMaterialContainersList as jest.Mock) = mockUseList;
     (mockHooks.usePrintMaterialContainerLabels as jest.Mock) = mockUsePrint;
+    (mockHooks.useReprintMaterialContainerLabel as jest.Mock) = mockUseReprint;
+    mockUseReprint.mockReturnValue({
+      mutate: mockReprintMutate,
+      isPending: false,
+    });
     mockUseList.mockReturnValue({
       data: sampleResponse,
       isLoading: false,
@@ -154,6 +162,73 @@ describe("MaterialContainerList", () => {
     expect(
       screen.queryByTestId("printer-media-change-dialog"),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows reprint button per row and calls mutate with that code", () => {
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    fireEvent.click(screen.getByLabelText("Dotisknout štítek M00001234"));
+    expect(mockReprintMutate).toHaveBeenCalledWith(
+      { code: "M00001234", mediaChangeConfirmed: false },
+      expect.objectContaining({
+        onSuccess: expect.any(Function),
+        onError: expect.any(Function),
+      }),
+    );
+  });
+
+  it("hides reprint button for Discarded rows", () => {
+    mockUseList.mockReturnValue({
+      data: {
+        ...sampleResponse,
+        containers: [{ ...sampleResponse.containers[0], status: "Discarded" }],
+      },
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+    });
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    expect(
+      screen.queryByLabelText("Dotisknout štítek M00001234"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens media-change dialog when response requires confirmation and resends confirmed", () => {
+    mockReprintMutate.mockImplementation((input, opts) =>
+      opts?.onSuccess?.({ requiresMediaChangeConfirmation: !input.mediaChangeConfirmed }),
+    );
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+
+    fireEvent.click(screen.getByLabelText("Dotisknout štítek M00001234"));
+    expect(screen.getByTestId("printer-media-change-dialog")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Pokračovat v tisku"));
+    expect(mockReprintMutate).toHaveBeenCalledTimes(2);
+    expect(mockReprintMutate.mock.calls[1][0]).toEqual({
+      code: "M00001234",
+      mediaChangeConfirmed: true,
+    });
+    expect(
+      screen.queryByTestId("printer-media-change-dialog"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows error text when reprint fails", () => {
+    mockReprintMutate.mockImplementation((_input, opts) =>
+      opts?.onError?.(
+        new SwaggerException(
+          "err",
+          409,
+          JSON.stringify({ errorCode: "MaterialContainerDiscarded" }),
+          {},
+          null,
+        ),
+      ),
+    );
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    fireEvent.click(screen.getByLabelText("Dotisknout štítek M00001234"));
+    expect(
+      screen.getByText("Kontejner je vyřazený – štítek nelze dotisknout."),
+    ).toBeInTheDocument();
   });
 
   it("renders a Stav column with the container status", () => {

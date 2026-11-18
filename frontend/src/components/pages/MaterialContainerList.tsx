@@ -1,13 +1,15 @@
 import React, { useState } from "react";
-import { Search, Filter, AlertCircle, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Filter, AlertCircle, Loader2, Printer, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   useMaterialContainersList,
   MaterialContainersListRequest,
   usePrintMaterialContainerLabels,
+  useReprintMaterialContainerLabel,
 } from "../../api/hooks/useMaterialContainers";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { useScreenView } from "../../telemetry/useScreenView";
 import LotLabelPrintModal from "./LotLabelPrintModal";
+import { resolveReprintErrorMessage } from "../../api/hooks/reprintErrors";
 import PrinterMediaChangeDialog from "../dialogs/PrinterMediaChangeDialog";
 
 const formatDate = (date: Date | string | undefined): string => {
@@ -52,6 +54,33 @@ const MaterialContainerList: React.FC = () => {
             setPendingConfirm(null);
             setShowPrint(false);
           }
+        },
+      },
+    );
+  };
+
+  const reprintLabel = useReprintMaterialContainerLabel();
+  const [reprintingCode, setReprintingCode] = useState<string | null>(null);
+  const [reprintError, setReprintError] = useState<string | null>(null);
+
+  const runReprint = (code: string, confirmed: boolean) => {
+    setReprintError(null);
+    setReprintingCode(code);
+    reprintLabel.mutate(
+      { code, mediaChangeConfirmed: confirmed },
+      {
+        onSuccess: (res) => {
+          if (res?.requiresMediaChangeConfirmation) {
+            setPendingConfirm(() => () => runReprint(code, true));
+          } else {
+            setPendingConfirm(null);
+            setReprintingCode(null);
+          }
+        },
+        onError: (err) => {
+          setPendingConfirm(null);
+          setReprintingCode(null);
+          setReprintError(resolveReprintErrorMessage(err));
         },
       },
     );
@@ -180,7 +209,7 @@ const MaterialContainerList: React.FC = () => {
 
       <PrinterMediaChangeDialog
         isOpen={pendingConfirm !== null}
-        isPending={printLabels.isPending}
+        isPending={printLabels.isPending || reprintLabel.isPending}
         onConfirm={() => pendingConfirm?.()}
         onCancel={() => setPendingConfirm(null)}
       />
@@ -249,6 +278,16 @@ const MaterialContainerList: React.FC = () => {
         </div>
       </div>
 
+      {reprintError && (
+        <div
+          role="alert"
+          className="flex-shrink-0 mb-3 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400"
+        >
+          <AlertCircle className="h-4 w-4" />
+          <span>{reprintError}</span>
+        </div>
+      )}
+
       <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col min-h-0">
         <div className="flex-1 overflow-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
@@ -261,6 +300,7 @@ const MaterialContainerList: React.FC = () => {
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Množství</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Vytvořeno</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Kdo</th>
+                <th scope="col" className="px-6 py-3"></th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
@@ -273,6 +313,20 @@ const MaterialContainerList: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">{formatAmount(container.amount, container.unit)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">{formatDate(container.createdAt)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">{container.createdBy}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                    {container.status !== "Discarded" && (
+                      <button
+                        type="button"
+                        title="Dotisk"
+                        aria-label={`Dotisknout štítek ${container.code}`}
+                        disabled={reprintLabel.isPending && reprintingCode === container.code}
+                        onClick={() => runReprint(container.code!, false)}
+                        className="p-1 rounded text-gray-500 hover:text-indigo-600 hover:bg-gray-100 dark:text-graphite-muted dark:hover:text-indigo-400 dark:hover:bg-white/5 disabled:opacity-50"
+                      >
+                        <Printer className="h-4 w-4" />
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
