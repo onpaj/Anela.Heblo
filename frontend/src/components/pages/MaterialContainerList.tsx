@@ -332,13 +332,14 @@ const MaterialContainerList: React.FC = () => {
                     {container.status !== "Discarded" && (
                       <button
                         type="button"
-                        title="Dotisk"
+                        title={`Vytisknout štítek ${container.code}`}
                         aria-label={`Dotisknout štítek ${container.code}`}
                         disabled={isAnyPrintPending}
                         onClick={() => runReprint(container.code!, false)}
-                        className="p-1 rounded text-gray-500 hover:text-indigo-600 hover:bg-gray-100 dark:text-graphite-muted dark:hover:text-indigo-400 dark:hover:bg-white/5 disabled:opacity-50"
+                        className="inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-white px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900/50 dark:bg-transparent dark:text-indigo-400 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Printer className="h-4 w-4" />
+                        <span>Vytisknout</span>
                       </button>
                     )}
                   </td>
