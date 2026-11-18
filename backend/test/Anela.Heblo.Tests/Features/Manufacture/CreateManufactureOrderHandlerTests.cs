@@ -700,4 +700,37 @@ public class CreateManufactureOrderHandlerTests
         response.OrderNumber.Should().StartWith("MO-2026-");
         response.OrderNumber.Should().Be(capturedOrder!.OrderNumber);
     }
+    [Fact]
+    public async Task Handle_ComputesLotAndExpirationFromPlannedDate_NotCreationTime()
+    {
+        // Created 2026-06-08 (FixedNow), planned for 2026-11-02, 12 months shelf life.
+        var request = CreateValidRequest();
+        request.PlannedDate = new DateOnly(2026, 11, 2);
+        ManufactureOrder? capturedOrder = null;
+
+        _catalogRepositoryMock
+            .Setup(x => x.GetByIdAsync(ValidProductCode, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateValidCatalogItem());
+        _repositoryMock
+            .Setup(x => x.GenerateOrderNumberAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(GeneratedOrderNumber);
+        _repositoryMock
+            .Setup(x => x.AddOrderAsync(It.IsAny<ManufactureOrder>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((ManufactureOrder order, CancellationToken _) =>
+            {
+                capturedOrder = order;
+                return order;
+            });
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        capturedOrder.Should().NotBeNull();
+        capturedOrder!.SemiProduct!.LotNumber.Should().Be("4526");
+        capturedOrder.SemiProduct.ExpirationDate.Should().Be(new DateOnly(2027, 12, 31));
+        capturedOrder.Products.Should().NotBeEmpty().And.AllSatisfy(p =>
+        {
+            p.LotNumber.Should().Be("4526");
+            p.ExpirationDate.Should().Be(new DateOnly(2027, 12, 31));
+        });
+    }
 }

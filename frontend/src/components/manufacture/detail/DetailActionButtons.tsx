@@ -20,6 +20,8 @@ interface DetailActionButtonsProps {
   onBatchCalculator?: () => void;
   onPrintProtocol?: () => void;
   onPrintLotLabels?: () => void;
+  /** True while an unsaved planned-date change will recompute lot/expiration on save. */
+  isPrintLotLabelsBlocked?: boolean;
   isUpdateLoading: boolean;
   isDuplicateLoading: boolean;
   isPrintingProtocol?: boolean;
@@ -34,6 +36,7 @@ export const DetailActionButtons: React.FC<DetailActionButtonsProps> = ({
   onBatchCalculator,
   onPrintProtocol,
   onPrintLotLabels,
+  isPrintLotLabelsBlocked = false,
   isUpdateLoading,
   isDuplicateLoading,
   isPrintingProtocol,
@@ -91,8 +94,13 @@ export const DetailActionButtons: React.FC<DetailActionButtonsProps> = ({
           {order && order.semiProduct && onPrintLotLabels && (
             <button
               onClick={onPrintLotLabels}
-              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
-              title="Tisk štítků šarže s přednastavenými hodnotami"
+              disabled={isPrintLotLabelsBlocked}
+              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              title={
+                isPrintLotLabelsBlocked
+                  ? "Změna data přepočítá šarži a expiraci – nejprve uložte"
+                  : "Tisk štítků šarže s přednastavenými hodnotami"
+              }
             >
               <Tag className="h-4 w-4 mr-1" />
               Tisk štítků
