@@ -1,6 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import { MemoryRouter, useNavigate, NavigateFunction } from 'react-router-dom';
 import ManufactureInventoryList from '../ManufactureInventoryList';
 
 jest.mock('../../../api/hooks/useManufactureInventory', () => ({
@@ -33,6 +33,20 @@ const HAS_EXPIRATION_ARG = 9;
 const renderAt = (url: string) =>
   render(
     <MemoryRouter initialEntries={[url]}>
+      <ManufactureInventoryList />
+    </MemoryRouter>,
+  );
+
+let navigateTo: NavigateFunction;
+const NavigateCapture: React.FC = () => {
+  navigateTo = useNavigate();
+  return null;
+};
+
+const renderWithNavigation = (url: string) =>
+  render(
+    <MemoryRouter initialEntries={[url]}>
+      <NavigateCapture />
       <ManufactureInventoryList />
     </MemoryRouter>,
   );
@@ -82,6 +96,18 @@ describe('ManufactureInventoryList material kind filter', () => {
     renderAt('/manufacturing/inventory?hasExpiration=false');
 
     fireEvent.click(screen.getByRole('button', { name: 'Vymazat' }));
+
+    expect(lastHasExpirationArg()).toBeUndefined();
+    expect(screen.getByLabelText('Druh materiálu')).toHaveValue('');
+  });
+
+  it('drops the drill-down filter when navigating to the page without the param while mounted', () => {
+    renderWithNavigation('/manufacturing/inventory?type=Material&hasExpiration=false');
+    expect(lastHasExpirationArg()).toBe(false);
+
+    act(() => {
+      navigateTo('/manufacturing/inventory');
+    });
 
     expect(lastHasExpirationArg()).toBeUndefined();
     expect(screen.getByLabelText('Druh materiálu')).toHaveValue('');

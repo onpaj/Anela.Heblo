@@ -239,11 +239,9 @@ const ManufactureInventoryList: React.FC = () => {
     if (sortDescParam !== null) {
       setSortDescending(sortDescParam === "true");
     }
-    // Seed the material kind from the URL (e.g. from the material inventory dashboard tiles)
-    const hasExpirationParam = parseHasExpiration(searchParams.get("hasExpiration"));
-    if (hasExpirationParam !== "") {
-      setHasExpirationFilter(hasExpirationParam);
-    }
+    // Mirror the material kind from the URL (e.g. from the material inventory dashboard tiles).
+    // Also clears it when the URL drops the param, since the page stays mounted across navigation.
+    setHasExpirationFilter(parseHasExpiration(searchParams.get("hasExpiration")));
   }, [searchParams]);
 
   // Modal handlers
