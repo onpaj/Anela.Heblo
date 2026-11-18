@@ -21,6 +21,6 @@ public class MaterialWithExpirationInventorySummaryTile : InventorySummaryTileBa
 
     protected override object GenerateDrillDownFilters()
     {
-        return new { type = "Material" };
+        return new { type = "Material", hasExpiration = true };
     }
 }

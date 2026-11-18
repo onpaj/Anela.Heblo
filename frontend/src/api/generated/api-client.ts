@@ -1856,7 +1856,7 @@ export class ApiClient {
         return Promise.resolve<SetCarrierCoolingResponse>(null as any);
     }
 
-    catalog_GetCatalogList(productTypes: ProductType[] | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined, searchTerm: string | null | undefined, expirationFrom: string | null | undefined, expirationTo: string | null | undefined): Promise<GetCatalogListResponse> {
+    catalog_GetCatalogList(productTypes: ProductType[] | null | undefined, pageNumber: number | undefined, pageSize: number | undefined, sortBy: string | null | undefined, sortDescending: boolean | undefined, productName: string | null | undefined, productCode: string | null | undefined, searchTerm: string | null | undefined, expirationFrom: string | null | undefined, expirationTo: string | null | undefined, isNd: boolean | null | undefined, hasExpiration: boolean | null | undefined): Promise<GetCatalogListResponse> {
         let url_ = this.baseUrl + "/api/Catalog?";
         if (productTypes !== undefined && productTypes !== null)
             productTypes && productTypes.forEach(item => { url_ += "ProductTypes=" + encodeURIComponent("" + item) + "&"; });
@@ -1884,6 +1884,10 @@ export class ApiClient {
             url_ += "ExpirationFrom=" + encodeURIComponent("" + expirationFrom) + "&";
         if (expirationTo !== undefined && expirationTo !== null)
             url_ += "ExpirationTo=" + encodeURIComponent("" + expirationTo) + "&";
+        if (isNd !== undefined && isNd !== null)
+            url_ += "IsNd=" + encodeURIComponent("" + isNd) + "&";
+        if (hasExpiration !== undefined && hasExpiration !== null)
+            url_ += "HasExpiration=" + encodeURIComponent("" + hasExpiration) + "&";
         url_ = url_.replace(/[?&]$/, "");
 
         let options_: RequestInit = {

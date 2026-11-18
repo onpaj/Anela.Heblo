@@ -107,6 +107,12 @@ BackgroundRefresh tasks. "Today"/"yesterday" are **UTC** dates unless stated.
   (materials with `HasExpiration`), `materialwithoutexpirationinventorysummary` (materials
   without — packaging and labels): count by days since `LastStockTaking`:
   `recent` < 180, `medium` 180–365, `old` > 365, `never` = no stock-taking; `total` = all.
+  The two material tiles drill down to `/manufacturing/inventory?type=Material&hasExpiration=true|false`.
+  The page passes this as the `HasExpiration` filter on `GET /api/Catalog`, so the list matches what the tile counts.
+  Before this fix, both tiles listed every material.
+  `LastStockTaking` comes only from Heblo's `StockTakingRecords`. An inventory done directly in Flexi does not show up
+  unless it is backfilled by hand. Flexi inventory 277 (labels, 2026-08-03) was backfilled on 2026-11-18;
+  its rows have `User = 'Flexi inventura 277 (I-00075/2026)'`.
 - `materialexpirationsummary` — materials with `HasExpiration` bucketed by
   `MinimalExpiration` (earliest in-stock lot): `expired` < today, `within30` today…+30 days,
   `within90` +31…+90 days, `ok` beyond 90. Materials without an in-stock expiring lot are
