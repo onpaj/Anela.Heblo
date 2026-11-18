@@ -767,6 +767,23 @@ The catalog e-shop data comes from CSV **pattern 46** (`StockClient:Url`), read 
 
 Sequential ≈4 req/s is safe; parallel ≥4 connections hits 429. The token is shared with packing/expedition. A full products sweep (1 list + ~206 details, or + 12 flag calls + 1 supplies call) at ≤4 req/s takes ≈ 60–70 s. Details in §3.14.
 
+### 4.10 Recreating a deleted product from the test store (done live 2026-11-11, BAL0002M)
+
+Used to restore BAL0002M on production after an accidental delete. The test store (780175) is a clone of production, so **category, product, brand and filter codes/GUIDs are shared** — related-product and category GUIDs from the test copy were valid on prod as-is. Filter **value** codes mostly match, but some were removed on prod (`problem: na-suche-rty`); check them against prod `GET /api/products/filtering-parameters` before sending.
+
+Order of calls:
+
+1. `GET /api/products/code/{code}?include=images,allCategories,filteringParameters,flags,descriptiveParameters,surchargeParameters,relatedProducts,alternativeProducts,gifts,relatedFiles,relatedVideos,perPricelistPrices` on the test store.
+2. `POST /api/products` → `201`, response `data.product` (not `data`). Sending the old `indexName` gives back the **same URL** as the deleted product.
+   - A single-variant product **rejects `variants[].visible`** (`422 It is not possible to set "visible" for non-variant product`); use product-level `visibility`.
+   - `variants[].stocksLocations[].amount` must have **3 decimals** (`"0.000"`); `"0"` is a 422.
+   - `vatRate` is not in the create schema; the e-shop default (21 %) was applied.
+   - No purchase price in the create schema — set it afterwards via `PATCH /api/pricelists/1` `{"data":[{"code":"…","price":{"buyPrice":"…"}}]}` (default price list only).
+3. `PUT /api/products/{guid}/relatedProducts` `{"data":{"relatedProducts":[{"guid":…}]}}` (sync, 200; replaces the list).
+4. Images: `POST /api/products/{guid}/images/shop` with `sourceUrl = https://780175.myshoptet.com/user/shop/orig/{seoName}` (public, no auth). Needs the temporary `job:finished` webhook (see *Product images API*); the job completed in 0.2 s. Images get new names on prod; the variant photo was set to the new main image automatically.
+
+Not recoverable this way: reviews (`voteCount`), order/sales history, and the product's old GUID (a new one is issued).
+
 ---
 
 ## 6. ShoptetPay API
