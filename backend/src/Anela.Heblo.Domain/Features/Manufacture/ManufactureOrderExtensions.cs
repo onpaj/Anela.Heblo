@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Anela.Heblo.Domain.Features.Manufacture;
 
 public static class ManufactureOrderExtensions
@@ -102,19 +104,11 @@ public static class ManufactureOrderExtensions
 
     public static string GetDefaultLot(DateOnly manufactureDate)
     {
-        // Calculate lot number in wwyy format (ISO week + 2-digit year)
-        var year = (manufactureDate.Year % 100).ToString("D2");
-        var week = GetWeekNumber(manufactureDate.ToDateTime(TimeOnly.MinValue)).ToString("D2");
+        // Lot number in wwyy format: ISO week + 2-digit ISO week-year, so the days around New Year
+        // that belong to the neighbouring year's week get that year (2027-01-01 → week 53 of 2026).
+        var date = manufactureDate.ToDateTime(TimeOnly.MinValue);
+        var week = ISOWeek.GetWeekOfYear(date).ToString("D2");
+        var year = (ISOWeek.GetYear(date) % 100).ToString("D2");
         return $"{week}{year}";
-    }
-
-    private static int GetWeekNumber(DateTime date)
-    {
-        var d = new DateTime(date.Year, date.Month, date.Day, 0, 0, 0, DateTimeKind.Utc);
-        var dayNum = (int)d.DayOfWeek;
-        if (dayNum == 0) dayNum = 7; // Sunday should be 7, not 0
-        d = d.AddDays(4 - dayNum);
-        var yearStart = new DateTime(d.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        return (int)Math.Ceiling(((d - yearStart).TotalDays + 1) / 7);
     }
 }

@@ -241,4 +241,25 @@ describe("ManufactureOrderDetail - lot number and expiration", () => {
     fireEvent.change(expirationInput, { target: { value: "2026-12" } });
     expect(expirationInput.value).toBe("2026-12");
   });
+
+  it.each([ManufactureOrderState.Draft, ManufactureOrderState.Planned])(
+    "blocks lot-label printing in %s while a planned-date change is unsaved",
+    async (state) => {
+      renderWithOrder(makeOrder(state));
+      await waitForForm();
+      const printButton = () => screen.getByRole("button", { name: /Tisk štítků/ });
+      await waitFor(() => expect(printButton()).toBeEnabled());
+
+      fireEvent.change(screen.getByDisplayValue("2024-01-15"), { target: { value: "2024-09-16" } });
+
+      expect(printButton()).toBeDisabled();
+    },
+  );
+
+  it("keeps lot-label printing enabled after the order has left Planned", async () => {
+    renderWithOrder(makeOrder(ManufactureOrderState.SemiProductManufactured));
+    await waitForForm();
+
+    expect(screen.getByRole("button", { name: /Tisk štítků/ })).toBeEnabled();
+  });
 });

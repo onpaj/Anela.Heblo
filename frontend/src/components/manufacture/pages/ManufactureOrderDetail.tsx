@@ -146,6 +146,16 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
   };
 
 
+  const toDateInputValue = (value: Date | string | undefined): string =>
+    value ? new Date(value).toISOString().split('T')[0] : "";
+
+  // An unsaved planned-date change in Draft/Planned makes the backend recompute lot + expiration on
+  // save, so the lot/expiration currently in the form are stale and must not be printed on labels.
+  const isPlannedDateChangePending =
+    !!order &&
+    (order.state === ManufactureOrderState.Draft || order.state === ManufactureOrderState.Planned) &&
+    editablePlannedDate !== toDateInputValue(order.plannedDate);
+
   const shouldTruncateText = (text: string): boolean => text.length > 100;
   const truncateText = (text: string): string => text.length <= 100 ? text : text.substring(0, 97) + '...';
 
@@ -250,8 +260,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
 
       setEditableResponsiblePerson(order.responsiblePerson || "");
 
-      const plannedDateFromServer = order.plannedDate ? new Date(order.plannedDate).toISOString().split('T')[0] : "";
-      setEditablePlannedDate(plannedDateFromServer);
+      setEditablePlannedDate(toDateInputValue(order.plannedDate));
 
       const semiProductQuantity = fieldsCanBeEdited
         ? order.semiProduct?.plannedQuantity?.toString() || ""
@@ -259,7 +268,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
       setEditableSemiProductQuantity(semiProductQuantity);
 
       // Lot and expiration are computed by the backend from the planned date (recomputed on save when
-      // the planned date changes). A hand-edited value is sent back as a manual override.
+      // the planned date changes). A value the user edits by hand is kept as a manual override.
       setEditableLotNumber(order.semiProduct?.lotNumber || "");
       setEditableExpirationDate(order.semiProduct?.expirationDate ? new Date(order.semiProduct.expirationDate).toISOString().split('T')[0] : "");
 
@@ -652,6 +661,7 @@ const ManufactureOrderDetail: React.FC<ManufactureOrderDetailProps> = ({
         onBatchCalculator={handleGoToBatchCalculator}
         onPrintProtocol={() => openProtocol(orderId)}
         onPrintLotLabels={() => setShowLotLabelModal(true)}
+        isPrintLotLabelsBlocked={isPlannedDateChangePending}
         isUpdateLoading={updateOrderMutation.isPending}
         isDuplicateLoading={duplicateOrderMutation.isPending}
         isPrintingProtocol={isProtocolLoading}

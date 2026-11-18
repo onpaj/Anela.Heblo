@@ -107,8 +107,8 @@ States (`ManufactureOrderState`): Draft(1) → Planned(2) → SemiProductManufac
   (confirm products) → Completed; back arrow one step (Completed → SemiProductManufactured).
   Single-phase Planned → (confirm products) → Completed, back arrow Completed → Planned.
   Cancel (Stornovat) is offered in every state except Completed and Cancelled.
-- **Default lot** = ISO week + 2-digit year of the **planned** (manufacture) date (`wwyy`, e.g.
-  planned 2026-11-02 → `4526`).
+- **Default lot** = ISO week + 2-digit ISO week-year of the **planned** (manufacture) date (`wwyy`,
+  e.g. planned 2026-11-02 → `4526`; planned 2027-01-01 → `5326`, week 53 of 2026).
 - **Default expiration** = last day of the month `ExpirationMonths + 1` months after the **planned**
   month, computed from the 1st of the month so no day is clamped (planned 2026-11-02 + 24 →
   2028-12-31; planned 2026-10-30 + 30 → 2029-05-31).
@@ -117,9 +117,12 @@ States (`ManufactureOrderState`): Draft(1) → Planned(2) → SemiProductManufac
   date — edit (`PUT`) or calendar drag (`PATCH …/schedule`) — recomputes both on the semi-product
   and every product row **while the order is Draft or Planned**; from SemiProductManufactured on
   they are frozen. The UI does no calculation; it re-reads the values after save.
-- **Manual override**: a `PUT` that sends a lot/expiration with the planned date unchanged stores
-  it as-is and copies it to the product rows. If the same `PUT` also changes the planned date, the
-  recompute wins and the sent lot/expiration are ignored — re-enter the override in a second save.
+- **Manual override**: a `PUT` lot/expiration is stored as-is and copied to the product rows. When
+  the same `PUT` also changes the planned date, each sent value that **differs from the stored one**
+  (a hand edit) is kept; a value echoed back unchanged is recomputed. The calendar drag (`PATCH
+  …/schedule`) carries no lot/expiration, so it always replaces an earlier manual override in
+  Draft/Planned. The UI blocks lot-label printing while a planned-date change is unsaved, because
+  the form's lot/expiration are stale until the backend recomputes them.
 - **Schedule**: refused for Cancelled/Completed orders and for dates before today.
 - **Manual action required** is set by the confirmation workflows when Flexi posting or a BoM
   update failed; the dashboard tile counts these orders and drills to the filtered list.

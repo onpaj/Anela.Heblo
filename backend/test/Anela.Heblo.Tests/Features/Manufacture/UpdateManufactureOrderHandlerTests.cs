@@ -480,18 +480,43 @@ public class UpdateManufactureOrderHandlerTests
     }
 
     [Fact]
-    public async Task Handle_PlannedDateChangedTogetherWithManualLot_RecomputeWins()
+    public async Task Handle_PlannedDateChangedTogetherWithManualLotAndExpiration_KeepsManualValues()
     {
         var existingOrder = CreateOrderWithStoredLot(ManufactureOrderState.Planned);
         ManufactureOrder? updatedOrder = null;
         SetupRepository(existingOrder, o => updatedOrder = o);
 
-        var request = CreateLotRequest(NewPlannedDate, "9999", new DateOnly(2030, 1, 31));
+        var manualExpiration = new DateOnly(2030, 1, 31);
+        var request = CreateLotRequest(NewPlannedDate, "9999", manualExpiration);
 
         await _handler.Handle(request, CancellationToken.None);
 
-        updatedOrder!.SemiProduct!.LotNumber.Should().Be(NewLot);
+        updatedOrder!.PlannedDate.Should().Be(NewPlannedDate);
+        updatedOrder.SemiProduct!.LotNumber.Should().Be("9999");
+        updatedOrder.SemiProduct.ExpirationDate.Should().Be(manualExpiration);
+        updatedOrder.Products.Should().AllSatisfy(p =>
+        {
+            p.LotNumber.Should().Be("9999");
+            p.ExpirationDate.Should().Be(manualExpiration);
+        });
+    }
+
+    [Fact]
+    public async Task Handle_PlannedDateChangedWithManualLotOnly_KeepsLotAndRecomputesExpiration()
+    {
+        var existingOrder = CreateOrderWithStoredLot(ManufactureOrderState.Draft);
+        ManufactureOrder? updatedOrder = null;
+        SetupRepository(existingOrder, o => updatedOrder = o);
+
+        // Lot edited by hand, expiration echoed back unchanged from the server.
+        var request = CreateLotRequest(NewPlannedDate, "9999", StoredExpiration);
+
+        await _handler.Handle(request, CancellationToken.None);
+
+        updatedOrder!.SemiProduct!.LotNumber.Should().Be("9999");
         updatedOrder.SemiProduct.ExpirationDate.Should().Be(NewExpiration);
+        updatedOrder.Products.Single().LotNumber.Should().Be("9999");
+        updatedOrder.Products.Single().ExpirationDate.Should().Be(NewExpiration);
     }
 
     [Theory]

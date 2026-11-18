@@ -12,7 +12,7 @@ public class ManufactureOrderExtensionsTests
     [InlineData(2024, 1, 1, "0124")] // Monday, week 1 — tests week zero-padding
     [InlineData(2024, 6, 3, "2324")] // Monday, week 23 — mid-year
     [InlineData(2023, 12, 31, "5223")] // Sunday, week 52 — year-end boundary
-    [InlineData(2024, 12, 30, "0124")] // Monday, ISO week 1 of next year but calendar year stays 2024
+    [InlineData(2024, 12, 30, "0125")] // Monday, ISO week 1 of 2025 — ISO week-year, not calendar year
     [InlineData(2024, 1, 7, "0124")] // Sunday, still week 1 (same Thursday as Jan 4)
     public void GetDefaultLot_ReturnsExpectedWwYyString(
         int year, int month, int day, string expected)
@@ -63,7 +63,7 @@ public class ManufactureOrderExtensionsTests
 
     [Theory]
     [InlineData(2026, 11, 2, "4526")]
-    [InlineData(2027, 1, 1, "5327")] // ISO week 53 of 2026, calendar year 2027
+    [InlineData(2027, 1, 1, "5326")] // ISO week 53 of 2026 — ISO week-year, not calendar year 2027
     public void GetDefaultLot_FromPlannedDate_ReturnsIsoWeekAndTwoDigitYear(
         int year, int month, int day, string expected)
     {
