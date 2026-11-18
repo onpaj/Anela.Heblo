@@ -396,7 +396,9 @@ describe('useInventory - Complex Sorting Logic', () => {
         undefined, // productCode
         undefined, // searchTerm
         undefined, // expirationFrom
-        undefined // expirationTo
+        undefined, // expirationTo
+        undefined, // isNd
+        undefined // hasExpiration
       );
 
       const items = result.current.data?.items || [];
