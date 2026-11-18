@@ -33,4 +33,10 @@ public class GetCatalogListRequest : IRequest<GetCatalogListResponse>
     /// ND ("Nesmí dojít") flag filter. true = only ND products, false = only non-ND, null = no filtering.
     /// </summary>
     public bool? IsNd { get; set; }
+
+    /// <summary>
+    /// Expiration-tracking filter. true = only items with expiration (raw materials),
+    /// false = only items without (packaging and labels), null = no filtering.
+    /// </summary>
+    public bool? HasExpiration { get; set; }
 }

@@ -50,7 +50,9 @@ const fetchInventoryList = async (
         params.productCode || undefined,
         undefined, // searchTerm
         undefined, // expirationFrom
-        undefined // expirationTo
+        undefined, // expirationTo
+        undefined, // isNd
+        undefined // hasExpiration
       );
 
       if (result.items) {
@@ -136,7 +138,9 @@ const fetchInventoryList = async (
       params.productCode || undefined,
       undefined, // searchTerm
       undefined, // expirationFrom
-      undefined // expirationTo
+      undefined, // expirationTo
+      undefined, // isNd
+      undefined // hasExpiration
     );
 
     return {

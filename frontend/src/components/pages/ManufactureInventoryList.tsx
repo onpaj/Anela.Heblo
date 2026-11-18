@@ -57,6 +57,14 @@ const toIsoDate = (date: Date): string => {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 };
 
+type HasExpirationFilter = "" | "true" | "false";
+
+const parseHasExpiration = (value: string | null): HasExpirationFilter =>
+  value === "true" || value === "false" ? value : "";
+
+const toHasExpiration = (value: HasExpirationFilter): boolean | undefined =>
+  value === "" ? undefined : value === "true";
+
 const ManufactureInventoryList: React.FC = () => {
   useScreenView('Manufacturing', 'ManufactureInventory');
 
@@ -68,6 +76,13 @@ const ManufactureInventoryList: React.FC = () => {
   // Start with Material as the default type for manufacture inventory
   const [productTypeFilter, setProductTypeFilter] = useState<ProductType | "">(
     ProductType.Material,
+  );
+
+  // Material kind filter mirrors the `hasExpiration` URL param:
+  // "true" = raw materials (with expiration), "false" = packaging and labels, "" = all
+  const [searchParams] = useSearchParams();
+  const [hasExpirationFilter, setHasExpirationFilter] = useState<HasExpirationFilter>(() =>
+    parseHasExpiration(searchParams.get("hasExpiration")),
   );
 
   // Expiration range filter - ISO "yyyy-MM-dd" strings (as produced by <input type="date">)
@@ -84,8 +99,6 @@ const ManufactureInventoryList: React.FC = () => {
   const [sortBy, setSortBy] = useState<string>("lastInventoryDays");
   const [sortDescending, setSortDescending] = useState(true);
 
-  // Read initial sort from URL (e.g. when navigating from the material expiration dashboard tile)
-  const [searchParams] = useSearchParams();
 
   // Modal states
   const [selectedItem, setSelectedItem] = useState<CatalogItemDto | null>(null);
@@ -109,6 +122,7 @@ const ManufactureInventoryList: React.FC = () => {
     sortDescending,
     expirationFromFilter,
     expirationToFilter,
+    toHasExpiration(hasExpirationFilter),
   );
 
   // Items are already filtered by the manufacture inventory hook
@@ -142,6 +156,7 @@ const ManufactureInventoryList: React.FC = () => {
     setProductNameFilter("");
     setProductCodeFilter("");
     setProductTypeFilter(ProductType.Material);
+    setHasExpirationFilter("");
     setExpirationFromInput("");
     setExpirationToInput("");
     setExpirationFromFilter("");
@@ -212,7 +227,7 @@ const ManufactureInventoryList: React.FC = () => {
   // Reset pagination when type filter changes
   React.useEffect(() => {
     setPageNumber(1);
-  }, [productTypeFilter]);
+  }, [productTypeFilter, hasExpirationFilter]);
 
   // Seed sort state from URL query params (e.g. from the expiration dashboard tile)
   React.useEffect(() => {
@@ -223,6 +238,11 @@ const ManufactureInventoryList: React.FC = () => {
     }
     if (sortDescParam !== null) {
       setSortDescending(sortDescParam === "true");
+    }
+    // Seed the material kind from the URL (e.g. from the material inventory dashboard tiles)
+    const hasExpirationParam = parseHasExpiration(searchParams.get("hasExpiration"));
+    if (hasExpirationParam !== "") {
+      setHasExpirationFilter(hasExpirationParam);
     }
   }, [searchParams]);
 
@@ -381,6 +401,22 @@ const ManufactureInventoryList: React.FC = () => {
                     {productTypeLabels[productType]}
                   </option>
                 ))}
+              </select>
+            </div>
+
+            <div className="flex-1 max-w-xs">
+              <select
+                id="materialKind"
+                aria-label="Druh materiálu"
+                value={hasExpirationFilter}
+                onChange={(e) =>
+                  setHasExpirationFilter(e.target.value as HasExpirationFilter)
+                }
+                className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 dark:border-graphite-border dark:bg-graphite-surface-2 dark:text-graphite-text focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+              >
+                <option value="">Všechny materiály</option>
+                <option value="true">Suroviny (s expirací)</option>
+                <option value="false">Obaly a etikety (bez expirace)</option>
               </select>
             </div>
           </div>

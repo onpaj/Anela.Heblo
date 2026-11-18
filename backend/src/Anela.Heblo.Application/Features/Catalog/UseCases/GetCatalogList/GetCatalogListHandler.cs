@@ -62,6 +62,12 @@ public class GetCatalogListHandler : IRequestHandler<GetCatalogListRequest, GetC
             filter = filter.And(x => x.Properties.IsNd == isNd);
         }
 
+        if (request.HasExpiration.HasValue)
+        {
+            var hasExpiration = request.HasExpiration.Value;
+            filter = filter.And(x => x.HasExpiration == hasExpiration);
+        }
+
         // Filter by nearest lot expiration range. When set, only items that actually have
         // an expiration (available lots with an expiration date) are returned.
         if (TryParseExpirationBound(request.ExpirationFrom, out var expirationFrom))
