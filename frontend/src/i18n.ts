@@ -282,7 +282,6 @@ const resources = {
         LotHasEans: "Šarži nelze smazat, protože obsahuje materiálové kontejnery.",
         MaterialContainerCodeExists: "Kód materiálového kontejneru již existuje.",
         UnknownMaterialContainerCode: "Neznámý štítek – nejprve jej vygenerujte v aplikaci.",
-        MaterialContainerDiscarded: "Kontejner je vyřazený – štítek nelze dotisknout.",
         MaterialContainerCodeInvalidFormat: "Neplatný formát kódu materiálového kontejneru.",
 
         // Article Generation errors

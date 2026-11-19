@@ -16275,7 +16275,6 @@ export enum ErrorCodes {
     MaterialContainerCodeExists = "MaterialContainerCodeExists",
     MaterialContainerCodeInvalidFormat = "MaterialContainerCodeInvalidFormat",
     UnknownMaterialContainerCode = "UnknownMaterialContainerCode",
-    MaterialContainerDiscarded = "MaterialContainerDiscarded",
     WeatherForecastUnavailable = "WeatherForecastUnavailable",
     ShipmentLabelsNoShipmentFound = "ShipmentLabelsNoShipmentFound",
     ShipmentLabelsNotGenerated = "ShipmentLabelsNotGenerated",

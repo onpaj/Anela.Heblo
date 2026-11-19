@@ -104,7 +104,7 @@ public class ReprintMaterialContainerLabelHandlerTests
     }
 
     [Fact]
-    public async Task Handle_DiscardedContainer_ReturnsMaterialContainerDiscarded_AndDoesNotPrint()
+    public async Task Handle_DiscardedContainer_Prints()
     {
         var container = Assigned();
         container.Discard("admin");
@@ -112,9 +112,8 @@ public class ReprintMaterialContainerLabelHandlerTests
 
         var result = await CreateSut().Handle(new ReprintMaterialContainerLabelRequest { Code = Code }, CancellationToken.None);
 
-        result.Success.Should().BeFalse();
-        result.ErrorCode.Should().Be(ErrorCodes.MaterialContainerDiscarded);
-        VerifyNotPrinted();
+        result.Success.Should().BeTrue();
+        _label.Verify(l => l.PrintZplAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

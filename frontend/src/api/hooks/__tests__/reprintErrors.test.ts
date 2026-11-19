@@ -5,16 +5,6 @@ const swaggerError = (body: string, status = 400) =>
   new SwaggerException('error', status, body, {}, null);
 
 describe('resolveReprintErrorMessage', () => {
-  test('returns discarded message for MaterialContainerDiscarded', () => {
-    const error = swaggerError(
-      JSON.stringify({ success: false, errorCode: 'MaterialContainerDiscarded' }),
-    );
-
-    expect(resolveReprintErrorMessage(error)).toBe(
-      'Kontejner je vyřazený – štítek nelze dotisknout.',
-    );
-  });
-
   test('returns unknown-code message for UnknownMaterialContainerCode', () => {
     const error = swaggerError(
       JSON.stringify({ success: false, errorCode: 'UnknownMaterialContainerCode' }),

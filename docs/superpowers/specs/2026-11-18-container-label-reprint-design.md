@@ -21,7 +21,7 @@ Container labels (Code128 + human-readable code, 50×20 mm, `MaterialContainerLa
 ## Design
 - **Backend:** `ReprintMaterialContainerLabel` use case (`POST /api/material-containers/{code}/reprint`, body `{ mediaChangeConfirmed }`), `Feature.Manufacture_MaterialContainers` Write.
   - Unknown code → `UnknownMaterialContainerCode` (existing error code).
-  - Discarded container → refused with a new error code (my call: a discarded container shouldn't get a fresh label). New ErrorCode needs the ErrorHandlingTests range bucket + Czech i18n entry.
+  - Discarded containers reprint too (user asked for every row to have the button; 2026-11-19).
   - Media-type check identical to the existing print: returns `RequiresMediaChangeConfirmation = true` when the printer last printed a different media type and the request isn't confirmed; records the print on success.
 - **List page:** row button → reprint mutation; reuses the existing `PrinterMediaChangeDialog` flow.
 - **Terminal:** route `/terminal/reprint-label`, scan via `useScanScreen`; success flashes ok + code, error flashes err with message. On media-change response, a bottom sheet asks to change the roll; on confirm only the pending code is reprinted confirmed. Confirmation is never remembered across scans — the shared printer's roll can be swapped by someone else between scans, and the backend records the media type after each print anyway.

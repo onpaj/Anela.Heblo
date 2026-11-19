@@ -208,7 +208,7 @@ describe("MaterialContainerList", () => {
         new SwaggerException(
           "err",
           409,
-          JSON.stringify({ errorCode: "MaterialContainerDiscarded" }),
+          JSON.stringify({ errorCode: "UnknownMaterialContainerCode" }),
           {},
           null,
         ),
@@ -217,18 +217,18 @@ describe("MaterialContainerList", () => {
     render(<MaterialContainerList />, { wrapper: createWrapper });
     fireEvent.click(screen.getByLabelText("Dotisknout štítek M00001234"));
     expect(
-      screen.getByText("Kontejner je vyřazený – štítek nelze dotisknout."),
+      screen.getByText("Neznámý štítek – nejprve jej vygenerujte v aplikaci."),
     ).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("Tisk štítků"));
     fireEvent.click(screen.getByText("Vytisknout 10"));
 
     expect(
-      screen.queryByText("Kontejner je vyřazený – štítek nelze dotisknout."),
+      screen.queryByText("Neznámý štítek – nejprve jej vygenerujte v aplikaci."),
     ).not.toBeInTheDocument();
   });
 
-  it("hides reprint button for Discarded rows", () => {
+  it("shows reprint button for Discarded rows too", () => {
     mockUseList.mockReturnValue({
       data: {
         ...sampleResponse,
@@ -240,8 +240,8 @@ describe("MaterialContainerList", () => {
     });
     render(<MaterialContainerList />, { wrapper: createWrapper });
     expect(
-      screen.queryByLabelText("Dotisknout štítek M00001234"),
-    ).not.toBeInTheDocument();
+      screen.getByLabelText("Dotisknout štítek M00001234"),
+    ).toBeInTheDocument();
   });
 
   it("opens media-change dialog when response requires confirmation and resends confirmed", () => {
@@ -270,7 +270,7 @@ describe("MaterialContainerList", () => {
         new SwaggerException(
           "err",
           409,
-          JSON.stringify({ errorCode: "MaterialContainerDiscarded" }),
+          JSON.stringify({ errorCode: "UnknownMaterialContainerCode" }),
           {},
           null,
         ),
@@ -279,7 +279,7 @@ describe("MaterialContainerList", () => {
     render(<MaterialContainerList />, { wrapper: createWrapper });
     fireEvent.click(screen.getByLabelText("Dotisknout štítek M00001234"));
     expect(
-      screen.getByText("Kontejner je vyřazený – štítek nelze dotisknout."),
+      screen.getByText("Neznámý štítek – nejprve jej vygenerujte v aplikaci."),
     ).toBeInTheDocument();
   });
 
@@ -323,7 +323,7 @@ describe("MaterialContainerList", () => {
           new SwaggerException(
             "err",
             409,
-            JSON.stringify({ errorCode: "MaterialContainerDiscarded" }),
+            JSON.stringify({ errorCode: "UnknownMaterialContainerCode" }),
             {},
             null,
           ),
@@ -339,7 +339,7 @@ describe("MaterialContainerList", () => {
       screen.queryByTestId("printer-media-change-dialog"),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByText("Kontejner je vyřazený – štítek nelze dotisknout."),
+      screen.getByText("Neznámý štítek – nejprve jej vygenerujte v aplikaci."),
     ).toBeInTheDocument();
   });
 

@@ -52,12 +52,11 @@ User actions only; no job. States of a container (`MaterialContainerStatus`):
    material (`GET /api/material-containers/last-used-lot`).
 3. **Reprint label** — `POST /api/material-containers/{code}/reprint` with
    `{ mediaChangeConfirmed }` (Write on Manufacture_MaterialContainers). The code is trimmed;
-   unknown → `UnknownMaterialContainerCode` (2809); Discarded → `MaterialContainerDiscarded`
-   (2810, HTTP 409). Both Unassigned and Assigned containers reprint. The same media-change
+   unknown → `UnknownMaterialContainerCode` (2809). Every status (Unassigned, Assigned,
+   Discarded) reprints. The same media-change
    guard applies (`LabelMediaType.MaterialContainer`). Prints the same ZPL as
    `MaterialContainerLabelZplBuilder` and records the media state only after a successful print.
-   Creates or changes no container rows. The list shows a per-row "Dotisk" button (hidden for
-   Discarded); the terminal screen reprints on every scan, ignores scans while printing or while
+   Creates or changes no container rows. The list shows a per-row "Vytisknout" button on every row; the terminal screen reprints on every scan, ignores scans while printing or while
    the roll-change sheet is open, and sends `mediaChangeConfirmed` only on the retry that follows
    the sheet — the confirmation is never remembered across scans (the shared roll may be swapped).
 4. **Discard** — `POST /api/material-containers/{id}/discard`.

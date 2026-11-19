@@ -44,13 +44,6 @@ public class ReprintMaterialContainerLabelHandler
                 new Dictionary<string, string> { { "Code", code } });
         }
 
-        if (container.Status == MaterialContainerStatus.Discarded)
-        {
-            return new ReprintMaterialContainerLabelResponse(
-                ErrorCodes.MaterialContainerDiscarded,
-                new Dictionary<string, string> { { "Code", code } });
-        }
-
         var mediaState = await _mediaStateRepository.GetAsync(cancellationToken);
         if (mediaState.RequiresConfirmation(LabelMediaType.MaterialContainer) && !request.MediaChangeConfirmed)
         {

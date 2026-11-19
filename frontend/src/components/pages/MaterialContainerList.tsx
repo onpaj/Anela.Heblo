@@ -329,19 +329,17 @@ const MaterialContainerList: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">{formatDate(container.createdAt)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">{container.createdBy}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                    {container.status !== "Discarded" && (
-                      <button
-                        type="button"
-                        title={`Vytisknout štítek ${container.code}`}
-                        aria-label={`Dotisknout štítek ${container.code}`}
-                        disabled={isAnyPrintPending}
-                        onClick={() => runReprint(container.code!, false)}
-                        className="inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-white px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900/50 dark:bg-transparent dark:text-indigo-400 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Printer className="h-4 w-4" />
-                        <span>Vytisknout</span>
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      title={`Vytisknout štítek ${container.code}`}
+                      aria-label={`Dotisknout štítek ${container.code}`}
+                      disabled={isAnyPrintPending}
+                      onClick={() => runReprint(container.code!, false)}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-white px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900/50 dark:bg-transparent dark:text-indigo-400 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Printer className="h-4 w-4" />
+                      <span>Vytisknout</span>
+                    </button>
                   </td>
                 </tr>
               ))}
