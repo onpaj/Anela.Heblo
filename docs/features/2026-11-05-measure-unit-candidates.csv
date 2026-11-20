@@ -1,0 +1,229 @@
+﻿group;product;variant_code;parameter_or_name_value;volume_source;packaging_amount;packaging_unit;packaging_unit_id;measure_amount;measure_unit_id;price_per_100;status;price_czk;weight_kg;notes;applied_2026_11_05;measure_price_after
+A;Arganový olej BIO;JOL001030;30 ml;parameter;30;ml;-10;100;-10;863.33;visible;259.00;0.082;;yes;863.33
+A;Arganový olej BIO;JOL001100;100 ml;parameter;100;ml;-10;100;-10;479.0;visible;479.00;0.190;;yes;479.00
+A;Bezstarostná krása;SER001005;4,9 ml;parameter;4.9;ml;-10;100;-10;4061.22;visible;199.00;0.036;;yes;4061.22
+A;Bezstarostná krása;SER001030;30 ml;parameter;30;ml;-10;100;-10;3300.0;visible;990.00;0.096;;yes;3300.00
+A;Bezstarostná krása;SER001100;100 ml;parameter;100;ml;-10;100;-10;2190.0;visible;2190.00;0.100;;yes;2190.00
+A;Bezstarostná teenka;SER002005;4,9 ml;parameter;4.9;ml;-10;100;-10;4061.22;visible;199.00;0.029;;yes;4061.22
+A;Bezstarostná teenka;SER002030;30 ml;parameter;30;ml;-10;100;-10;3300.0;visible;990.00;0.080;;yes;3300.00
+A;Bezstarostná teenka;SER002100;100 ml;parameter;100;ml;-10;100;-10;2190.0;visible;2190.00;0.188;;yes;2190.00
+A;Bezstarostný motýl;SER003005;4,9 ml;parameter;4.9;ml;-10;100;-10;4061.22;visible;199.00;0.032;;yes;4061.22
+A;Bezstarostný motýl;SER003030;30 ml;parameter;30;ml;-10;100;-10;3300.0;visible;990.00;0.081;;yes;3300.00
+A;Bezstarostný motýl;SER003100;100 ml;parameter;100;ml;-10;100;-10;2190.0;visible;2190.00;0.192;;yes;2190.00
+A;Bubla bublá;OCH010030;30 ml;parameter;30;ml;-10;100;-10;330.0;visible;99.00;0.850;;no;
+A;Bubla bublá;OCH010250;250 ml;parameter;250;ml;-10;100;-10;199.6;visible;499.00;0.290;;yes;199.60
+A;Bubla bublá;OCH010500;500 ml;parameter;500;ml;-10;100;-10;199.8;visible;999.00;0.807;;yes;199.80
+A;Bubla bublá;OCH0101000;1000 ml;parameter;1000;ml;-10;100;-10;179.0;visible;1790.00;1.726;;yes;179.00
+A;Bílá noční teenka;KRE001005;4,9 ml;parameter;4.9;ml;-10;100;-10;3653.06;visible;179.00;0.035;;yes;3653.06
+A;Bílá noční teenka;KRE001015;15 ml;parameter;15;ml;-10;100;-10;2060.0;visible;309.00;0.072;;yes;2060.00
+A;Bílá noční teenka;KRE001030;30 ml;parameter;30;ml;-10;100;-10;1330.0;visible;399.00;0.109;;yes;1330.00
+A;Bílá noční teenka;KRE001050;50 ml;parameter;50;ml;-10;100;-10;1198.0;visible;599.00;0.160;;yes;1198.00
+A;Chladicí vložka;DOP016200;200 g;parameter;200;g;-7;100;-7;10.0;hidden;20.00;0.200;;no;
+A;Chladicí vložka;DOP016400;400 g;parameter;400;g;-7;100;-7;12.5;hidden;50.00;0.400;;no;
+A;Double shot s Krásou;SA015005V;4,9 + 4,9 ml;parameter;4.9;ml;-10;100;-10;7306.12;visible;358.00;0.200;;no;
+A;Double shot s Krásou;SA015030V;30 + 30 ml;parameter;30;ml;-10;100;-10;5933.33;visible;1780.00;0.200;;no;
+A;Double shot s Krásou;SA015100V;100 + 100 ml;parameter;100;ml;-10;100;-10;4120.0;visible;4120.00;0.200;;no;
+A;Double shot s Motýlem;SA014005V;4,9 + 4,9 ml;parameter;4.9;ml;-10;100;-10;7306.12;visible;358.00;0.100;;no;
+A;Double shot s Motýlem;SA014030V;30 + 30 ml;parameter;30;ml;-10;100;-10;5933.33;visible;1780.00;0.100;;no;
+A;Double shot s Motýlem;SA014100V;100 + 100 ml;parameter;100;ml;-10;100;-10;4120.0;visible;4120.00;0.100;;no;
+A;Double shot s Teenkou;SA016005V;4,9 + 4,9 ml;parameter;4.9;ml;-10;100;-10;7306.12;visible;358.00;0.200;;no;
+A;Double shot s Teenkou;SA016030V;30 + 30 ml;parameter;30;ml;-10;100;-10;5933.33;visible;1780.00;0.200;;no;
+A;Double shot s Teenkou;SA016100V;100 + 100 ml;parameter;100;ml;-10;100;-10;4120.0;visible;4120.00;0.200;;no;
+A;Důvěrný pan Jasmín;DEO001005;4,9 ml;parameter;4.9;ml;-10;100;-10;2632.65;visible;129.00;0.035;;yes;2632.65
+A;Důvěrný pan Jasmín;DEO001030;30 ml;parameter;30;ml;-10;100;-10;796.67;visible;239.00;0.111;;yes;796.67
+A;Důvěrný pan Jasmín;DEO001050;50 ml;parameter;50;ml;-10;100;-10;678.0;visible;339.00;0.163;;yes;678.00
+A;Důvěrný pan Levandule;DEO002005;4,9 ml;parameter;4.9;ml;-10;100;-10;2632.65;visible;129.00;0.035;;yes;2632.65
+A;Důvěrný pan Levandule;DEO002030;30 ml;parameter;30;ml;-10;100;-10;796.67;visible;239.00;0.110;;yes;796.67
+A;Důvěrný pan Levandule;DEO002050;50 ml;parameter;50;ml;-10;100;-10;678.0;visible;339.00;0.165;;yes;678.00
+A;Důvěrný pan Mandarinka;DEO003005;4,9 ml;parameter;4.9;ml;-10;100;-10;2632.65;visible;129.00;0.035;;yes;2632.65
+A;Důvěrný pan Mandarinka;DEO003030;30 ml;parameter;30;ml;-10;100;-10;796.67;visible;239.00;0.108;;yes;796.67
+A;Důvěrný pan Mandarinka;DEO003050;50 ml;parameter;50;ml;-10;100;-10;678.0;visible;339.00;0.164;;yes;678.00
+A;Důvěrný pan Nenápadný;DEO004005;4,9 ml;parameter;4.9;ml;-10;100;-10;2632.65;visible;129.00;0.035;;yes;2632.65
+A;Důvěrný pan Nenápadný;DEO004030;30 ml;parameter;30;ml;-10;100;-10;796.67;visible;239.00;0.113;;yes;796.67
+A;Důvěrný pan Nenápadný;DEO004050;50 ml;parameter;50;ml;-10;100;-10;678.0;visible;339.00;0.167;;yes;678.00
+A;Důvěrný pan Růže;DEO007005;4,9 ml;parameter;4.9;ml;-10;100;-10;2632.65;visible;129.00;0.036;;yes;2632.65
+A;Důvěrný pan Růže;DEO007030;30 ml;parameter;30;ml;-10;100;-10;796.67;visible;239.00;0.109;;yes;796.67
+A;Důvěrný pan Růže;DEO007050;50 ml;parameter;50;ml;-10;100;-10;678.0;visible;339.00;0.161;;yes;678.00
+A;Důvěrný pan Santal;DEO005005;4,9 ml;parameter;4.9;ml;-10;100;-10;2632.65;visible;129.00;0.035;;yes;2632.65
+A;Důvěrný pan Santal;DEO005030;30 ml;parameter;30;ml;-10;100;-10;796.67;visible;239.00;0.108;;yes;796.67
+A;Důvěrný pan Santal;DEO005050;50 ml;parameter;50;ml;-10;100;-10;678.0;visible;339.00;0.160;;yes;678.00
+A;Důvěrný pan Ylang;DEO006005;4,9 ml;parameter;4.9;ml;-10;100;-10;2632.65;visible;129.00;0.036;;yes;2632.65
+A;Důvěrný pan Ylang;DEO006030;30 ml;parameter;30;ml;-10;100;-10;796.67;visible;239.00;0.108;;yes;796.67
+A;Důvěrný pan Ylang;DEO006050;50 ml;parameter;50;ml;-10;100;-10;678.0;visible;339.00;0.161;;yes;678.00
+A;Hedvábný pan Jasmín;MAS001015;15 ml;parameter;15;ml;-10;100;-10;860.0;visible;129.00;0.061;;yes;860.00
+A;Hedvábný pan Jasmín;MAS001180;180 ml;parameter;180;ml;-10;100;-10;238.33;visible;429.00;0.236;;yes;238.33
+A;Hedvábný pan Jasmín;MAS001500;500 ml;parameter;500;ml;-10;100;-10;210.0;visible;1050.00;0.635;;yes;210.00
+A;Hedvábný pan Levandule;MAS002015;15 ml;parameter;15;ml;-10;100;-10;860.0;visible;129.00;0.065;;yes;860.00
+A;Hedvábný pan Levandule;MAS002180;180 ml;parameter;180;ml;-10;100;-10;238.33;visible;429.00;0.232;;yes;238.33
+A;Hedvábný pan Levandule;MAS002500;500 ml;parameter;500;ml;-10;100;-10;210.0;visible;1050.00;0.674;;yes;210.00
+A;Hedvábný pan Mandarinka;MAS003015;15 ml;parameter;15;ml;-10;100;-10;860.0;visible;129.00;0.065;;yes;860.00
+A;Hedvábný pan Mandarinka;MAS003180;180 ml;parameter;180;ml;-10;100;-10;238.33;visible;429.00;0.239;;yes;238.33
+A;Hedvábný pan Mandarinka;MAS003500;450 ml;parameter;450;ml;-10;100;-10;211.11;visible;950.00;0.464;;yes;211.11
+A;Hedvábný pan Růže;MAS004015;15 ml;parameter;15;ml;-10;100;-10;860.0;visible;129.00;0.061;;yes;860.00
+A;Hedvábný pan Růže;MAS004180;180 ml;parameter;180;ml;-10;100;-10;238.33;visible;429.00;0.240;;yes;238.33
+A;Hedvábný pan Růže;MAS004500;500 ml;parameter;500;ml;-10;100;-10;210.0;visible;1050.00;0.662;;yes;210.00
+A;Hedvábný pan Ylang;MAS005015;15 ml;parameter;15;ml;-10;100;-10;860.0;visible;129.00;0.065;;yes;860.00
+A;Hedvábný pan Ylang;MAS005180;180 ml;parameter;180;ml;-10;100;-10;238.33;visible;429.00;0.242;;yes;238.33
+A;Hedvábný pan Ylang;MAS005500;500 ml;parameter;500;ml;-10;100;-10;210.0;visible;1050.00;0.664;;yes;210.00
+A;HladíMe;ZEN001030;30 ml;parameter;30;ml;-10;100;-10;1163.33;visible;349.00;0.080;;yes;1163.33
+A;HladíMe;ZEN001100;100 ml;parameter;100;ml;-10;100;-10;699.0;visible;699.00;0.191;;yes;699.00
+A;HladíMe;ZEN001250;250 ml;parameter;250;ml;-10;100;-10;559.6;visible;1399.00;0.365;;yes;559.60
+A;HladíMe;ZEN001500;500 ml kabinentí balení;parameter;500;ml;-10;100;-10;;hidden;;0.600;;no;
+A;Klidné nožky;MAS009015;15 ml;parameter;15;ml;-10;100;-10;1060.0;visible;159.00;0.064;;yes;1060.00
+A;Klidné nožky;MAS009050;50 ml;parameter;50;ml;-10;100;-10;678.0;visible;339.00;0.132;;yes;678.00
+A;Klidné nožky;MAS009180;180 ml;parameter;180;ml;-10;100;-10;332.78;visible;599.00;0.270;;yes;332.78
+A;Klidné nožky;MAS009500;450 ml;parameter;450;ml;-10;100;-10;308.89;visible;1390.00;0.586;;yes;308.89
+A;Klidné nožky 50 ml 1+1 ZDARMA;MAS009X50;50 ml;parameter;50;ml;-10;100;-10;540.0;hidden;270.00;0.100;;no;
+A;Klidný dech;OCH009005;4,9 ml;parameter;4.9;ml;-10;100;-10;3040.82;visible;149.00;0.034;;yes;3040.82
+A;Klidný dech;OCH009015;15 ml;parameter;15;ml;-10;100;-10;1660.0;visible;249.00;0.069;;yes;1660.00
+A;Klidný dech;OCH009030;30 ml;parameter;30;ml;-10;100;-10;1196.67;visible;359.00;0.102;;yes;1196.67
+A;Klidný dech;OCH009050;50 ml;parameter;50;ml;-10;100;-10;998.0;visible;499.00;0.152;;yes;998.00
+A;KoupeMe;ZEN002030;30 ml;parameter;30;ml;-10;100;-10;796.67;visible;239.00;0.082;;yes;796.67
+A;KoupeMe;ZEN002250;250 ml;parameter;250;ml;-10;100;-10;479.6;visible;1199.00;0.375;;yes;479.60
+A;Kávová drbna;PEE001180;180 ml;parameter;180;ml;-10;100;-10;299.44;visible;539.00;0.359;;yes;299.44
+A;Kávová drbna;PEE001500;450 ml;parameter;450;ml;-10;100;-10;264.44;visible;1190.00;0.815;;yes;264.44
+A;Lesa pán;SEZ001030;30 ml;parameter;30;ml;-10;100;-10;530.0;visible;159.00;0.084;;yes;530.00
+A;Lesa pán;SEZ001100;100 ml;parameter;100;ml;-10;100;-10;379.0;visible;379.00;0.196;;yes;379.00
+A;Lesa pán;SEZ001500;500 ml náhradní náplň;parameter;500;ml;-10;100;-10;271.8;visible;1359.00;0.756;;yes;271.80
+A;Lesa pán;SEZ0011000;1000 ml náhradní náplň;parameter;1000;ml;-10;100;-10;214.9;visible;2149.00;1.632;;yes;214.90
+A;Malá moringová víla;KRE005005;4,9 ml;parameter;4.9;ml;-10;100;-10;3244.9;visible;159.00;0.034;;yes;3244.90
+A;Malá moringová víla;KRE005015;15 ml;parameter;15;ml;-10;100;-10;2126.67;visible;319.00;0.070;;yes;2126.67
+A;Malá moringová víla;KRE005030;30 ml;parameter;30;ml;-10;100;-10;1463.33;visible;439.00;0.103;;yes;1463.33
+A;Malá moringová víla;KRE005050;50 ml;parameter;50;ml;-10;100;-10;1298.0;visible;649.00;0.153;;yes;1298.00
+A;Malá čarodějka;KRE002005;4,9 ml;parameter;4.9;ml;-10;100;-10;3244.9;visible;159.00;0.034;;yes;3244.90
+A;Malá čarodějka;KRE002015;15 ml;parameter;15;ml;-10;100;-10;1793.33;visible;269.00;0.069;;yes;1793.33
+A;Malá čarodějka;KRE002030;30 ml;parameter;30;ml;-10;100;-10;1296.67;visible;389.00;0.102;;yes;1296.67
+A;Malá čarodějka;KRE002050;50 ml;parameter;50;ml;-10;100;-10;998.0;visible;499.00;0.150;;yes;998.00
+A;Mandlový olej BIO;JOL002010;100 ml;parameter;100;ml;-10;100;-10;269.0;visible;269.00;0.192;;yes;269.00
+A;Mandlový olej BIO;JOL002500;500 ml;parameter;500;ml;-10;100;-10;178.0;visible;890.00;0.731;;yes;178.00
+A;Mandlový olej BIO;JOL002100;1000 ml;parameter;1000;ml;-10;100;-10;149.0;visible;1490.00;1.568;;yes;149.00
+A;Meruňkový olej BIO;JOL003030;30 ml;parameter;30;ml;-10;100;-10;630.0;visible;189.00;0.083;;yes;630.00
+A;Meruňkový olej BIO;JOL003100;100 ml;parameter;100;ml;-10;100;-10;299.0;visible;299.00;0.193;;yes;299.00
+A;Modré z nebe;TON002030;30 ml;parameter;30;ml;-10;100;-10;796.67;visible;239.00;0.083;;yes;796.67
+A;Modré z nebe;TON002100;100 ml;parameter;100;ml;-10;100;-10;549.0;visible;549.00;0.202;;yes;549.00
+A;Moje Hebké;PMA005005;4,9 ml;parameter;4.9;ml;-10;100;-10;5897.96;visible;289.00;0.034;;yes;5897.96
+A;Moje Hebké;PMA005015;15 ml;parameter;15;ml;-10;100;-10;4600.0;visible;690.00;0.071;;yes;4600.00
+A;Moje Moringová;PMA002005;4,9 ml;parameter;4.9;ml;-10;100;-10;5081.63;visible;249.00;0.035;;yes;5081.63
+A;Moje Moringová;PMA002015;15 ml;parameter;15;ml;-10;100;-10;3926.67;visible;589.00;0.069;;yes;3926.67
+A;Moje Moringová;PMA002030;30 ml;parameter;30;ml;-10;100;-10;3300.0;visible;990.00;0.105;;yes;3300.00
+A;Moje Moringová;PMA002050;50 ml;parameter;50;ml;-10;100;-10;2980.0;hidden;1490.00;0.156;;no;
+A;Moje Ovesná;PMA003005;4,9 ml;parameter;4.9;ml;-10;100;-10;5081.63;visible;249.00;0.034;;yes;5081.63
+A;Moje Ovesná;PMA003015;15 ml;parameter;15;ml;-10;100;-10;3926.67;visible;589.00;0.075;;yes;3926.67
+A;Moje Ovesná;PMA003030;30 ml;parameter;30;ml;-10;100;-10;3300.0;visible;990.00;0.112;;yes;3300.00
+A;Moje Ovesná;PMA003050;50 ml;parameter;50;ml;-10;100;-10;2980.0;hidden;1490.00;0.161;;no;
+A;Moje Z nebe;PMA004005;4,9 ml;parameter;4.9;ml;-10;100;-10;5081.63;visible;249.00;0.035;;yes;5081.63
+A;Moje Z nebe;PMA004015;15 ml;parameter;15;ml;-10;100;-10;3926.67;visible;589.00;0.070;;yes;3926.67
+A;Moje Z nebe;PMA004030;30 ml;parameter;30;ml;-10;100;-10;3300.0;visible;990.00;0.107;;yes;3300.00
+A;Moje Z nebe;PMA004050;50 ml;parameter;50;ml;-10;100;-10;2980.0;hidden;1490.00;0.162;;no;
+A;Moje Čokoládová;PMA001005;4,9 ml;parameter;4.9;ml;-10;100;-10;5081.63;visible;249.00;0.034;;yes;5081.63
+A;Moje Čokoládová;PMA001015;15 ml;parameter;15;ml;-10;100;-10;3926.67;visible;589.00;0.075;;yes;3926.67
+A;Moje Čokoládová;PMA001030;30 ml;parameter;30;ml;-10;100;-10;3300.0;visible;990.00;0.106;;yes;3300.00
+A;Moje Čokoládová;PMA001050;50 ml;parameter;50;ml;-10;100;-10;2980.0;hidden;1490.00;0.153;;no;
+A;Moringový olej BIO;JOL004005;4,9 ml;parameter;4.9;ml;-10;100;-10;2020.41;visible;99.00;0.028;;yes;2020.41
+A;Moringový olej BIO;JOL004030;30 ml;parameter;30;ml;-10;100;-10;1063.33;visible;319.00;0.081;;yes;1063.33
+A;Moringový olej BIO;JOL004100;100 ml;parameter;100;ml;-10;100;-10;690.0;visible;690.00;0.189;;yes;690.00
+A;Mátová drbna;PEE004180;180 ml;parameter;180;ml;-10;100;-10;299.44;visible;539.00;0.387;;yes;299.44
+A;Mátová drbna;PEE004500;450 ml;parameter;450;ml;-10;100;-10;264.44;visible;1190.00;0.890;;yes;264.44
+A;Měsíční koupel;ZEN004030;30 ml;parameter;30;ml;-10;100;-10;730.0;visible;219.00;0.079;;yes;730.00
+A;Měsíční koupel;ZEN004250;250 ml;parameter;250;ml;-10;100;-10;399.6;visible;999.00;0.371;;yes;399.60
+A;Měsíční pohlazení;ZEN003030;30 ml;parameter;30;ml;-10;100;-10;1163.33;visible;349.00;0.080;;yes;1163.33
+A;Měsíční pohlazení;ZEN003100;100 ml;parameter;100;ml;-10;100;-10;699.0;visible;699.00;0.187;;yes;699.00
+A;Měsíční pohlazení;ZEN003250;250 ml;parameter;250;ml;-10;100;-10;559.6;visible;1399.00;0.372;;yes;559.60
+A;Měsíční pohlazení;ZEN003500;500 ml kabinentí balení;parameter;500;ml;-10;100;-10;;hidden;;0.000;;no;
+A;Něžná paní Ovesná;MAS008015;15 ml;parameter;15;ml;-10;100;-10;1060.0;visible;159.00;0.057;;yes;1060.00
+A;Něžná paní Ovesná;MAS008050;50 ml;parameter;50;ml;-10;100;-10;698.0;visible;349.00;0.116;;yes;698.00
+A;Něžná paní Ovesná;MAS008180;180 ml;parameter;180;ml;-10;100;-10;377.22;visible;679.00;0.232;;yes;377.22
+A;Něžná paní Ovesná;MAS008500;500 ml;parameter;500;ml;-10;100;-10;330.0;visible;1650.00;0.637;;yes;330.00
+A;Něžná paní Ovesná 2. jakost - zklidňující šlehané máslo bez ořechů pro citlivou pokožku;MAS2-008050;50 ml;parameter;50;ml;-10;100;-10;434.0;hidden;217.00;0.129;;no;
+A;Něžná paní Ovesná 2. jakost - zklidňující šlehané máslo bez ořechů pro citlivou pokožku;MAS2-008180;180 ml;parameter;180;ml;-10;100;-10;229.44;hidden;413.00;0.276;;no;
+A;Něžná paní Ovesná 2. jakost - zklidňující šlehané máslo bez ořechů pro citlivou pokožku;MAS2-008500;500 ml;parameter;500;ml;-10;100;-10;180.6;hidden;903.00;0.686;;no;
+A;Něžný pan Moringa;MAS007015;15 ml;parameter;15;ml;-10;100;-10;993.33;visible;149.00;0.059;;yes;993.33
+A;Něžný pan Moringa;MAS007050;50 ml;parameter;50;ml;-10;100;-10;658.0;visible;329.00;0.118;;yes;658.00
+A;Něžný pan Moringa;MAS007180;180 ml;parameter;180;ml;-10;100;-10;343.89;visible;619.00;0.250;;yes;343.89
+A;Něžný pan Moringa;MAS007500;500 ml;parameter;500;ml;-10;100;-10;310.0;visible;1550.00;0.667;;yes;310.00
+A;Něžný pan Oves;MAS006015;15 ml;parameter;15;ml;-10;100;-10;926.67;visible;139.00;0.061;;yes;926.67
+A;Něžný pan Oves;MAS006050;50 ml;parameter;50;ml;-10;100;-10;578.0;visible;289.00;0.120;;yes;578.00
+A;Něžný pan Oves;MAS006180;180 ml;parameter;180;ml;-10;100;-10;305.0;visible;549.00;0.250;;yes;305.00
+A;Něžný pan Oves;MAS006500;500 ml;parameter;500;ml;-10;100;-10;278.0;visible;1390.00;0.657;;yes;278.00
+A;Ochráním bradavky;OCH006005;4,9 ml;parameter;4.9;ml;-10;100;-10;2224.49;visible;109.00;0.034;;yes;2224.49
+A;Ochráním bradavky;OCH006015;15 ml;parameter;15;ml;-10;100;-10;1593.33;visible;239.00;0.070;;yes;1593.33
+A;Ochráním bradavky;OCH006030;30 ml;parameter;30;ml;-10;100;-10;1130.0;visible;339.00;0.104;;yes;1130.00
+A;Ochráním bříška;OCH003100;100 ml;parameter;100;ml;-10;100;-10;429.0;visible;429.00;0.191;;yes;429.00
+A;Ochráním bříška;OCH003250;250 ml;parameter;250;ml;-10;100;-10;355.6;visible;889.00;0.366;;yes;355.60
+A;Ochráním bříška;OCH003500;500 ml;parameter;500;ml;-10;100;-10;378.0;visible;1890.00;0.000;;yes;378.00
+A;Ochráním chodidla;PEE002015;15 ml;parameter;15;ml;-10;100;-10;860.0;visible;129.00;0.060;;yes;860.00
+A;Ochráním chodidla;PEE002050;50 ml;parameter;50;ml;-10;100;-10;538.0;visible;269.00;0.115;;yes;538.00
+A;Ochráním chodidla;PEE002180;180 ml;parameter;180;ml;-10;100;-10;266.11;visible;479.00;0.226;;yes;266.11
+A;Ochráním chodidla;PEE002500;500 ml;parameter;500;ml;-10;100;-10;238.0;visible;1190.00;0.618;;yes;238.00
+A;Ochráním tváře;OCH004015;15 ml;parameter;15;ml;-10;100;-10;1060.0;visible;159.00;0.057;;yes;1060.00
+A;Ochráním tváře;OCH004050;50 ml;parameter;50;ml;-10;100;-10;718.0;visible;359.00;0.114;;yes;718.00
+A;Ochráním zadečky;OCH001005;4,9 ml;parameter;4.9;ml;-10;100;-10;2632.65;visible;129.00;0.035;;yes;2632.65
+A;Ochráním zadečky;OCH001030;30 ml;parameter;30;ml;-10;100;-10;730.0;visible;219.00;0.106;;yes;730.00
+A;Ochráním zadečky;OCH001050;50 ml;parameter;50;ml;-10;100;-10;598.0;visible;299.00;0.158;;yes;598.00
+A;Ochráním zadečky;OCH001180;180 ml;parameter;180;ml;-10;100;-10;332.78;visible;599.00;0.352;;yes;332.78
+A;Ochráním zadečky;OCH001500;500 ml;parameter;500;ml;-10;100;-10;298.0;visible;1490.00;0.990;;yes;298.00
+A;Odlíčím;ODL001020;30 ml;parameter;30;ml;-10;100;-10;663.33;visible;199.00;0.082;;yes;663.33
+A;Odlíčím;ODL001100;100 ml;parameter;100;ml;-10;100;-10;389.0;visible;389.00;0.194;;yes;389.00
+A;Očistím ruce - gel;DEZ001030;30 ml;parameter;30;ml;-10;100;-10;333.33;visible;100.00;0.084;;yes;333.33
+A;Očistím ruce - gel;DEZ001100;100 ml;parameter;100;ml;-10;100;-10;190.0;visible;190.00;1.878;weight 1.878 kg looks too high;no;
+A;Očistím ruce - gel;DEZ001500;500 ml náhradní náplň;parameter;500;ml;-10;100;-10;150.0;hidden;750.00;0.699;;no;
+A;Očistím ruce - gel;DEZ0011000;1000 ml náhradní náplň;parameter;1000;ml;-10;100;-10;125.0;visible;1250.00;1.836;;yes;125.00
+A;Očistím ruce - sprej;DEZ002030;30 ml;parameter;30;ml;-10;100;-10;596.67;visible;179.00;0.078;;yes;596.67
+A;Očistím ruce - sprej;DEZ002100;100 ml;parameter;100;ml;-10;100;-10;349.0;visible;349.00;0.000;;yes;349.00
+A;Očistím ruce - sprej;DEZ002500;500 ml náhradní náplň;parameter;500;ml;-10;100;-10;178.0;visible;890.00;0.685;;yes;178.00
+A;Očistím ruce - sprej;DEZ0021000;1000 ml náhradní náplň;parameter;1000;ml;-10;100;-10;145.0;visible;1450.00;1.836;;yes;145.00
+A;Očistím tvář;ODL002030;30 ml;parameter;30;ml;-10;100;-10;663.33;visible;199.00;0.052;;yes;663.33
+A;Očistím tvář;ODL002100;100 ml;parameter;100;ml;-10;100;-10;389.0;visible;389.00;0.150;;yes;389.00
+A;Očistím tvář;ODL002500;500 ml náhradní náplň;parameter;500;ml;-10;100;-10;278.0;visible;1390.00;0.770;;yes;278.00
+A;Očistím tvář;ODL0021000;1000 ml náhradní náplň;parameter;1000;ml;-10;100;-10;219.0;visible;2190.00;1.690;;yes;219.00
+A;Pohladím miminka;OCH005030;30 ml;parameter;30;ml;-10;100;-10;530.0;hidden;159.00;0.190;;no;
+A;Pohladím miminka;OCH005100;100 ml;parameter;100;ml;-10;100;-10;299.0;visible;299.00;0.190;;yes;299.00
+A;Pohladím miminka;OCH005250;250 ml;parameter;250;ml;-10;100;-10;239.6;hidden;599.00;0.190;;no;
+A;Pozdravím slunce;SEZ002005;4,9 ml;parameter;4.9;ml;-10;100;-10;2836.73;visible;139.00;0.035;;yes;2836.73
+A;Pozdravím slunce;SEZ002050;50 ml;parameter;50;ml;-10;100;-10;678.0;visible;339.00;0.102;;yes;678.00
+A;Pozdravím slunce;SEZ002100;100 ml;parameter;100;ml;-10;100;-10;479.0;visible;479.00;0.160;;yes;479.00
+A;Půlnoční krása;KRE003005;4,9 ml;parameter;4.9;ml;-10;100;-10;7734.69;visible;379.00;0.034;;yes;7734.69
+A;Půlnoční krása;KRE003015;15 ml;parameter;15;ml;-10;100;-10;6600.0;visible;990.00;0.070;;yes;6600.00
+A;Půlnoční krása;KRE003030;30 ml;parameter;30;ml;-10;100;-10;5300.0;visible;1590.00;0.104;;yes;5300.00
+A;Půlnoční krása;KRE003050;50 ml;parameter;50;ml;-10;100;-10;4380.0;visible;2190.00;0.152;;yes;4380.00
+A;Půlnoční motýl;KRE007005;4,9 ml;parameter;4.9;ml;-10;100;-10;7734.69;visible;379.00;0.034;;yes;7734.69
+A;Půlnoční motýl;KRE007015;15 ml;parameter;15;ml;-10;100;-10;6600.0;visible;990.00;0.075;;yes;6600.00
+A;Půlnoční motýl;KRE007030;30 ml;parameter;30;ml;-10;100;-10;5300.0;visible;1590.00;0.104;;yes;5300.00
+A;Půlnoční motýl;KRE007050;50 ml;parameter;50;ml;-10;100;-10;4380.0;visible;2190.00;0.151;;yes;4380.00
+A;Půlnoční teenka;KRE006005;4,9 ml;parameter;4.9;ml;-10;100;-10;7734.69;visible;379.00;0.034;;yes;7734.69
+A;Půlnoční teenka;KRE006015;15 ml;parameter;15;ml;-10;100;-10;6600.0;visible;990.00;0.072;;yes;6600.00
+A;Půlnoční teenka;KRE006030;30 ml;parameter;30;ml;-10;100;-10;5300.0;visible;1590.00;0.102;;yes;5300.00
+A;Půlnoční teenka;KRE006050;50 ml;parameter;50;ml;-10;100;-10;4380.0;visible;2190.00;0.151;;yes;4380.00
+A;Růžové z nebe;SER004005;4,9 ml;parameter;4.9;ml;-10;100;-10;4061.22;visible;199.00;0.032;already has measure 100.000 ml;no;
+A;Růžové z nebe;SER004030;30 ml;parameter;30;ml;-10;100;-10;3300.0;visible;990.00;0.083;already has measure 100.000 ml;no;
+A;Růžové z nebe;SER004100;100 ml;parameter;100;ml;-10;100;-10;2390.0;visible;2390.00;0.196;already has measure 100.000 ml;no;
+A;Sladce bezstarostná;SER005005;4,9 ml;parameter;4.9;ml;-10;100;-10;4061.22;visible;199.00;0.031;;yes;4061.22
+A;Sladce bezstarostná;SER005030;30 ml;parameter;30;ml;-10;100;-10;3300.0;visible;990.00;0.077;;yes;3300.00
+A;Sladce bezstarostná;SER005100;100 ml;parameter;100;ml;-10;100;-10;2190.0;visible;2190.00;0.183;;yes;2190.00
+A;Sladký Double shot;SA017005V;4,9 + 4,9 ml;parameter;4.9;ml;-10;100;-10;7306.12;visible;358.00;0.200;;no;
+A;Sladký Double shot;SA017030V;30 + 30 ml;parameter;30;ml;-10;100;-10;5933.33;visible;1780.00;0.200;;no;
+A;Sladký Double shot;SA017100V;100 + 100 ml;parameter;100;ml;-10;100;-10;4120.0;visible;4120.00;0.200;;no;
+A;Svěží krása;TON003030S;30 ml;parameter;30;ml;-10;100;-10;796.67;visible;239.00;0.084;;yes;796.67
+A;Svěží krása;TON003100S;100 ml;parameter;100;ml;-10;100;-10;549.0;visible;549.00;0.200;;yes;549.00
+A;Svěží krása;TON003500;500 ml náhradní náplň;parameter;500;ml;-10;100;-10;;visible;;0.500;;no;
+A;Svěží motýl;TON004030S;30 ml;parameter;30;ml;-10;100;-10;796.67;visible;239.00;0.083;;yes;796.67
+A;Svěží motýl;TON004100S;100 ml;parameter;100;ml;-10;100;-10;549.0;visible;549.00;0.196;;yes;549.00
+A;Svěží teenka;TON001030S;30 ml;parameter;30;ml;-10;100;-10;796.67;visible;239.00;0.084;;yes;796.67
+A;Svěží teenka;TON001100S;100 ml;parameter;100;ml;-10;100;-10;549.0;visible;549.00;0.195;;yes;549.00
+A;TEST1;1300/30;30 ml;parameter;30;ml;-10;100;-10;;hidden;;0.000;;no;
+A;TEST1;1300/100;100 ml;parameter;100;ml;-10;100;-10;;hidden;;0.000;;no;
+A;TEST1;1300/250;250 ml;parameter;250;ml;-10;100;-10;;hidden;;0.000;;no;
+A;Umyju miminka;OCH007030;30 ml;parameter;30;ml;-10;100;-10;496.67;visible;149.00;0.079;;yes;496.67
+A;Umyju miminka;OCH007250;250 ml;parameter;250;ml;-10;100;-10;199.6;visible;499.00;0.374;;yes;199.60
+A;Umyju miminka;OCH007500;500 ml;parameter;500;ml;-10;100;-10;189.8;visible;949.00;0.705;;yes;189.80
+A;Umyju miminka;OCH0071000;1000 ml;parameter;1000;ml;-10;100;-10;179.9;visible;1799.00;1.570;;yes;179.90
+A;Umyju něžně;OCH008030;30 ml;parameter;30;ml;-10;100;-10;530.0;visible;159.00;0.080;;yes;530.00
+A;Umyju něžně;OCH008250;250 ml;parameter;250;ml;-10;100;-10;239.6;visible;599.00;0.370;;yes;239.60
+A;Umyju něžně;OCH008500;500 ml;parameter;500;ml;-10;100;-10;219.8;visible;1099.00;0.733;;yes;219.80
+A;Umyju něžně;OCH0081000;1000 ml;parameter;1000;ml;-10;100;-10;219.9;visible;2199.00;1.405;;yes;219.90
+A;Zorro ctitel;KRE004005;4,9 ml;parameter;4.9;ml;-10;100;-10;3244.9;visible;159.00;0.033;;yes;3244.90
+A;Zorro ctitel;KRE004015;15 ml;parameter;15;ml;-10;100;-10;2126.67;visible;319.00;0.069;;yes;2126.67
+A;Zorro ctitel;KRE004030;30 ml;parameter;30;ml;-10;100;-10;1463.33;visible;439.00;0.106;;yes;1463.33
+A;Zorro ctitel;KRE004050;50 ml;parameter;50;ml;-10;100;-10;1298.0;visible;649.00;0.153;;yes;1298.00
+A;Čokoládová drbna;PEE003180;180 ml;parameter;180;ml;-10;100;-10;299.44;visible;539.00;0.320;;yes;299.44
+A;Čokoládová drbna;PEE003500;500 ml;parameter;500;ml;-10;100;-10;238.0;visible;1190.00;0.861;;yes;238.00

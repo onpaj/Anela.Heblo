@@ -1,0 +1,140 @@
+# Výhodné sady launch — checklist (night Sun 2026-11-01 → Mon 2026-11-02)
+
+> **Shared working file.** Several sessions and people edit this file. Rules:
+> - Edit only the line you own (match by item ID, e.g. `P-3`). Do not renumber or reorder items.
+> - Change status by editing the checkbox: `[ ]` open, `[x]` done, `[~]` in progress, `[!]` blocked.
+> - Add new items at the **end** of their section with the next free ID.
+> - Record every status change and finding as one line in the **Log** at the bottom (newest last). Never rewrite old log lines.
+> - Do not put secrets or tokens in this file.
+
+Sources: Teams group chat (Ondřej, Bára Petrová, Eliška Stofferová), the Oct 29 meeting
+"Spuštění výhodných sad a aktualizace produktových fotografií v Shoptetu" (Plaud recording), and a read-only
+Shoptet API check on 2026-11-01. Eliška's Loop checklist was **not readable** — compare against it.
+
+People: **Ondra** = Ondřej Pajgrt, **Bára** = Bára Petrová, **Eliška** = Eliška Stofferová,
+**Bára K.** = Bára Kocmánková, **Anna** = Anna Císlerová (web graphics).
+
+## Verified facts (Shoptet API, production, 2026-11-01)
+
+- Top photo = image with `priority: 1` and `isMainImage: true`. Over all 64 in-scope products it was **not** always 30 ml
+  (30 ml ×26, 100 ml ×18, 180 ml ×13, 250 ml ×5, 15/50 ml ×1 each). The new top photo uses the **same size as the old one**
+  (best-seller size not checked against sales). Full table: `docs/features/2026-11-02-main-photo-dry-run.md`.
+- Photo #2 (drops / cup interior) = the only image whose `description` has **no size**. It stays (60 of 64 products have one).
+- Each variant has an `image` field naming the file of its photo. Variant code suffix = size (`...005` 5 ml, `...030` 30 ml, `...00T` tester).
+- 275 variants in the 64 products: 195 got their own new photo, 64 testers use the new top photo, **16 skipped** (no photo data, unchanged).
+- Writes work only with a registered `job:finished` webhook; uploads are by public URL. Details in `docs/integrations/shoptet-api.md` ("Product images API").
+- Run report: `docs/features/2026-11-02-photo-swap-report.md`.
+
+## 0. Decide / confirm first
+
+| ID | Status | Owner | Item |
+|---|---|---|---|
+| D-1 | [~] | Eliška / Speaker 4 | List of categories where photos are **not** changed (meeting named chocolates, gift packages, supplements). Speaker 4 was to write the full list. **Applied without it:** scope = the 64 products that have new files; untouched = 142 (sets / double shots 45, gift packages 44, accessories, soaps, vouchers 40, chocolates 6, tests 7). Confirm with Eliška that this matches her list. |
+| D-2 | [x] | Ondra + Eliška | Main-photo rule: top photo = best-selling size (30 ml in the sample). Decide how exceptions are found (full read-only scan of all 206 products + Heblo sales data). **Done (Ondra, 2026-11-01):** new top photo = same size as the current top photo, read from the live shop for all 64 products; best-seller size not checked against sales data. |
+| D-3 | [x] | Bára | Do the new no-size cup files (cup interior) replace the existing photo #2 or are they ignored? Her Nov 1 note says keep the original textures (drops, smears, cup views). **Answered (Bára, Teams, Nov 1 12:16):** keep the original texture photos (drops, smears, cup views) as they are. |
+| D-4 | [ ] | Eliška | Old sets' inside-cup photos: delete? (Bára asked Oct 29, no answer found.) |
+| D-5 | [ ] | Chat | Ondra's Nov 1 question: is anything required at midnight, or can photos / flags go up now? Bára said on Oct 29 that checking can happen in the morning, not at midnight. |
+| D-6 | [ ] | Ondra / Eliška | Eliška's Loop checklist ("soupis toho, co by mělo být v pondělí hotovo", Teams Oct 31 13:23) is still unread: the link points into her personal OneDrive and is not readable from here. Compare it with this file, or have her paste/export it. |
+
+## 1. Prices (Ondra, bulk)
+
+| ID | Status | Owner | Item |
+|---|---|---|---|
+| P-1 | [x] | Ondra | Take prices from Eliška's Excel on the Reklamace SharePoint site (Eliška, Oct 29: the new price was not in the shop yet). | **Done 2026-11-01:** source confirmed by Ondra = `Anela_MO_cenik_produktu_2026-10.xlsx` (SharePoint Reklamace › Velkoobchody › CENÍKY; sheets Produkty / Zvýhodněné sady / Dárkové balíčky).
+| P-2 | [x] | Ondra | Bulk-upload prices for all products and all sets. Bára: for sets only prices are missing, "zbytek je udělaný". | **Done 2026-11-01 via Heblo API** (`PUT /api/product-pricing/prices/{code}`, Shoptet then Flexi): 31 prices written, 0 failures, re-read confirms 251/251 workbook prices equal in Shoptet and Flexi. `MAS009500` and `MAS003500` deliberately skipped (Ondra: only sets matter; workbook has two rows for one code).
+
+## 2. Product photos (Ondra) — in-scope products only (cups and vials with new labels)
+
+| ID | Status | Owner | Item |
+|---|---|---|---|
+| F-1 | [x] | Ondra | Source: Marketing SharePoint → `Shared Documents/Grafika_interní/PROFI_FOCENI/PRODUKTOVÉ FOTO_web/2026_produktové_foto_nové_etikety/` → `Kelímky_web_hotové` and `Lahvičky_web_hotové`. Files named by product code in a folder named by the product prefix (`SER002/SER002005`). 213 photos. **Done:** all 195 files in the two folders used. |
+| F-2 | [x] | Ondra | Set the OneDrive folder to "Always keep on this device" so Claude can read it. **Not needed in the end:** the files were fetched through the SharePoint connector into a local staging folder. |
+| F-3 | [x] | Ondra | Per product: keep photo #2 (unsized drops / cup interior); delete the old bottle and cup photos; upload the new ones. **Done for 64 products** (191+3 uploads, old photos deleted except 14 still used by skipped variants). Backup of all old photos: `~/Work/backups/shoptet-photos-2026-11-01/`. |
+| F-4 | [x] | Ondra | Make photo #1 the best-selling size (catalog photo). |
+| F-5 | [x] | Ondra | Re-assign each variant's photo to its size (variant `image`). **Done:** 195 variants → own new photo, 64 testers → new top photo, 16 skipped (F-8). Verified live. |
+| F-6 | [x] | Ondra | Do **not** touch chocolates, gift packages, supplements (see D-1). **Held:** none of the 142 other products was touched. |
+| F-7 | [x] | Ondra | Spot-check several products on the live site. Only the pilot page (Bezstarostná teenka) was checked in a browser; the other 63 were verified through the API. | **Validated 2026-11-01** by the same report: 12 products compared (storefront vs API): main photo is the new label, each size shows its own photo, no broken images; skipped variants as expected (3 differ from the swap report because they were re-pointed later, see log).
+| F-8 | [ ] | Ondra / Eliška | 16 variants were **skipped** (no photo data) and still show the old-label photo; in 13 products the old top photo stays last in the gallery. Decide: leave, or point them to the new top photo and delete the 13 old photos (one `PATCH` per product). List: `docs/features/2026-11-02-photo-swap-report.md`. |
+| F-9 | [x] | Ondra | ~~`ZEZ002005.jpg` typo~~ — my misreading of the listing; the file is `SEZ002005.jpg` (Pozdravím slunce 5 ml). Photo applied afterwards; variant `SEZ002005` is no longer skipped. Nothing to ask Bára. |
+| F-10 | [ ] | Ondra | Revoke the temporary role "Storage Blob Data Contributor" on storage account `stheblo` (granted 2026-11-01 for the photo hosting; temporary container already deleted). |
+
+Meeting fallback: if the photo #2 cannot be preserved cleanly, delete all drops / interiors and re-upload them afterwards.
+Hiding instead of deleting is **not** possible in Shoptet (the eye icon is only a preview).
+
+## 3. Flags (Ondra, scriptable)
+
+| ID | Status | Owner | Item |
+|---|---|---|---|
+| G-1 | [x] | Ondra | Flag "V sadě výhodněji" (`v-sade-vyhodneji`) on every product that belongs to a set. Source: column "V sadě výhodněji" = `ano` in `Anela_vyhodneji_v_sade_2026-10.xlsx` (50 variants → 34 products, product-level, so all sizes show it). Set live 2026-11-01. Set membership was taken from the sheet and **not** cross-checked against Shoptet (the API does not expose set contents). |
+| G-2 | [x] | Ondra | Flag "Výhodná cena" (`vyhodna-cena`) on every set. 27 live products: the 26 sets referenced in the Excel (SA001/002/004/008/009/010/013/018, SA020–SA033, and the 4 double-shot **V** products) plus SA005 (`Očista do čista (set)`, added at Ondra's request). **Not** flagged: the 12 double-shot **S** composition products and the 6 old sets (SA003, SA006, SA007, SA011, SA012, SA019). Set live 2026-11-01. Hidden sets carry the flag already and show it once made visible (V-2). |
+| G-3 | n/a | — | "NOVINKA" is **not** used (Eliška, Oct 29). |
+| G-4 | [x] | Ondra | Flag "DOPORUČUJEME" (`doporucujeme`) on the 63 products whose variant is marked `ano` in column DOPORUČUJEME of `Anela_vyhodneji_v_sade_2026-10.xlsx` (Marketing site, `Správa eshopu/Cenotvorba/2026`). Set on live 2026-11-01 and re-verified: 63 of 206 products, none missing or extra. Flag is product-level, so every size of those products shows it. |
+
+## 4. Visibility (Ondra)
+
+| ID | Status | Owner | Item |
+|---|---|---|---|
+| V-1 | [x] | Ondra | Make the category **Výhodné sady** visible. | **Seen done 2026-11-01** (category `Výhodné sady` reads `visible: true`; set by someone else while Claude was checking, not by Claude). Storefront: `/vyhodne-sady/` and the double-shot V pages return 200. The 4 subcategories under it (pleť / tělo / ekzém / děti) are still hidden.
+| V-2 | [~] | Ondra | Make all sets and their products visible. For double shots only the **V** code is visible; the **S** code (composition, price / stock sync) stays hidden. | **Double shots done 2026-11-01 (Ondra: only double shots):** the 4 V products visible (Krása, Motýl, Teenka, Sladký), the 12 S products hidden (8 changed, 4 already hidden). Numeric sets SA020–SA033 and BAL packages deliberately left as they were.
+
+## 5. Bára's part (confirm done)
+
+| ID | Status | Owner | Item |
+|---|---|---|---|
+| B-1 | [~] | Bára | Set check: prices, photos, texts (was due Oct 30 / Friday). Bára (Teams, Nov 1 12:14): sets are fully prepared, only prices are missing (see P-2). Not closed until prices are in and checked. |
+| B-2 | [ ] | Bára | Set photos: at least 2 per set — one clean product shot, one with the contents written on it. Folder: `Grafika_interní/PROFI_FOCENI/SADY_2026/PRODUKTOVÉ_Sady`. |
+| B-3 | [ ] | Bára | Strip on the e-shop and the cart banner, with banner timing. |
+| B-4 | [ ] | Bára | Set textures (she uploads these herself). |
+| B-5 | [x] | Bára | Finish the new product photos, save them by product code in folders named by the product prefix, and share them on SharePoint (Oct 29 meeting, due Oct 31). **Evidence:** Bára posted both complete folders in Teams on Nov 1 12:14 ("Komplet kelímky", "Komplet lahvičky"). |
+
+## 6. After launch
+
+| ID | Status | Owner | Item |
+|---|---|---|---|
+| A-1 | [x] | Ondra / Bára | Verify on the site: URLs work, photos and prices are right, sets can be ordered, S products are not shown. | **Validated 2026-11-01** by the read-only site check (`~/Work/backups/site-check-2026-11-01/REPORT.md`): 12 visible set pages 200 with correct prices, "Výhodná cena" flag, images, add-to-cart control present; category lists exactly the 12 expected products; 12 S products and hidden sets 404, not in sitemap or search. Not tested: a real order / cart (control presence only, no browser).
+| A-2 | [ ] | Eliška / Bára | Start the social media campaign only after A-1 passes (Monday or Tuesday). |
+| A-3 | [ ] | Ondra | Not blocking: talk to the developers about the "price per use" and "price per 100 ml" fields for double shots (V/S codes). |
+| A-4 | [ ] | Eliška | Not blocking: confirm with the developers when the watercolour and other visuals are added. |
+| A-5 | [x] | Ondra | Document the Shoptet image findings (and any write endpoints used) in `docs/integrations/shoptet-api.md` **before** relying on them. **Done:** section "Product images API" added to `docs/integrations/shoptet-api.md` (uncommitted, together with the earlier §4.3a change). |
+
+## 7. Category migration from the Excel (Ondra)
+
+Source: `Anela_kategorie_filtry_sady_2026_v4.xlsx`, sheet `Produkty`, columns I–BU (`x` stay, `−` remove, `+` add, `V` default, `?` pending = skipped). Tools: `~/Work/backups/tools/category_sync/` (`plan_categories.py` dry-run, `apply_one.py`, `backup_live.py`, `restore_categories.py`). Write contract: `docs/integrations/shoptet-api.md` §4.3c (`categoryGuids` **replaces** the list).
+
+| ID | Status | Owner | Item |
+|---|---|---|---|
+| C-1 | [x] | Ondra | **Backup of all live products and their categories before the migration.** 206 products, 75 categories, taken 2026-11-01 20:03 (live store 269953, www.anela.cz): `~/Work/backups/shoptet-categories-2026-11-01/` (`products/<guid>.json` full detail incl. flags, `categories.json`, `products-categories.csv`, `manifest.json` with checksum). Taken **after** SER004 (C-2) was changed; its pre-change state is in `~/Work/backups/tools/category_sync/live/backups/`. Restore: `restore_categories.py <backup dir> [--only <guid>] [--apply]` (dry-run by default). |
+| C-2 | [x] | Ondra | Migrate the `Produkty` sheet to live, each product with a dry-run first (no blockers, no drift), a pre-change backup and a read-back diff. **Done 2026-11-01 (20:01–20:09):** all 63 product rows. 42 products changed (SER004, SER001, then 40 in a batch; 79 + 10 category removals, 30 + 0 additions), 21 already matched. Re-plan afterwards: 63 of 63 match the sheet, 0 blocked, 0 drift, 0 `?` marks. Pre-change backups per product (42 files): `~/Work/backups/tools/category_sync/live/backups/`; batch results: `.../live/results-*.json`. Rules applied: `x` kept, `−` removed, `+` added, `V` = default; column "Sety péče o pleť" ignored (deleted by hand, see C-5). Nothing added to hidden categories. |
+| C-4 | [x] | Ondra | **Default category changed on 3 products**, as listed in the context doc ("Opravy výchozích kategorií"): Bílá noční teenka → Pleťové krémy a balzámy, Ochráním bříška → Pro nastávající maminky, Očistím ruce - sprej → Péče o ruce. Shoptet **regenerates the product and variant URLs** from the default category. **Verified 2026-11-01 for all three:** each old URL answers 301 to the new one and the new URL answers 200. Still open (cannot be checked from Shoptet): links in the newsletter / ads / feeds / Heureka that point at the old URLs. | **Done (Ondra, 2026-11-01).**
+| C-5 | [x] | Andy | Not done by the import: delete the category **Pleť > Sety péče o pleť** by hand in Shoptet (copy its address first and set a redirect to Výhodné sady). The product rows were not touched for this column. | **Done (Ondra, 2026-11-01).**
+| C-6 | [x] | Ondra | **Not migrated yet:** sheet `Sady a balíčky` (sets SA…, gift packages BAL…), and the filters (8 parameters, context doc step 5). | **Done (Ondra, 2026-11-01).**
+| C-3 | [ ] | Andy / Ela | Sign-off on the sheet's rules (context doc, next step 1) before the bulk run; the project doc says shop changes need Andy's explicit consent. SER004 and SER001 were changed on Ondra's instruction without it. |
+| C-7 | [x] | Ondra | **Filter parameters (`filteringParameters`) for the `Produkty` sheet, columns BY–FV** (`x` stay, `−` remove, `+` add; the header of FW says the filter rules were approved 15 Oct). Live store 269953, 2026-11-01 21:29–21:4x: **55 of 63 products changed**, 8 already matched; dry-run first (0 blocked, 0 drift: every `x` was already on the product), per-product backup, read-back of every parameter, no other field changed. 30 products lost the whole **Typ pleti** filter (body, baby, deodorant, peeling, butter, spray, repellent products), the rest got small trims / additions in Typ pleti, Stav pleti, Problém. Final re-plan: 63/63 match. **Backup before the change (all 206 products + definitions):** `~/Work/backups/shoptet-filters-2026-11-01/`; per-product pre-change files: `~/Work/backups/tools/category_sync/backups_filters/`. Restore: `restore_filters.py <backup dir> [--only <guid>] [--apply]` (dry-run by default). **Not covered:** the `Sady a balíčky` sheet (sets / BAL), whose filters are a separate write; C-6 was closed on Ondra's word without a check on my side. Sheet columns not touched: the 5 shop values the sheet does not list (e.g. the stray value `a` in Stav pleti). |
+| C-8 | [x] | Ondra | **Categories + filters for the sheet `Sady a balíčky`** (sets SA…, gift packages BAL…), same marks and same safeguards as C-2/C-7 (dry-run, per-product backup, drift re-check, one combined `PATCH`, read-back; stop on first failure). Live, 2026-11-01 ~22:00: **56 products changed** (38 sets/double shots, 18 BAL packages), 5 already matched; 61 evaluated rows now match the sheet, 0 blocked. 13 visible sets changed default category (Výhodné sady › Sady péče o pleť / o tělo / pro děti a miminka, BAL0025V → Dárkové balíčky tělové kosmetiky) and so their URL: all 13 old URLs answer 301 to the new one, new URLs 200. Pre-change backups (56 files): `~/Work/backups/tools/category_sync/backups_sets/`; filters-only backup of all 206 products from before: `~/Work/backups/shoptet-filters-2026-11-01/`; categories of all 206 from before: `~/Work/backups/shoptet-categories-2026-11-01/`. Note: the four **Výhodné sady** subcategories are now **visible** (seen 2026-11-01), the V-1 note "still hidden" is out of date; the same-named hidden categories `Sady péče o pleť / tělo / děti` are old duplicates. |
+| C-9 | [ ] | Andy / Ela | **Withheld on purpose: 19 sets** where the sheet says `+` for a **hidden gift category**: `Dárky pro kamarádky a kolegyně` (SA014005V, SA015005V, SA016005V, SA017005V, SA023, SA025, SA010, SA008, SA018, SA004, SA013), `Dárky pro maminky a babičky` (SA015005V, SA020, SA009, SA018, SA001, SA002), `Dárky pro každého` (SA002, SA027, SA028, SA029, SA030). The context doc says nothing new goes into hidden categories and that these three have no redirect and are for Andy and Ela to decide. Everything else on those rows was applied. Decide: make the categories visible and add, or drop the `+` from the sheet. Then re-run `plan_sets.py` (the withheld adds show up as `withheld`). |
+| C-10 | [ ] | Ondra | **Not covered by C-8:** 25 rows with status `Zrušeno` (old / cancelled sets and packages, hidden; skipped on purpose, `--include-cancelled` would plan them) and 2 configurator sets without a code (`Ochutnávka deodorantů`, `Mandarinkové duo`: not in Shoptet yet). |
+
+## Log
+
+- 2026-11-01 — Checklist created from Teams chat + Oct 29 meeting + read-only Shoptet API check (3 products).
+- 2026-11-01 — G-4 done: `doporucujeme` set on 63 live products (test store first, same 63). Re-read live afterwards: 63 flagged = 63 expected, no start/end dates, all 63 visible, existing flags kept (11 bestseller, 3 new). Write call `PATCH /api/products/{guid}` with `data.flags` documented in shoptet-api.md §4.3b. Also answers D-5 for this flag: flags can go up before midnight.
+- 2026-11-01 — G-1 done: `v-sade-vyhodneji` added to 34 live products (add-only, existing flags kept; re-read confirmed 34/34, `doporucujeme` still on all 34). Excel trusted as source by Ondra; no removal scan of other products was done.
+- 2026-11-01 — G-2 done: `vyhodna-cena` added to 27 live set products (add-only, existing flags kept, re-read confirmed 27/27). Open for review under A-1: several double-shot **S** products are currently visible on live although V-2 says they stay hidden; SA005 is visible but not in the Excel.
+- 2026-11-01 — Compared with Teams (Oct 26 – Nov 1), the Oct 29 Plaud summary and the Loop link. D-3 closed (Bára Nov 1 12:16); B-1 set to in progress (Bára Nov 1 12:14: sets prepared, prices missing); B-5 added and done (photo folders delivered Nov 1 12:14); D-6 added (Loop unreadable, lives in Eliška's personal OneDrive). Everything else left open: no Teams statement says it is done. D-5 (midnight question) still unanswered.
+- 2026-11-01 — Product photo swap done on production for 64 products (new main + size photos, variants re-pointed, old deleted; 17 variants skipped, no data). Verified from live shop: 0 problems. Report: `~/Work/backups/shoptet-photos-2026-11-01/upload-report.md`; backup of the old photos in the same folder. Items F-1…F-5 done for these products; F-7 (visual spot check) still open. Temporary blob container and placeholder webhook removed.
+- 2026-11-01 — Photo swap closed out. D-1 applied (scope derived from the new files, still to confirm with Eliška), D-2 done, F-1…F-6 done, A-5 done. New items: F-8 (17 skipped variants), F-9 (`ZEZ002005` typo), F-10 (revoke blob role). F-7 open. Verification: 64/64 products, 275 variants checked on the live shop, 0 problems. Report: `docs/features/2026-11-02-photo-swap-report.md`.
+- 2026-11-01 — Correction: there is no `ZEZ002005.jpg` (F-9 was my misreading); the file is `SEZ002005.jpg`. Pozdravím slunce 5 ml got its new photo (new image `419-3.jpg`, variant re-pointed, old 5 ml photo deleted). Skipped variants are now **16** (not 17), old photos kept in 13 products (not 14). Temporary container and webhook removed again.
+- 2026-11-01 — Category migration started (section 7). Test store 780175 first (SER004: replace semantics confirmed, §4.3c), then live: SER004 24 → 16 categories (8 removed, nothing added), SER001 8 → 6 (2 removed); read-back matched the payload, no other field changed, defaults unchanged. Full read-only backup of all 206 live products + 75 categories: `~/Work/backups/shoptet-categories-2026-11-01/` (C-1).
+- 2026-11-01 — C-2 done: category migration of the whole `Produkty` sheet on live (Ondra: "free to go for the rest"). Dry-run over 63 rows: 0 blocked, 0 drift. Batch run stopped once on its own safety check at Bílá noční teenka: the default-category change regenerated the product/variant URLs (old URL 301s to the new); the check was relaxed for default changes only and the run resumed, 36 of 36 verified (set, default, no other field changed). Final re-plan: 63/63 rows match. Open: C-4 (URL check for 3 default changes), C-5 (Andy deletes Sety péče o pleť), C-6 (sets sheet, filters), C-3 (Andy's sign-off was not obtained before the writes).
+
+- 2026-11-01 — P-1/P-2 done: price diff of the workbook against live Heblo (241 comparable codes): 208 already equal (incl. SA020–SA033 and the 12 double-shot V codes), 31 written via Heblo: sets SA001/002/004/008/009/010/013/018 and 23 BAL packages (individual-sum price to discounted set/package price). Verified in Shoptet main price list and Flexi. Not written: `MAS009500` (shop 1390, workbook 1390 for 450 ml / 1490 for 500 ml) and `MAS003500` (Shoptet 950, Flexi 1050, workbook 1050 for 500 ml) because the code is shared by two sheet rows. Backup of before/after prices, writes and results: `~/Work/backups/prices-2026-11-01/`.
+- 2026-11-01 — Decision (Ondra): `MAS009500` and `MAS003500` are skipped, price work is limited to sets. Note: the 31 writes included 23 BAL gift packages next to the 8 SA sets; Ondra confirmed: scope is SAxxx and BALxxx, the 23 BAL prices stay.
+- 2026-11-01 — V-2 (double shots only): `PATCH /api/products/{guid}` `{"data":{"visibility":...}}`: 7 S products visible→hidden (SA014005S, SA014030S, SA015030S, SA016005S, SA016030S, SA017005S, SA017030S), 3 V products hidden→visible (Motýl, Teenka, Sladký); re-read confirmed all 16 double-shot products. Before/after: `~/Work/backups/prices-2026-11-01/set-visibility-*.json`. Field documented in `docs/integrations/shoptet-api.md`.
+- 2026-11-01 — V-1 observed done: before it the double-shot V pages returned 404 because their default category `Výhodné sady` was hidden; after the category became visible they return 200. 12 visible products in the category: SA001/002/004/008/009/010/013/018 and the 4 double-shot V products. 14 hidden (SA020–SA033) stay hidden by decision.
+- 2026-11-01 — Double-shot price fix: the 12 hidden S products still had the sum of individual prices (005S 398, 030S 1980, 100S 4480 in Shoptet; 100S 2008.60 in Flexi) while the V products carry the workbook price (358 / 1780 / 4120). Ondra: they must be equal. Set all 12 S codes to the V price via Heblo `PUT /api/product-pricing/prices/{code}` (12/12 OK, re-read confirms S = V in Shoptet and Flexi). The workbook lists only the V codes, so this was missed in P-2. Files: `~/Work/backups/prices-2026-11-01/*_S.json*`.
+- 2026-11-01 — Wholesale price lists (Ondra: same products as the retail update): `PATCH /api/pricelists/{id}` on Shoptet list 38 (E-shopy 30 %) and 39 (Kamenné 35 %) with the VOC from `Anela_VO_ceniky_2026-10_podklady.xlsx` (sheets VO ceník E-shopy 30 % / Kamenné 35 %; identical to the Oct 19 plan whose write script had skipped all `Sady` sections). 8 sets SA001/002/004/008/009/010/013/018 in both lists; the 12 double-shot S codes in list 38 only (set to the V product VOC 286 / 1246 / 2884; list 39 has no price for them and was left empty). Re-read: 28 writes, 0 mismatches. Not written: BAL gift packages (the workbook rules say gift packages are not in the wholesale lists), V codes (not in the lists), SA020–SA033 (hidden sets, outside this scope), lists 32 Bezobal and 49 Anelky. Backups: `~/Work/backups/prices-2026-11-01/pl3[89]-before|after.json`, `vo_writes.json`, `vo_results.jsonl`.
+- 2026-11-01 — Wholesale lists, double shots (Ondra): all 12 V and all 12 S codes priced in both list 38 and 39 with the workbook VOC of the V products (list 38: 286 / 1246 / 2884, list 39: 268 / 1158 / 2679 for the 005 / 030 / 100 size). The V codes did not exist in the lists; `PATCH /api/pricelists/{id}` creates the item. Re-read: 48 writes, 0 mismatches. Supersedes the earlier line that left S in list 39 empty and V out. Files: `~/Work/backups/prices-2026-11-01/vo_writes_VS.json`, `vo_results_VS.jsonl`, `pl3[89]-after2.json`.
+- 2026-11-01 — F-8 re-check (Shoptet API, `?include=images`): 12 of the 16 skipped variants were re-pointed by someone else after the swap report (they no longer use the old photos listed there). Still on the old photo: `TON001500`, `TON002500`, `TON003500`, `TON004500` (the four 500 ml toners). The report's skipped table is therefore out of date. Site check (agent, 2026-11-01): all pages, prices, flags, category and hidden-S checks passed, no defects; report `~/Work/backups/site-check-2026-11-01/REPORT.md`. Observations from it: SA005 is visible (260 Kč, not in the workbook) and two hidden accessories (Bavlněná taška, Guasha kámen) still answer 200.
+- 2026-11-01 — Closed on Ondra's word / the site-check report: C-4, C-5, C-6 (done by Ondra), A-1 and F-7 (validated by `REPORT.md`). Left open on purpose: B-1 (Bára signs off her own set check), A-2 (campaign only after Ondra's own look at the site).
+- 2026-11-01 — C-7 done: filter parameters for the `Produkty` sheet. API found: `GET /api/products/filtering-parameters` (definitions), `GET /api/products/{guid}?include=filteringParameters`, `PATCH /api/products/{guid}` with `filteringParameters:[{code,values:[valueIndex…]}]`. Test store 780175 first: values are sent by **code** (`valueIndex`), not by name, and the list **replaces everything** (sending one parameter deleted the product's other 7; omitting a parameter removes it; `values:[]` is a 422); baseline restored and verified. Live: SER004 alone first, then 54 in a batch, 55/55 verified (parameters match, no other field changed). Re-plan: 63/63 match. Documented in `docs/integrations/shoptet-api.md` §4.3d.
+- 2026-11-01 — C-8 done: categories + filters for sheet `Sady a balíčky` on live. Planner matches rows by variant code (88 rows: 25 `Zrušeno` and 2 not-in-shop skipped, 61 evaluated). First plan blocked 19 rows on `+` into hidden gift categories (conflicts with the rule "nothing new into hidden categories"); those adds were withheld and the rest applied (C-9 open). SA015030S alone first, then 55 in a batch; 56/56 verified (categories, default, filters; no other field changed except URLs of default changes). Re-plan: 61/61 match. 13 visible sets got new URLs, all redirect 301 → 200. Combined `categoryGuids` + `filteringParameters` in one `PATCH` works.

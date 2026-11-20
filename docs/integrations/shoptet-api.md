@@ -644,6 +644,26 @@ Read-only GETs against the **test store (780175)** (181 products, 444 variants, 
 - **Production data quality (CSV, 2026-11-01):** all dimensions are `0`, `atypicalShipping` is `0` for every row, and 34 rows have no weight. Treat `0` weight as "unknown".
 - **Bulk reads must be sequential.** The full export (list + 181 detail calls) hit 429 with 6 parallel workers; one call at a time with a back-off retry on 429 completed, consistent with the guidance in §3.14.
 
+### 4.2.2 Variant unit and measure unit (spec + live reads 2026-11-05, test store)
+
+Admin *Ceník → Jednotka* maps to fields on each **variant**, written with `PATCH /api/products/code/{code}` (or `/api/products/{guid}`, or `/api/products/batch` for JSONL bulk):
+
+| Admin field | API field |
+|---|---|
+| Jednotka | `unitId` on write, `unit` (name) on read; IDs from `GET /api/products/units` |
+| Množství v balení | `measureUnit.packagingAmount` + `packagingUnitId` |
+| Měrná jednotka | `measureUnit.measureAmount` + `measureUnitId` |
+| Computed "479 CZK / 100 ml" | `measureUnit.measurePrice`, read-only |
+
+- All four writable `measureUnit` fields are required by the schema.
+- **Reads need `include=measureUnit`.** Without it the key is absent, which looks like `null` to a lenient client. Variant `name` and `parameters` likewise need `include=variantParameters`.
+- **Two ID lists that do not match.** `GET /api/products/measure-units`: `ml` -10, `l` -9, `g` -7, `kg` -3, `ks` -1. `GET /api/products/units` has no `ml` and `g` is `1`. Use `measure-units` for `measureUnit`.
+- **A variant `code` that does not exist creates a new variant.** Validate codes first, and send only `code` and `measureUnit` (`parameters`, if sent, replaces the whole list).
+- A variant's real volume is its parameter (`Obsah`, `Hmotnost`), not the digits in its code.
+- **Write verified live on the test store, 2026-11-05** (`JOL001100`, 100 ml, 440 CZK): body `{"data":{"variants":[{"code":"JOL001100","measureUnit":{"packagingAmount":"100.000","packagingUnitId":-10,"measureAmount":"100.000","measureUnitId":-10}}]}}`. A before/after diff of the product showed only `measureUnit` and `changeTime` changed, and `measurePrice` read back as `440.00`.
+- **Applied on production, 2026-11-05** (192 variants): a full catalogue diff showed no other change. `measurePrice` = `price / packagingAmount × measureAmount`, for example 30 ml at 260 CZK gives `866.67` per 100 ml. Decimal amounts work (`"4.900"`).
+- **Which token:** the app and this API use the `Shoptet__ApiToken` App Setting. `Shoptet--Token` and `ShoptetPay--ApiToken` in `kv-heblo-prod` both return 401 `invalid-token` here.
+
 ### 4.3 Getting all variant codes efficiently
 
 Two ways, depending on what is needed (revised 2026-11-01; the earlier "never use N+1, use the CSV" guidance is superseded):
