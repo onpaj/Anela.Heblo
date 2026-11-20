@@ -5,7 +5,7 @@ namespace Anela.Heblo.Domain.Accounting.CostPools;
 /// pool counts (M2: 50/51/52, the others 51/52).
 ///
 /// Reads the same ILedgerService path the margin engine uses, so the M2 total
-/// here is the same number SalesCostProvider divides by sold pieces.
+/// here is the same number SalesCostProvider divides by sales revenue.
 ///
 /// These totals are not a full ledger breakdown - spend that belongs to no pool
 /// (BUVOL, and 50x outside SKLAD/MARKETING) is absent, so they must not be used
