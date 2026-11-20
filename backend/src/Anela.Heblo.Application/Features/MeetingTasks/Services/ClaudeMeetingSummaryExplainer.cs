@@ -10,11 +10,15 @@ public sealed class ClaudeMeetingSummaryExplainer : IMeetingSummaryExplainer
         Jsi asistent, který vysvětluje, proč se daná část shrnutí schůzky dostala do souhrnu.
         Dostaneš celý přepis schůzky a vybraný text (fragment shrnutí nebo navrhované úlohy).
         Proveď toto:
-        1. Cituj přesný úsek přepisu, který vedl k tomuto bodu.
+        1. Cituj přesný úsek přepisu, který vedl k tomuto bodu. Citace musí být stručná — jen nejdůležitější věty, ne celé dlouhé pasáže.
         2. Napiš podrobné vysvětlení v češtině, proč tento úsek skončil ve shrnutí nebo jako úloha.
         Odpověz POUZE jako JSON (bez dalšího textu):
         { "relevantTranscript": "...", "explanation": "..." }
         """;
+
+    // The shared adapter default (KnowledgeBase:ChatMaxTokens) is too small for a transcript quote
+    // plus a detailed Czech explanation; a truncated reply is unparseable JSON.
+    private const int MaxOutputTokens = 4096;
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
@@ -46,14 +50,21 @@ public sealed class ClaudeMeetingSummaryExplainer : IMeetingSummaryExplainer
                     $"Vybraný text: {selectedText}\n\nCelý přepis:\n{transcript}")
             };
 
-            var response = await _chatClient.GetResponseAsync(messages, cancellationToken: ct);
+            var options = new ChatOptions { MaxOutputTokens = MaxOutputTokens };
+            var response = await _chatClient.GetResponseAsync(messages, options, ct);
             var text = StripMarkdownCodeFence(response.Text ?? string.Empty);
 
             var result = JsonSerializer.Deserialize<MeetingSummaryExplanation>(
                 text,
                 _jsonOptions);
 
-            return result ?? FallbackExplanation();
+            if (string.IsNullOrWhiteSpace(result?.Explanation))
+            {
+                _logger.LogWarning("Claude returned no explanation for the selected text");
+                return FallbackExplanation();
+            }
+
+            return result;
         }
         catch (Exception ex)
         {
