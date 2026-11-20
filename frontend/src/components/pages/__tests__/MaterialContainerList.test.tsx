@@ -13,6 +13,13 @@ jest.mock("../../../telemetry/useScreenView", () => ({
 }));
 // The lot-label modal has its own hook/permission dependencies covered by its own test.
 jest.mock("../LotLabelPrintModal", () => () => null);
+// Plain function, not jest.fn(impl): CRA resetMocks would strip the implementation per test.
+let mockGrantedPermissions: string[] = ["manufacture.material_containers.write"];
+jest.mock("../../../auth/PermissionsContext", () => ({
+  usePermissionsContext: () => ({
+    hasPermission: (permission: string) => mockGrantedPermissions.includes(permission),
+  }),
+}));
 
 const mockHooks = useMaterialContainersHooks as jest.Mocked<
   typeof useMaterialContainersHooks
@@ -59,6 +66,7 @@ describe("MaterialContainerList", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGrantedPermissions = ["manufacture.material_containers.write"];
     (mockHooks.useMaterialContainersList as jest.Mock) = mockUseList;
     (mockHooks.usePrintMaterialContainerLabels as jest.Mock) = mockUsePrint;
     (mockHooks.useReprintMaterialContainerLabel as jest.Mock) = mockUseReprint;
@@ -176,6 +184,13 @@ describe("MaterialContainerList", () => {
     );
   });
 
+  it("hides the row reprint button from users without write permission", () => {
+    mockGrantedPermissions = ["manufacture.material_containers.read"];
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    expect(screen.getByText("M00001234")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Dotisknout štítek M00001234")).not.toBeInTheDocument();
+  });
+
   it("disables every row's reprint button while a reprint is pending", () => {
     // One useMutation instance only fires the latest mutate call's callbacks, so a second
     // reprint must not be startable while the first is in flight.
@@ -207,7 +222,7 @@ describe("MaterialContainerList", () => {
       opts?.onError?.(
         new SwaggerException(
           "err",
-          409,
+          400,
           JSON.stringify({ errorCode: "UnknownMaterialContainerCode" }),
           {},
           null,
@@ -269,7 +284,7 @@ describe("MaterialContainerList", () => {
       opts?.onError?.(
         new SwaggerException(
           "err",
-          409,
+          400,
           JSON.stringify({ errorCode: "UnknownMaterialContainerCode" }),
           {},
           null,
@@ -322,7 +337,7 @@ describe("MaterialContainerList", () => {
         opts?.onError?.(
           new SwaggerException(
             "err",
-            409,
+            400,
             JSON.stringify({ errorCode: "UnknownMaterialContainerCode" }),
             {},
             null,

@@ -128,7 +128,7 @@ describe('ReprintLabelScreen', () => {
   it('error shows resolved message', () => {
     renderScreen();
     scan('M00000010');
-    const error = new SwaggerException('err', 409, JSON.stringify({ errorCode: 'UnknownMaterialContainerCode' }), {}, null);
+    const error = new SwaggerException('err', 400, JSON.stringify({ errorCode: 'UnknownMaterialContainerCode' }), {}, null);
     act(() => lastCallbacks().onError?.(error));
     expect(screen.getByText('Neznámý štítek – nejprve jej vygenerujte v aplikaci.')).toBeInTheDocument();
     expect(screen.getByTestId('reprint-history')).toHaveTextContent('✗');

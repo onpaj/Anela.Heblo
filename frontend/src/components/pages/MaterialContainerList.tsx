@@ -11,6 +11,9 @@ import { useScreenView } from "../../telemetry/useScreenView";
 import LotLabelPrintModal from "./LotLabelPrintModal";
 import { resolveReprintErrorMessage } from "../../api/hooks/reprintErrors";
 import PrinterMediaChangeDialog from "../dialogs/PrinterMediaChangeDialog";
+import { usePermissionsContext } from "../../auth/PermissionsContext";
+
+const MATERIAL_CONTAINERS_WRITE_PERMISSION = "manufacture.material_containers.write";
 
 const formatDate = (date: Date | string | undefined): string => {
   if (!date) return "-";
@@ -65,6 +68,9 @@ const MaterialContainerList: React.FC = () => {
   };
 
   const reprintLabel = useReprintMaterialContainerLabel();
+  const { hasPermission } = usePermissionsContext();
+  // The reprint endpoint requires Write; Read-only users would only ever get a 403.
+  const canReprint = hasPermission(MATERIAL_CONTAINERS_WRITE_PERMISSION);
 
   const runReprint = (code: string, confirmed: boolean) => {
     setReprintError(null);
@@ -329,6 +335,7 @@ const MaterialContainerList: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">{formatDate(container.createdAt)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">{container.createdBy}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                    {canReprint && (
                     <button
                       type="button"
                       title={`Vytisknout štítek ${container.code}`}
@@ -340,6 +347,7 @@ const MaterialContainerList: React.FC = () => {
                       <Printer className="h-4 w-4" />
                       <span>Vytisknout</span>
                     </button>
+                    )}
                   </td>
                 </tr>
               ))}

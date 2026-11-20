@@ -10,6 +10,8 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-18-container-label-reprint-design.md`
 
+> **Superseded 2026-11-19:** Discarded containers can be reprinted too. The `MaterialContainerDiscarded = 2810` error code, its translation and the refusal tests described below were dropped (see commit a8f22711b and the spec). Only an unknown code (2809) is refused.
+
 ## Global Constraints
 - DTOs/requests/responses are classes, never records; `*Response` inherits `BaseResponse`.
 - Permission: `Feature.Manufacture_MaterialContainers`, `AccessLevel.Write`.
