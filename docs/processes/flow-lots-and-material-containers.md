@@ -11,7 +11,8 @@ owns:
   - backend/src/Anela.Heblo.API/Controllers/MaterialContainersController.cs
   - backend/src/Anela.Heblo.Application/Shared/Printing/FeatureGatedLabelPrintingService.cs
   - backend/src/Adapters/Anela.Heblo.Adapters.Cups/CupsLabelPrintingService.cs
-verified_at: "5e993f9e2"
+  - frontend/src/components/terminal/reprint-label/ReprintLabelScreen.tsx
+verified_at: "5f954e296"
 related: [sync-catalog-master-data]
 ---
 
@@ -22,9 +23,10 @@ Gives every physical container of raw material (sack, canister, bucket) a unique
 so production can tell which material and which supplier lot (šarže) is inside, and gives
 semi-product batches round labels with their lot number and expiration. Staff use:
 - **Šarže** page `/manufacturing/material-containers` — list, print new container
-  labels, discard containers, lot-label calibration tab.
+  labels, reprint a label ("Dotisk"), discard containers, lot-label calibration tab.
 - **Terminal** `/terminal/po/…/material/:material` (receiving against a purchase order line) and
   `/terminal/freeform` — scan a pre-printed label and bind it to material + lot (+ amount).
+- **Terminal** `/terminal/reprint-label` (tile "Dotisk štítku") — scan a container label to reprint it.
 - **Manufacture order detail** — "print lot labels" for the order's semi-product.
 Permissions: Manufacture_MaterialContainers (write to change/print), Manufacture_LabelCalibration
 for calibration.
@@ -48,19 +50,28 @@ User actions only; no job. States of a container (`MaterialContainerStatus`):
    `UnknownMaterialContainerCode`, `MaterialContainerCodeExists` (duplicate or not Unassigned),
    `PurchaseOrderLineNotFound`. The terminal pre-fills the lot with the last lot used for that
    material (`GET /api/material-containers/last-used-lot`).
-3. **Discard** — `POST /api/material-containers/{id}/discard`.
-4. **Lots** (`public."Lots"`, unique per material code + lot code) — `api/lots` list, get,
+3. **Reprint label** — `POST /api/material-containers/{code}/reprint` with
+   `{ mediaChangeConfirmed }` (Write on Manufacture_MaterialContainers). The code is trimmed;
+   unknown → `UnknownMaterialContainerCode` (2809). Every status (Unassigned, Assigned,
+   Discarded) reprints. The same media-change
+   guard applies (`LabelMediaType.MaterialContainer`). Prints the same ZPL as
+   `MaterialContainerLabelZplBuilder` and records the media state only after a successful print.
+   Creates or changes no container rows. The list shows a per-row "Vytisknout" button on every row; the terminal screen reprints on every scan, ignores scans while printing or while
+   the roll-change sheet is open, and sends `mediaChangeConfirmed` only on the retry that follows
+   the sheet — the confirmation is never remembered across scans (the shared roll may be swapped).
+4. **Discard** — `POST /api/material-containers/{id}/discard`.
+5. **Lots** (`public."Lots"`, unique per material code + lot code) — `api/lots` list, get,
    create, update (expiration, received date, notes), delete. Delete is refused
    (`LotHasEans`) while any container references the lot.
-5. **Print lot labels** — `POST /api/lots/print-labels` with lot number, expiration, count:
+6. **Print lot labels** — `POST /api/lots/print-labels` with lot number, expiration, count:
    media check, read calibration from `public."LotLabelCalibrations"`, build ZPL for round
    10 mm labels (two centred text lines: lot number, expiration; no barcode) on **continuous**
    media, print, record media type. Nothing about the printed lot is stored.
-6. **Calibration** — `GET/PUT /api/lots/label-calibration` (pitch 80–400 dots, default 148;
+7. **Calibration** — `GET/PUT /api/lots/label-calibration` (pitch 80–400 dots, default 148;
    drift 0–1000 dots per 100 labels, default 30), `POST …/label-calibration/nudge` (up/down,
    fast 0.30 / slow 0.15 dot per label), `POST /api/lots/print-calibration-label`,
    `POST /api/lots/feed-media` (feed N dots).
-7. **Printing** — `ILabelPrintingService` = `FeatureGatedLabelPrintingService` →
+8. **Printing** — `ILabelPrintingService` = `FeatureGatedLabelPrintingService` →
    `CupsLabelPrintingService`: when feature flag `is-label-printing-enabled` is on, send the raw
    ZPL to CUPS queue `Cups:LabelPrinterName` on `Cups:ServerUrl`; when off, skip the physical
    print and log it — the rest of the operation still runs.
@@ -103,6 +114,7 @@ User actions only; no job. States of a container (`MaterialContainerStatus`):
 
 ## Code entry points
 - `backend/src/Anela.Heblo.Application/Features/Catalog/Inventory/UseCases/PrintMaterialContainerLabels/PrintMaterialContainerLabelsHandler.cs` — create + print containers
+- `backend/src/Anela.Heblo.Application/Features/Catalog/Inventory/UseCases/ReprintMaterialContainerLabel/ReprintMaterialContainerLabelHandler.cs` — reprint existing label
 - `backend/src/Anela.Heblo.Application/Features/Catalog/Inventory/UseCases/CreateMaterialContainers/CreateMaterialContainersHandler.cs` — assign rules
 - `backend/src/Anela.Heblo.Application/Features/Catalog/Inventory/Printing/LotLabelZplBuilder.cs` — round label, pitch/drift
 - `backend/src/Anela.Heblo.Application/Features/Catalog/Inventory/Printing/MaterialContainerLabelZplBuilder.cs` — container label
@@ -110,3 +122,4 @@ User actions only; no job. States of a container (`MaterialContainerStatus`):
 - `backend/src/Anela.Heblo.Persistence/Catalog/Inventory/MaterialContainerCodeGenerator.cs` — sequence
 - `backend/src/Anela.Heblo.Application/Shared/Printing/FeatureGatedLabelPrintingService.cs` — feature flag gate
 - `frontend/src/components/terminal/lot-identification/ReceiveScreen.tsx` — terminal assign screen
+- `frontend/src/components/terminal/reprint-label/ReprintLabelScreen.tsx` — terminal reprint screen

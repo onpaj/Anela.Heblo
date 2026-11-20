@@ -100,6 +100,7 @@ import PoLinePickStep from "./components/terminal/lot-identification/PoLinePickS
 import ReceiveScreen from "./components/terminal/lot-identification/ReceiveScreen";
 import FinishPoStep from "./components/terminal/lot-identification/FinishPoStep";
 import LabelIdentificationScreen from "./components/terminal/label-identification/LabelIdentificationScreen";
+import ReprintLabelScreen from "./components/terminal/reprint-label/ReprintLabelScreen";
 import BaleniLayout from "./components/baleni/BaleniLayout";
 import BaleniHome from "./components/baleni/BaleniHome";
 import BaleniStatistics from "./components/baleni/statistics/BaleniStatistics";
@@ -401,6 +402,7 @@ function App() {
                           <Route path="freeform" element={<ReceiveScreen mode="freeform" />} />
                         </Route>
                         <Route path="label-identification" element={<LabelIdentificationScreen />} />
+                        <Route path="reprint-label" element={<ReprintLabelScreen />} />
                       </Route>
 
                       {/* Balení device module — landscape touch PC, no sidebar */}

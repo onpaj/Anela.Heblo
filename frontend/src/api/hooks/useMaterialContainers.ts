@@ -10,6 +10,8 @@ import {
   PrintMaterialContainerLabelsRequest,
   PrintMaterialContainerLabelsResponse,
   PrintLotLabelsRequest,
+  ReprintMaterialContainerLabelBody,
+  ReprintMaterialContainerLabelResponse,
   PrintLotLabelsResponse,
   PrintLotCalibrationLabelRequest,
   PrintLotCalibrationLabelResponse,
@@ -56,6 +58,22 @@ export const usePrintMaterialContainerLabels = () => {
     },
   });
 };
+
+// A reprint never changes container data, so nothing is invalidated on success.
+export const useReprintMaterialContainerLabel = () =>
+  useMutation<
+    ReprintMaterialContainerLabelResponse,
+    unknown,
+    { code: string; mediaChangeConfirmed?: boolean }
+  >({
+    mutationFn: (input) => {
+      const apiClient = getAuthenticatedApiClient();
+      const body = new ReprintMaterialContainerLabelBody({
+        mediaChangeConfirmed: input.mediaChangeConfirmed ?? false,
+      });
+      return apiClient.materialContainers_Reprint(input.code, body);
+    },
+  });
 
 export const usePrintLotLabels = () =>
   useMutation({

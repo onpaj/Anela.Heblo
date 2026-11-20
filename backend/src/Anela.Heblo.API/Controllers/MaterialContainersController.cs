@@ -4,6 +4,7 @@ using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.GetLastUsedLot
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.GetMaterialContainerByCode;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.ListMaterialContainers;
 using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.PrintMaterialContainerLabels;
+using Anela.Heblo.Application.Features.Catalog.Inventory.UseCases.ReprintMaterialContainerLabel;
 using Anela.Heblo.Domain.Features.Authorization;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -78,6 +79,17 @@ public class MaterialContainersController : BaseApiController
         [FromBody] PrintMaterialContainerLabelsRequest request, CancellationToken cancellationToken)
     {
         var response = await _mediator.Send(request, cancellationToken);
+        return HandleResponse(response);
+    }
+
+    [HttpPost("{code}/reprint")]
+    [FeatureAuthorize(Feature.Manufacture_MaterialContainers, AccessLevel.Write)]
+    public async Task<ActionResult<ReprintMaterialContainerLabelResponse>> Reprint(
+        string code, [FromBody] ReprintMaterialContainerLabelBody body, CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(
+            new ReprintMaterialContainerLabelRequest { Code = code, MediaChangeConfirmed = body.MediaChangeConfirmed },
+            cancellationToken);
         return HandleResponse(response);
     }
 }

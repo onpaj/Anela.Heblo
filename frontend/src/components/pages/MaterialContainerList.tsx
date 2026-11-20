@@ -1,14 +1,19 @@
 import React, { useState } from "react";
-import { Search, Filter, AlertCircle, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Filter, AlertCircle, CheckCircle, Loader2, Printer, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   useMaterialContainersList,
   MaterialContainersListRequest,
   usePrintMaterialContainerLabels,
+  useReprintMaterialContainerLabel,
 } from "../../api/hooks/useMaterialContainers";
 import { PAGE_CONTAINER_HEIGHT } from "../../constants/layout";
 import { useScreenView } from "../../telemetry/useScreenView";
 import LotLabelPrintModal from "./LotLabelPrintModal";
+import { resolveReprintErrorMessage } from "../../api/hooks/reprintErrors";
 import PrinterMediaChangeDialog from "../dialogs/PrinterMediaChangeDialog";
+import { usePermissionsContext } from "../../auth/PermissionsContext";
+
+const MATERIAL_CONTAINERS_WRITE_PERMISSION = "manufacture.material_containers.write";
 
 const formatDate = (date: Date | string | undefined): string => {
   if (!date) return "-";
@@ -41,7 +46,12 @@ const MaterialContainerList: React.FC = () => {
   // re-runs the print confirmed. Non-null while the confirmation dialog is shown.
   const [pendingConfirm, setPendingConfirm] = useState<(() => void) | null>(null);
 
+  const [reprintError, setReprintError] = useState<string | null>(null);
+  const [reprintedCode, setReprintedCode] = useState<string | null>(null);
+
   const runPrintLabels = (confirmed: boolean) => {
+    setReprintError(null);
+    setReprintedCode(null);
     printLabels.mutate(
       { count: qty, mediaChangeConfirmed: confirmed },
       {
@@ -56,6 +66,36 @@ const MaterialContainerList: React.FC = () => {
       },
     );
   };
+
+  const reprintLabel = useReprintMaterialContainerLabel();
+  const { hasPermission } = usePermissionsContext();
+  // The reprint endpoint requires Write; Read-only users would only ever get a 403.
+  const canReprint = hasPermission(MATERIAL_CONTAINERS_WRITE_PERMISSION);
+
+  const runReprint = (code: string, confirmed: boolean) => {
+    setReprintError(null);
+    setReprintedCode(null);
+    reprintLabel.mutate(
+      { code, mediaChangeConfirmed: confirmed },
+      {
+        onSuccess: (res) => {
+          if (res?.requiresMediaChangeConfirmation) {
+            setPendingConfirm(() => () => runReprint(code, true));
+          } else {
+            setPendingConfirm(null);
+            setReprintedCode(code);
+          }
+        },
+        onError: (err) => {
+          setPendingConfirm(null);
+          setReprintError(resolveReprintErrorMessage(err));
+        },
+      },
+    );
+  };
+
+  // Bulk print and reprint share one media-change confirmation slot, so only one may run at a time.
+  const isAnyPrintPending = printLabels.isPending || reprintLabel.isPending;
 
   useScreenView("Manufacturing", "MaterialContainers");
 
@@ -148,7 +188,7 @@ const MaterialContainerList: React.FC = () => {
               />
               <button
                 type="button"
-                disabled={printLabels.isPending || qty < 1 || qty > 200}
+                disabled={isAnyPrintPending || qty < 1 || qty > 200}
                 onClick={() => runPrintLabels(false)}
                 className="bg-green-600 hover:bg-green-700 text-white font-medium py-1.5 px-3 rounded-md text-sm disabled:opacity-50"
               >
@@ -180,7 +220,7 @@ const MaterialContainerList: React.FC = () => {
 
       <PrinterMediaChangeDialog
         isOpen={pendingConfirm !== null}
-        isPending={printLabels.isPending}
+        isPending={printLabels.isPending || reprintLabel.isPending}
         onConfirm={() => pendingConfirm?.()}
         onCancel={() => setPendingConfirm(null)}
       />
@@ -249,6 +289,26 @@ const MaterialContainerList: React.FC = () => {
         </div>
       </div>
 
+      {reprintedCode && (
+        <div
+          role="status"
+          className="flex-shrink-0 mb-3 flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-900/50 dark:bg-green-900/20 dark:text-green-400"
+        >
+          <CheckCircle className="h-4 w-4" />
+          <span>{`Štítek ${reprintedCode} odeslán na tiskárnu.`}</span>
+        </div>
+      )}
+
+      {reprintError && (
+        <div
+          role="alert"
+          className="flex-shrink-0 mb-3 flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-400"
+        >
+          <AlertCircle className="h-4 w-4" />
+          <span>{reprintError}</span>
+        </div>
+      )}
+
       <div className="flex-1 bg-white dark:bg-graphite-surface shadow dark:shadow-soft-dark rounded-lg overflow-hidden flex flex-col min-h-0">
         <div className="flex-1 overflow-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-graphite-border">
@@ -261,6 +321,7 @@ const MaterialContainerList: React.FC = () => {
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Množství</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Vytvořeno</th>
                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-graphite-muted uppercase tracking-wider">Kdo</th>
+                <th scope="col" className="px-6 py-3"></th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-graphite-surface divide-y divide-gray-200 dark:divide-graphite-border">
@@ -273,6 +334,21 @@ const MaterialContainerList: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">{formatAmount(container.amount, container.unit)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">{formatDate(container.createdAt)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-graphite-muted">{container.createdBy}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                    {canReprint && (
+                    <button
+                      type="button"
+                      title={`Vytisknout štítek ${container.code}`}
+                      aria-label={`Dotisknout štítek ${container.code}`}
+                      disabled={isAnyPrintPending}
+                      onClick={() => runReprint(container.code!, false)}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-indigo-200 bg-white px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50 dark:border-indigo-900/50 dark:bg-transparent dark:text-indigo-400 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Printer className="h-4 w-4" />
+                      <span>Vytisknout</span>
+                    </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

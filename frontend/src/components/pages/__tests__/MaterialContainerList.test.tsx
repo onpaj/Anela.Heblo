@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import "@testing-library/jest-dom";
 import MaterialContainerList from "../MaterialContainerList";
+import { SwaggerException } from "../../../api/generated/api-client";
 import * as useMaterialContainersHooks from "../../../api/hooks/useMaterialContainers";
 
 jest.mock("../../../api/hooks/useMaterialContainers");
@@ -12,6 +13,13 @@ jest.mock("../../../telemetry/useScreenView", () => ({
 }));
 // The lot-label modal has its own hook/permission dependencies covered by its own test.
 jest.mock("../LotLabelPrintModal", () => () => null);
+// Plain function, not jest.fn(impl): CRA resetMocks would strip the implementation per test.
+let mockGrantedPermissions: string[] = ["manufacture.material_containers.write"];
+jest.mock("../../../auth/PermissionsContext", () => ({
+  usePermissionsContext: () => ({
+    hasPermission: (permission: string) => mockGrantedPermissions.includes(permission),
+  }),
+}));
 
 const mockHooks = useMaterialContainersHooks as jest.Mocked<
   typeof useMaterialContainersHooks
@@ -53,11 +61,19 @@ describe("MaterialContainerList", () => {
   const mockRefetch = jest.fn();
   const mockPrintMutate = jest.fn();
   const mockUsePrint = jest.fn();
+  const mockReprintMutate = jest.fn();
+  const mockUseReprint = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGrantedPermissions = ["manufacture.material_containers.write"];
     (mockHooks.useMaterialContainersList as jest.Mock) = mockUseList;
     (mockHooks.usePrintMaterialContainerLabels as jest.Mock) = mockUsePrint;
+    (mockHooks.useReprintMaterialContainerLabel as jest.Mock) = mockUseReprint;
+    mockUseReprint.mockReturnValue({
+      mutate: mockReprintMutate,
+      isPending: false,
+    });
     mockUseList.mockReturnValue({
       data: sampleResponse,
       isLoading: false,
@@ -154,6 +170,192 @@ describe("MaterialContainerList", () => {
     expect(
       screen.queryByTestId("printer-media-change-dialog"),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows reprint button per row and calls mutate with that code", () => {
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    fireEvent.click(screen.getByLabelText("Dotisknout štítek M00001234"));
+    expect(mockReprintMutate).toHaveBeenCalledWith(
+      { code: "M00001234", mediaChangeConfirmed: false },
+      expect.objectContaining({
+        onSuccess: expect.any(Function),
+        onError: expect.any(Function),
+      }),
+    );
+  });
+
+  it("hides the row reprint button from users without write permission", () => {
+    mockGrantedPermissions = ["manufacture.material_containers.read"];
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    expect(screen.getByText("M00001234")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Dotisknout štítek M00001234")).not.toBeInTheDocument();
+  });
+
+  it("disables every row's reprint button while a reprint is pending", () => {
+    // One useMutation instance only fires the latest mutate call's callbacks, so a second
+    // reprint must not be startable while the first is in flight.
+    mockUseReprint.mockReturnValue({ mutate: mockReprintMutate, isPending: true });
+    mockUseList.mockReturnValue({
+      data: {
+        ...sampleResponse,
+        containers: [
+          sampleResponse.containers[0],
+          { ...sampleResponse.containers[0], id: 2, code: "M00005678" },
+        ],
+      },
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+    });
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+
+    const first = screen.getByLabelText("Dotisknout štítek M00001234");
+    const second = screen.getByLabelText("Dotisknout štítek M00005678");
+    expect(first).toBeDisabled();
+    expect(second).toBeDisabled();
+    fireEvent.click(second);
+    expect(mockReprintMutate).not.toHaveBeenCalled();
+  });
+
+  it("clears a stale reprint error when the bulk print starts", () => {
+    mockReprintMutate.mockImplementation((_input, opts) =>
+      opts?.onError?.(
+        new SwaggerException(
+          "err",
+          400,
+          JSON.stringify({ errorCode: "UnknownMaterialContainerCode" }),
+          {},
+          null,
+        ),
+      ),
+    );
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    fireEvent.click(screen.getByLabelText("Dotisknout štítek M00001234"));
+    expect(
+      screen.getByText("Neznámý štítek – nejprve jej vygenerujte v aplikaci."),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Tisk štítků"));
+    fireEvent.click(screen.getByText("Vytisknout 10"));
+
+    expect(
+      screen.queryByText("Neznámý štítek – nejprve jej vygenerujte v aplikaci."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows reprint button for Discarded rows too", () => {
+    mockUseList.mockReturnValue({
+      data: {
+        ...sampleResponse,
+        containers: [{ ...sampleResponse.containers[0], status: "Discarded" }],
+      },
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+    });
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    expect(
+      screen.getByLabelText("Dotisknout štítek M00001234"),
+    ).toBeInTheDocument();
+  });
+
+  it("opens media-change dialog when response requires confirmation and resends confirmed", () => {
+    mockReprintMutate.mockImplementation((input, opts) =>
+      opts?.onSuccess?.({ requiresMediaChangeConfirmation: !input.mediaChangeConfirmed }),
+    );
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+
+    fireEvent.click(screen.getByLabelText("Dotisknout štítek M00001234"));
+    expect(screen.getByTestId("printer-media-change-dialog")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Pokračovat v tisku"));
+    expect(mockReprintMutate).toHaveBeenCalledTimes(2);
+    expect(mockReprintMutate.mock.calls[1][0]).toEqual({
+      code: "M00001234",
+      mediaChangeConfirmed: true,
+    });
+    expect(
+      screen.queryByTestId("printer-media-change-dialog"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows error text when reprint fails", () => {
+    mockReprintMutate.mockImplementation((_input, opts) =>
+      opts?.onError?.(
+        new SwaggerException(
+          "err",
+          400,
+          JSON.stringify({ errorCode: "UnknownMaterialContainerCode" }),
+          {},
+          null,
+        ),
+      ),
+    );
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    fireEvent.click(screen.getByLabelText("Dotisknout štítek M00001234"));
+    expect(
+      screen.getByText("Neznámý štítek – nejprve jej vygenerujte v aplikaci."),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a success notice after a reprint is printed", () => {
+    mockReprintMutate.mockImplementation((_input, opts) =>
+      opts?.onSuccess?.({ requiresMediaChangeConfirmation: false }),
+    );
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    fireEvent.click(screen.getByLabelText("Dotisknout štítek M00001234"));
+    expect(
+      screen.getByText("Štítek M00001234 odeslán na tiskárnu."),
+    ).toBeInTheDocument();
+  });
+
+  it("disables row reprint buttons while a bulk print is pending", () => {
+    mockUsePrint.mockReturnValue({ mutate: mockPrintMutate, isPending: true });
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    const button = screen.getByLabelText("Dotisknout štítek M00001234");
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(mockReprintMutate).not.toHaveBeenCalled();
+  });
+
+  it("cancelling the media-change dialog sends nothing", () => {
+    mockReprintMutate.mockImplementation((_input, opts) =>
+      opts?.onSuccess?.({ requiresMediaChangeConfirmation: true }),
+    );
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    fireEvent.click(screen.getByLabelText("Dotisknout štítek M00001234"));
+    fireEvent.click(screen.getByText("Zrušit"));
+    expect(mockReprintMutate).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByTestId("printer-media-change-dialog"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("error on the confirmed retry closes the dialog and shows the error", () => {
+    mockReprintMutate.mockImplementation((input, opts) => {
+      if (input.mediaChangeConfirmed) {
+        opts?.onError?.(
+          new SwaggerException(
+            "err",
+            400,
+            JSON.stringify({ errorCode: "UnknownMaterialContainerCode" }),
+            {},
+            null,
+          ),
+        );
+        return;
+      }
+      opts?.onSuccess?.({ requiresMediaChangeConfirmation: true });
+    });
+    render(<MaterialContainerList />, { wrapper: createWrapper });
+    fireEvent.click(screen.getByLabelText("Dotisknout štítek M00001234"));
+    fireEvent.click(screen.getByText("Pokračovat v tisku"));
+    expect(
+      screen.queryByTestId("printer-media-change-dialog"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Neznámý štítek – nejprve jej vygenerujte v aplikaci."),
+    ).toBeInTheDocument();
   });
 
   it("renders a Stav column with the container status", () => {

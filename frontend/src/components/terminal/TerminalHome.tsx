@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Package, ClipboardList, Tag, PackageSearch, PackagePlus, ScanText } from 'lucide-react';
+import { Package, ClipboardList, Tag, PackageSearch, PackagePlus, ScanText, Printer } from 'lucide-react';
 import { useScreenView } from '../../telemetry/useScreenView';
 import { useScanScreen } from './shell/useScanScreen';
 import { useTransportBoxByCodeQuery } from '../../api/hooks/useTransportBoxes';
@@ -61,6 +61,14 @@ const WORKFLOWS: WorkflowTile[] = [
     description: 'Vyfoťte štítek a zjistěte kód produktu',
     href: '/terminal/label-identification',
     icon: ScanText,
+    comingSoon: false,
+  },
+  {
+    id: 'reprint-label',
+    title: 'Dotisk štítku',
+    description: 'Naskenujte štítek kontejneru a vytiskněte jeho kopii',
+    href: '/terminal/reprint-label',
+    icon: Printer,
     comingSoon: false,
   },
 ];

@@ -142,4 +142,11 @@ describe('TerminalHome', () => {
       '/terminal/label-identification',
     );
   });
+
+  it('renders Dotisk štítku tile linking to /terminal/reprint-label', () => {
+    renderHome();
+    const tile = screen.getByTestId('workflow-tile-reprint-label');
+    expect(tile).toHaveTextContent('Dotisk štítku');
+    expect(tile).toHaveAttribute('href', '/terminal/reprint-label');
+  });
 });
