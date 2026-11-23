@@ -85,7 +85,7 @@ On demand, no schedule:
    code, from `ProductEnrichmentCache`. `AskQuestionSystemPrompt` gets `{context}`,
    `{products}`, `{query}` substituted; sent as system message + the question as user message.
 7. **Answer** by the KB-keyed chat client (`knowledge-base-answer`) = default Anthropic client
-   (`KnowledgeBase:ChatModel` `claude-sonnet-5-5`, max 1024 tokens) wrapped in
+   (`KnowledgeBase:ChatModel` `claude-sonnet-5-5`, max 4096 tokens) wrapped in
    `PostAnswerEnrichmentMiddleware`.
 8. **Product links** (middleware): `[Name](CODE)` → `[Name](product URL)`, or just `Name` when the
    product has no URL or the code is unknown. A bare `(CODE)` of a known product →

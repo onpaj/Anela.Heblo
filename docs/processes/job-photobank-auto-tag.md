@@ -80,7 +80,7 @@ recognition.
 | `Photobank:AutoTag:MaxPhotosPerRun` | 5000 | Upper bound of photos fetched per nightly run |
 | `Photobank:AutoTag:Model` | `claude-haiku-5-5` | Anthropic model id sent per request |
 | `Photobank:AutoTag:MaxTagsPerPhoto` | 5 | Cap of AI tags kept per photo |
-| `KnowledgeBase:ChatMaxTokens` | 1024 | Output-token limit of the shared Anthropic chat client (the job sets no own limit) |
+| `KnowledgeBase:ChatMaxTokens` | 4096 | Output-token limit of the shared Anthropic chat client (the job sets no own limit) |
 | `Anthropic:ApiKey` | secret | Anthropic API key |
 | `Anthropic:HttpTimeoutSeconds` | 180 | HTTP timeout of the Anthropic client |
 | `RecurringJobConfiguration` `photobank-auto-tag` | cron `0 4 * * *`, **disabled** | Schedule and on/off switch |
@@ -99,8 +99,8 @@ recognition.
   are picked up in later runs, so a backlog drains over several nights. Unit tests mock the
   repository and do not catch it. (Read from code, not observed.)
 - **A truncated LLM reply loses the whole batch silently.** The job sets no `MaxOutputTokens`,
-  so the shared client's limit (`KnowledgeBase:ChatMaxTokens`, 1024) applies; 50 results with up
-  to 5 tags each can approach it. Unparseable JSON falls back to "no results" and the batch is
+  so the shared client's limit (`KnowledgeBase:ChatMaxTokens`, 4096) applies; 50 results with up
+  to 5 tags each rarely approach it (it was 1024 before 2026-11-23). Unparseable JSON falls back to "no results" and the batch is
   still stamped as done, so those photos never get AI tags unless re-tagged. (Read from code,
   not observed.)
 - **A reply listing the same photo id twice fails the run.** The "already has this tag" check reads the DB and cannot see the batch's unsaved inserts, so a repeated id with the same tag inserts a duplicate (`PhotoId`, `TagId`) and `SaveChanges` throws; unlike an LLM error this is not caught. (Read from code, not observed.)

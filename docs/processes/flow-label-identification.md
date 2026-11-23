@@ -120,7 +120,7 @@ Screen states (`LabelIdentificationScreen.tsx`): capture → *Čtu štítek…* 
 | `LabelIdentification:LowConfidenceFloor` | 60 (code default) | Below this the result is `Low` |
 | `LabelIdentification:MaxImageEdge` | 2048 (code default) | Longest edge in px sent to the model |
 | `KnowledgeBase:ChatModel` | `claude-sonnet-5-5` | Model used for the OCR call (shared with the knowledge base chat) |
-| `KnowledgeBase:ChatMaxTokens` | 1024 | Max output tokens of the OCR reply (shared) |
+| `KnowledgeBase:ChatMaxTokens` | 4096 | Max output tokens of the OCR reply (shared) |
 | `Anthropic:ApiKey` | empty (Key Vault) | Anthropic API key; empty → every photo fails with 3304 |
 | `Anthropic:HttpTimeoutSeconds` | 180 | HTTP timeout of the Anthropic client |
 
@@ -141,7 +141,7 @@ weights 0.7/0.3, 3 candidates.
   015/030 choice is trusted.
 - **Shared model setting**: the OCR follows `KnowledgeBase:ChatModel`/`ChatMaxTokens`; changing
   the knowledge-base chat model silently changes the label reader. A very long INCI list could
-  be cut at 1024 output tokens; the fuzzy match usually still finds the family.
+  be cut at 4096 output tokens; the fuzzy match usually still finds the family.
 - **Permission mismatch**: the endpoint needs Katalog read (`Products_Catalog`) while the
   Terminal menu needs `Warehouse_Logistics`; a terminal user without Katalog read gets HTTP 403,
   which the UI cannot parse and shows as *Služba rozpoznávání není dostupná* (3304 text) —
