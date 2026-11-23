@@ -115,8 +115,21 @@ public class AnthropicChatClient : IChatClient
 
         var text = result?.Content?.FirstOrDefault(b => b.Type == "text")?.Text ?? string.Empty;
 
-        return new ChatResponse([new ChatMessage(ChatRole.Assistant, text)]);
+        return new ChatResponse([new ChatMessage(ChatRole.Assistant, text)])
+        {
+            FinishReason = MapStopReason(result?.StopReason)
+        };
     }
+
+    private static ChatFinishReason? MapStopReason(string? stopReason) => stopReason switch
+    {
+        "max_tokens" => ChatFinishReason.Length,
+        "end_turn" or "stop_sequence" => ChatFinishReason.Stop,
+        "tool_use" => ChatFinishReason.ToolCalls,
+        "refusal" => ChatFinishReason.ContentFilter,
+        null or "" => null,
+        _ => new ChatFinishReason(stopReason)
+    };
 
     public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
         IEnumerable<ChatMessage> chatMessages,
@@ -194,6 +207,9 @@ public class AnthropicChatClient : IChatClient
     {
         [JsonPropertyName("content")]
         public List<AnthropicContentBlock>? Content { get; set; }
+
+        [JsonPropertyName("stop_reason")]
+        public string? StopReason { get; set; }
     }
 
     private sealed class AnthropicContentBlock

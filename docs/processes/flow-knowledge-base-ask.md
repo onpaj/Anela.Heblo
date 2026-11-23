@@ -85,7 +85,7 @@ On demand, no schedule:
    code, from `ProductEnrichmentCache`. `AskQuestionSystemPrompt` gets `{context}`,
    `{products}`, `{query}` substituted; sent as system message + the question as user message.
 7. **Answer** by the KB-keyed chat client (`knowledge-base-answer`) = default Anthropic client
-   (`KnowledgeBase:ChatModel` `claude-sonnet-5-5`, max 1024 tokens) wrapped in
+   (`KnowledgeBase:ChatModel` `claude-sonnet-5-5`, max 4096 tokens) wrapped in
    `PostAnswerEnrichmentMiddleware`.
 8. **Product links** (middleware): `[Name](CODE)` → `[Name](product URL)`, or just `Name` when the
    product has no URL or the code is unknown. A bare `(CODE)` of a known product →
@@ -137,14 +137,17 @@ On demand, no schedule:
 | `KnowledgeBase:QueryExpansionPrompt` | Czech prompt in `KnowledgeBaseOptions` | Rewrite + tagging instructions; an override must keep the JSON shape and `{EXISTING_TAGS}`, or tagging silently stops (no KV/App Setting override in prod as of 2026-10-14) |
 | `KnowledgeBase:MinSimilarityScore` | 0.55 | Chunk cut-off |
 | `KnowledgeBase:AskQuestionSystemPrompt` | Czech advisor prompt in `KnowledgeBaseOptions` | Answer prompt with `{context}`, `{products}`, `{query}` |
-| `KnowledgeBase:ChatModel` / `ChatMaxTokens` | `claude-sonnet-5-5` / 1024 | Answer model (app-wide default client) |
+| `KnowledgeBase:ChatModel` / `ChatMaxTokens` | `claude-sonnet-5-5` / 4096 | Answer model (app-wide default client); `ChatMaxTokens` is passed explicitly as the answer's output cap and is also the adapter-wide fallback `max_tokens` for callers that pass none |
 | `KnowledgeBase:EmbeddingModel` / `EmbeddingDimensions` | `text-embedding-3-large` / 1536 | Query embedding; must match ingestion |
 | `KnowledgeBase:ProductEnrichmentCacheTtlMinutes` | 60 | Product link cache lifetime |
 | `KnowledgeBase:MaxRetrievedChunks` | 5 | **Not read anywhere**; `topK` comes from the request |
 | `Anthropic:HttpTimeoutSeconds` | 180 | HTTP timeout of the Claude client |
 
 ## Runtime facts
-None.
+- **2026-11-23: answers were cut off mid-sentence in prod** (v3.170.0) at the old 1024-token cap —
+  a Czech answer with several product links exceeds it, and the cut landed inside an unfinished
+  `[Name](CODE)` link, which then rendered as raw `[Name…`. The cap is now 4096 and a truncated
+  answer (`stop_reason = max_tokens`) logs a warning "KnowledgeBase/Ask answer truncated…".
 
 ## Known quirks
 - **Questions asked before the tagging deploy (2026-10) have no tags** — a backfill job is

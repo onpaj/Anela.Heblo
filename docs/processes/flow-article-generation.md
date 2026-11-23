@@ -168,7 +168,7 @@ prompts.
 | `WebSearch:ApiKey` | empty (secret) | SerpApi key; missing key with provider SerpApi fails every web query |
 | `WebSearch:Endpoint` | `https://serpapi.com/search.json` | SerpApi endpoint |
 | `WebSearch:TimeoutSeconds` | 15 | Per-request HTTP timeout (`SerpApi` client) |
-| `KnowledgeBase:ChatMaxTokens` | 1024 | Default output cap used by the fact check (it sets none) |
+| `KnowledgeBase:ChatMaxTokens` | 4096 | Default output cap used by the fact check (it sets none) |
 | `KnowledgeBase:MinSimilarityScore` | 0.55 | KB chunk relevance threshold |
 | `Anthropic:HttpTimeoutSeconds` | 180 | Per Claude call |
 | `Anthropic:ApiKey`, `OpenAI:ApiKey` | secrets | Claude / embeddings |
@@ -196,7 +196,7 @@ None.
 - **The fact check does not filter anything.** The `reliable` flag is ignored; unreliable facts
   are passed to the writer with a note. Notes are matched by position, so a reply that skips
   or reorders facts attaches notes to the wrong claims. Any failure is swallowed. It uses the
-  shared `KnowledgeBase:ChatMaxTokens` (1024) cap, so a long fact list can be truncated → no
+  shared `KnowledgeBase:ChatMaxTokens` (4096) cap, so a long fact list can be truncated → no
   notes.
 - **Long articles may be cut off.** The writer must return the whole HTML inside JSON, capped
   at `WriteMaxTokens` = 4096 in appsettings (the class default is 8192). A `long (2000w)`
