@@ -88,6 +88,34 @@ public class AnthropicChatClientTests
         Assert.Equal(expectedText, response.Text);
     }
 
+    [Theory]
+    [InlineData("max_tokens", "length")]
+    [InlineData("end_turn", "stop")]
+    [InlineData("stop_sequence", "stop")]
+    public async Task GetResponseAsync_MapsStopReasonToFinishReason(string stopReason, string expectedFinishReason)
+    {
+        var json = JsonSerializer.Serialize(new
+        {
+            content = new[] { new { type = "text", text = "cut off mid-sen" } },
+            stop_reason = stopReason
+        });
+        var client = CreateClient(handler: CreateHandlerMock(HttpStatusCode.OK, json).Object);
+
+        var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Hi")]);
+
+        response.FinishReason.Should().Be(new ChatFinishReason(expectedFinishReason));
+    }
+
+    [Fact]
+    public async Task GetResponseAsync_NoStopReason_LeavesFinishReasonNull()
+    {
+        var client = CreateClient(handler: CreateHandlerMock(HttpStatusCode.OK, BuildSuccessJson("hi")).Object);
+
+        var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Hi")]);
+
+        response.FinishReason.Should().BeNull();
+    }
+
     [Fact]
     public async Task GetResponseAsync_ApiKeyNotConfigured_ThrowsInvalidOperationException()
     {

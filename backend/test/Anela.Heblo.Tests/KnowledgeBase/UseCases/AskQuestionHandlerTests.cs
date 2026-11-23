@@ -80,6 +80,51 @@ public class AskQuestionHandlerTests
     }
 
     [Fact]
+    public async Task Handle_PassesConfiguredMaxOutputTokensToChatClient()
+    {
+        // Arrange
+        SetupEmptyCache();
+        SetupSearchWithChunk();
+        ChatOptions? capturedOptions = null;
+        _chatClient
+            .Setup(c => c.GetResponseAsync(It.IsAny<IEnumerable<ChatMessage>>(), It.IsAny<ChatOptions?>(), It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<ChatMessage>, ChatOptions?, CancellationToken>((_, o, _) => capturedOptions = o)
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "odpověď")]));
+
+        // Act
+        await CreateHandler(new KnowledgeBaseOptions { ChatMaxTokens = 4096 }).Handle(
+            new AskQuestionRequest { Question = "Co doporučuješ?", TopK = 5 }, default);
+
+        // Assert
+        Assert.NotNull(capturedOptions);
+        Assert.Equal(4096, capturedOptions!.MaxOutputTokens);
+    }
+
+    [Fact]
+    public async Task Handle_AnswerTruncatedByTokenLimit_LogsWarning()
+    {
+        // Arrange
+        SetupEmptyCache();
+        SetupSearchWithChunk();
+        _chatClient
+            .Setup(c => c.GetResponseAsync(It.IsAny<IEnumerable<ChatMessage>>(), It.IsAny<ChatOptions?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ChatResponse([new ChatMessage(ChatRole.Assistant, "useknutá odpov")]) { FinishReason = ChatFinishReason.Length });
+
+        // Act
+        var result = await CreateHandler().Handle(
+            new AskQuestionRequest { Question = "Co doporučuješ?", TopK = 5 }, default);
+
+        // Assert
+        Assert.Equal("useknutá odpov", result.Answer);
+        _logger.Verify(l => l.Log(
+            LogLevel.Warning,
+            It.IsAny<EventId>(),
+            It.Is<It.IsAnyType>((v, _) => v.ToString()!.Contains("truncated")),
+            It.IsAny<Exception?>(),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [Fact]
     public async Task Handle_EmptyChunks_ReturnsFallbackAnswerWithNoSources()
     {
         SetupEmptyCache();

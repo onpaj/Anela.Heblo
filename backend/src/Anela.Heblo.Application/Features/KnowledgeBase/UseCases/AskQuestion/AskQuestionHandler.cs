@@ -76,7 +76,8 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
         ChatResponse response;
         try
         {
-            response = await _chatClient.GetResponseAsync(messages, cancellationToken: cancellationToken);
+            var chatOptions = new ChatOptions { MaxOutputTokens = _options.ChatMaxTokens };
+            response = await _chatClient.GetResponseAsync(messages, chatOptions, cancellationToken);
         }
         catch (Exception ex) when (ex is HttpRequestException or TimeoutException or TaskCanceledException or ObjectDisposedException)
         {
@@ -89,6 +90,13 @@ public class AskQuestionHandler : IRequestHandler<AskQuestionRequest, AskQuestio
         }
 
         var answer = response.Text ?? string.Empty;
+
+        if (response.FinishReason == ChatFinishReason.Length)
+        {
+            _logger.LogWarning(
+                "KnowledgeBase/Ask answer truncated at the {MaxOutputTokens}-token limit ({AnswerLength} chars); raise KnowledgeBase:ChatMaxTokens",
+                _options.ChatMaxTokens, answer.Length);
+        }
 
         _recorder.RecordInteraction(RagFeature.KnowledgeBase, request.Question, systemPrompt, answer);
         _recorder.RecordRecommendedProducts(ReadRecommendedCodes(response));
