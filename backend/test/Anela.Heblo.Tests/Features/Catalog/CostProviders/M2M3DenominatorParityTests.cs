@@ -108,7 +108,8 @@ public class M2M3DenominatorParityTests
             BuildServiceProvider(products),
             ledgerMock.Object,
             new Mock<ILogger<SalesCostProvider>>().Object,
-            Options.Create(new DataSourceOptions { ManufactureCostHistoryDays = HistoryDays }));
+            Options.Create(new DataSourceOptions { ManufactureCostHistoryDays = HistoryDays }),
+            TimeProvider.System);
 
         await provider.RefreshAsync();
 
