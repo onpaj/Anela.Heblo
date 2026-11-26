@@ -34,6 +34,12 @@ describe('ExplainModal', () => {
     expect(screen.getByText('Vysvětlení')).toBeInTheDocument();
   });
 
+  it('shows explanation without transcript section when relevantTranscript is empty', () => {
+    render(<ExplainModal {...baseProps} relevantTranscript="" explanation="Vysvětlení není k dispozici." />);
+    expect(screen.getByText('Vysvětlení není k dispozici.')).toBeInTheDocument();
+    expect(screen.queryByText('Záznam konverzace')).not.toBeInTheDocument();
+  });
+
   it('shows error message when error is set', () => {
     render(<ExplainModal {...baseProps} error="Něco se pokazilo" />);
     expect(screen.getByText('Něco se pokazilo')).toBeInTheDocument();
