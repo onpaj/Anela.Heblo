@@ -43,7 +43,7 @@ public static class AccessMatrix
         new FeatureDefinition(Feature.Marketing_AdApprovals, "Schvalování kampaní", HasWrite: true, HasAdmin: true),
         new FeatureDefinition(Feature.Marketing_AdApprovalsViaMcp, "Schvalování přes Claude"),
         new FeatureDefinition(Feature.Anela_Meetings, "Schůzky", HasWrite: true),
-        new FeatureDefinition(Feature.Anela_OrgChart, "Organigram"),
+        new FeatureDefinition(Feature.Anela_OrgChart, "Organigram", HasWrite: true),
         new FeatureDefinition(Feature.Anela_MindMaps, "Myšlenkové mapy", HasWrite: true),
         new FeatureDefinition(Feature.Anela_ProcessDocs, "Procesní dokumentace"),
         new FeatureDefinition(Feature.Reporting_WebAnalytics, "Data: Google Analytics"),

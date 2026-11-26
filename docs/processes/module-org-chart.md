@@ -24,6 +24,10 @@ in Heblo.
 - **Sidebar → Anela → Struktura** (menu key `#org-chart`) opens the **external** site
   `https://orgchart.anela.cz` in a new tab (`Sidebar.tsx` → `openOrgChart`). It does **not**
   open Heblo's own page. Shown only to users with permission `anela.org_chart.read`.
+  That site (separate repo `onpaj/OrgChart`) asks Heblo who may use it: its backend exchanges
+  the user's token on-behalf-of for a Heblo token and calls `GET /api/auth/me`. Viewing needs
+  `anela.org_chart.read`, editing needs `anela.org_chart.write` (seed group Vedeni holds both;
+  Heblo `super_user` passes both). Editing happens only on that site; Heblo has no edit screen.
 - **`/orgchart`** (`OrgChartPage.tsx`) — Heblo's own rendering of the same data: a tree of
   position cards (title, department, description, holders; primary holder highlighted),
   filters by department and by depth level, zoom, and counters (positions, employees).
@@ -72,13 +76,19 @@ the external JSON file and in each browser's React Query cache.
   value and host cannot be determined from the repo). Because the request carries no
   credentials, the URL must be publicly readable or carry its own token (e.g. a SAS query
   string).
-- **`https://orgchart.anela.cz`** — separate external site the sidebar links to; Heblo does
-  not call it and its relation to the JSON file is not visible in the repo.
+- **`https://orgchart.anela.cz`** — separate external site the sidebar links to (repo
+  `onpaj/OrgChart`, Entra apps `AnelaOrgChartFrontEnd` / `AnelaOrgChart`). Heblo does not call
+  it; **it calls Heblo** — `GET /api/auth/me` on behalf of the signed-in user (Entra OBO,
+  `AnelaOrgChart` is pre-authorized on Heblo-Service `access_as_user`) — to decide read vs.
+  edit from `anela.org_chart.read` / `anela.org_chart.write`. Its relation to the JSON file is
+  not visible in this repo.
 
 ## Dependencies
 - Reads from no other Heblo module. Uses only the shared authorization (`FeatureAuthorize`,
   generated access matrix) and `BaseResponse` / `ErrorCodes`.
-- No other module reads from it.
+- No other Heblo module reads from it. The external OrgChart app depends on Heblo's
+  `GET /api/auth/me` and on the two `anela.org_chart.*` permissions; if Heblo is unreachable
+  that app denies access.
 
 ## Known quirks
 - **Two org charts.** The menu item "Struktura" opens the external `orgchart.anela.cz`, not
