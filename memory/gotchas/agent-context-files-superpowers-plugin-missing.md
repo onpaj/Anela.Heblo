@@ -32,3 +32,21 @@ session start, the same way it has repeatedly reverted the `gh_api.sh` Content-T
 fix (see `memory/gotchas/gh-cli-unavailable-in-cloud-sessions.md`). If this regresses
 again, the permanent fix belongs upstream in `onpaj/harness`, not just in this repo's
 checked-in copy.
+
+**Confirmed recurring, 2026-09-17** on a `/plan-next-task` run for issue #4210: found
+`.agents/planner.md`'s `context_files` back on the broken
+`~/.claude/plugins/cache/*/...` glob on `main`, and `.agents/developer.md` and
+`.agents/brainstorm.md` broken the same way. `git log` on each file shows the pattern
+predicted by `memory/gotchas/gh-cli-unavailable-in-cloud-sessions.md`'s "Root cause of
+the repeat-revert loop" section: innocuous-looking commits like `d7584a34` ("chore:
+update skill paths...") and `f7a3e77d` ("chore: update subagent-driven-development
+skill path in developer agent config") are a later session accidentally *committing*
+the SessionStart hook's uncommitted `agentharness init --force` revert instead of
+discarding it with `git checkout --`/`git restore` as that note instructs. Re-applied
+the fix to all three files plus this note (PR from branch
+`fix/agent-context-files-superpowers-plugin-regression`) — but per the note above,
+expect this to regress again the next time a session commits the hook's dirty diff
+without checking `git status`/`git diff` first. If you're that session: a dirty
+`.agents/`/`.claude/` tree right after a fresh checkout, showing exactly these
+plugin-cache paths reappearing, is the hook, not real work — discard it, don't commit
+it.
