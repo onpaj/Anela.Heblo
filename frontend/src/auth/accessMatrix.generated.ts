@@ -125,6 +125,7 @@ export const ACCESS_ROLES = [
   "anela.meetings.read",
   "anela.meetings.write",
   "anela.org_chart.read",
+  "anela.org_chart.write",
   "anela.mind_maps.read",
   "anela.mind_maps.write",
   "anela.process_docs.read",

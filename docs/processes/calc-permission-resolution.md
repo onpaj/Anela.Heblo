@@ -75,8 +75,8 @@ Two developer-run steps produce the inputs (not scheduled, not run at deploy):
    `access-matrix-entra.generated.json` (Entra app-role manifest with deterministic role ids,
    `DeterministicGuid.ForRole`).
 3. `GET /api/admin/authorization/catalogue` (`GetPermissionCatalogueHandler`) serves the list
-   to the group editor's permission picker. With the current JSON that is **79** permission
-   strings (47 `.read`, 30 `.write`, 2 `.admin` — `marketing.photobank.admin`, `marketing.ad_approvals.admin`).
+   to the group editor's permission picker. With the current JSON that is **81** permission
+   strings (48 `.read`, 31 `.write`, 2 `.admin` — `marketing.photobank.admin`, `marketing.ad_approvals.admin`).
 
 **B. Groups in the database (one-off bootstrap)**
 4. `JsonGroupSeeder.AddMissingGroupsAsync` inserts every `seedGroups` entry whose `Name` does
@@ -150,8 +150,8 @@ super user's panel shows only their group permissions.
 | `UseMockAuth` / E2E session | `false` (`true` in `appsettings.Test.json`) | Mock and E2E users carry `super_user` and so see everything |
 
 Seed groups (`seedGroups`, as written in the JSON — production may differ):
-Spravce (75 of 79 permissions; lacks `finance.price_analysis.read`, `finance.price_analysis.write`, `marketing.ad_approvals.read`, `warehouse.stock_override.read`), Vedeni (38), Vedouci_vyroby (15), Marketer (14),
-Vedouci_skladu (13), Skladnik (11), Ucetni (9), Nakupci (6), Pracovnik_vyroby (6),
+Spravce (76 of 81 permissions; lacks `anela.org_chart.write`, `finance.price_analysis.read`, `finance.price_analysis.write`, `marketing.ad_approvals.read`, `warehouse.stock_override.read`), Vedeni (40), Vedouci_vyroby (15), Marketer (14),
+Vedouci_skladu (14), Skladnik (11), Ucetni (9), Nakupci (6), Pracovnik_vyroby (6),
 Eshop_Administrator (5), Marketing_Chief (4), Marketing_Specialist (3), Poradenstvi (3),
 AccessManager (3: `admin.administration.read/.write`, `anela.process_docs.read`),
 Zamestnanec (3), Marketing_Agent (2: ads read/write only — for agent service identities).
